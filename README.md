@@ -1,73 +1,64 @@
-# Welcome to your Lovable project
+# MikoIDE - Rebuilt from Scratch with Monaco
 
-## Project info
+![MikoIDE Screenshot](extras/images/app.png)
 
-**URL**: https://lovable.dev/projects/450ac872-26dd-4e61-921a-4ab405ab7c59
+**MikoIDE** is a completely rebuilt open-source code editor designed to be **faster, lighter, and more stable than VSCode** while keeping a familiar developer experience and API compatibility.
 
-## How can I edit this code?
+> This is **not a fork of VSCode**. We built the entire core from scratch and only use **Monaco Editor** (the text engine behind VSCode) as a component.
 
-There are several ways of editing your application.
+---
 
-**Use Lovable**
+## What makes it different from VSCode?
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/450ac872-26dd-4e61-921a-4ab405ab7c59) and start prompting.
+* **C++ Core + CEF** → No more Electron overhead
+* **Monaco Editor** integrated for full compatibility with themes and editor features
+* **Bun.js + Vite** for the UI → Say goodbye to massive `node_modules`
+* **Extension Sandbox** → Each extension runs isolated, reducing memory leaks and CPU spikes
+* **Cross-platform** from day one (Windows, macOS, Linux)
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## Build from scratch
 
-**Use your preferred IDE**
+### Requirements
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+* CMake 3.25+
+* Bun.js 1.1+
+* Python 3.10+
+* VS2022 / Xcode / GCC
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Steps
 
-Follow these steps:
+```bash
+# Install UI dependencies
+bun install
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Build C++ core with CEF
+cmake -S app -B build
+cmake --build build --config Release
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+# Run in dev mode
+bun run dev
 ```
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Roadmap
 
-**Use GitHub Codespaces**
+* [ ] VSCode-compatible extension API layer
+* [ ] Native debugger core
+* [ ] Full extension sandboxing (process isolation + WASM)
+* [ ] Remote development support (SSH / Cloud)
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+---
 
-## What technologies are used for this project?
+## License
 
-This project is built with:
+MIT License
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Credits:
 
-## How can I deploy this project?
+* [Monaco Editor](https://github.com/microsoft/monaco-editor)
+* [Chromium Embedded Framework (CEF)](https://bitbucket.org/chromiumembedded/cef)
+* [Bun.js](https://bun.sh)
+* [Cef Simple with Vue.js Template - I adapt to React WebUI](https://github.com/paulocoutinhox/cef-sample)
 
-Simply open [Lovable](https://lovable.dev/projects/450ac872-26dd-4e61-921a-4ab405ab7c59) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)

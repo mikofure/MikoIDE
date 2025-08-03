@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { IDESidebar } from './IDESidebar';
 import { TabBar } from './TabBar';
 import { CodeEditor } from './CodeEditor';
@@ -6,7 +6,11 @@ import { Terminal } from './Terminal';
 import { useIDEStore } from '@/store/ide-store';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 
-export const IDELayout = () => {
+interface IDELayoutProps {
+  children?: React.ReactNode;
+}
+
+export function IDELayout({ children }: IDELayoutProps) {
   const { theme, terminalVisible, sidebarCollapsed, sidebarWidth, setSidebarWidth, terminalHeight, setTerminalHeight } = useIDEStore();
 
   useEffect(() => {
@@ -19,7 +23,7 @@ export const IDELayout = () => {
   const sidebarDefaultSize = sidebarCollapsed ? 0 : (sidebarWidth / window.innerWidth) * 100;
 
   return (
-    <div className="h-screen w-full flex bg-background text-foreground overflow-hidden">
+    <div className="h-screen w-screen flex flex-col bg-background dark:bg-background">
       <ResizablePanelGroup direction="horizontal">
         {/* Sidebar Panel */}
         {!sidebarCollapsed && (
@@ -78,6 +82,8 @@ export const IDELayout = () => {
           </ResizablePanelGroup>
         </ResizablePanel>
       </ResizablePanelGroup>
+
+      {children}
     </div>
   );
-};
+}

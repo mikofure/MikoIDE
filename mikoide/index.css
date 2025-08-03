@@ -1,8 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-/* ... existing code ... */
-@import 'xterm/css/xterm.css';
+@import "tailwindcss";
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */
@@ -12,172 +9,45 @@ All colors MUST be HSL.
 }
 
 @layer base {
-  :root {
-    /* IDE Light Theme (Xcode inspired) */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 13%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 13%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 13%;
-
-    --primary: 211 100% 43%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 13%;
-
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
-
-    --accent: 0 0% 96%;
-    --accent-foreground: 211 100% 43%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 211 100% 43%;
-
-    --radius: 0.375rem;
-
-    /* IDE Specific Colors (Xcode) */
-    --editor-bg: 0 0% 100%;
-    --editor-sidebar: 0 0% 97%;
-    --editor-panel: 0 0% 95%;
-    --editor-border: 0 0% 88%;
-    --editor-tab-active: 211 100% 43%;
-    --editor-tab-inactive: 0 0% 60%;
-    --editor-accent: 211 100% 43%;
-    --editor-accent-glow: 211 100% 85%;
-    --editor-success: 120 100% 25%;
-    --editor-warning: 39 100% 50%;
-    --editor-error: 0 100% 50%;
-
-    /* Sidebar Variables */
-    --sidebar-background: 220 15% 97%;
-    --sidebar-foreground: 220 20% 15%;
-    --sidebar-primary: 260 100% 70%;
-    --sidebar-primary-foreground: 250 100% 99%;
-    --sidebar-accent: 250 100% 94%;
-    --sidebar-accent-foreground: 260 100% 70%;
-    --sidebar-border: 220 15% 88%;
-    --sidebar-ring: 260 100% 70%;
-
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(260 100% 70%), hsl(280 100% 75%));
-    --gradient-accent: linear-gradient(135deg, hsl(250 100% 94%), hsl(260 100% 85%));
-    
-    /* Shadows */
-    --shadow-glow: 0 0 20px hsl(260 100% 70% / 0.3);
-    --shadow-panel: 0 2px 10px hsl(220 20% 15% / 0.1);
-    
-    /* Animations */
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .dark {
-    /* IDE Dark Theme (Xcode dark) */
-    --background: 0 0% 7%;
-    --foreground: 0 0% 95%;
-
-    --card: 0 0% 9%;
-    --card-foreground: 0 0% 95%;
-
-    --popover: 0 0% 9%;
-    --popover-foreground: 0 0% 95%;
-
-    --primary: 211 100% 50%;
-    --primary-foreground: 0 0% 7%;
-
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 0 0% 95%;
-
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 65%;
-
-    --accent: 0 0% 14%;
-    --accent-foreground: 211 100% 50%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 7%;
-
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 211 100% 50%;
-
-    /* IDE Specific Dark Colors (Xcode) */
-    --editor-bg: 0 0% 7%;
-    --editor-sidebar: 0 0% 9%;
-    --editor-panel: 0 0% 11%;
-    --editor-border: 0 0% 20%;
-    --editor-tab-active: 211 100% 50%;
-    --editor-tab-inactive: 0 0% 50%;
-    --editor-accent: 211 100% 50%;
-    --editor-accent-glow: 211 100% 40%;
-    --editor-success: 120 100% 40%;
-    --editor-warning: 39 100% 60%;
-    --editor-error: 0 100% 60%;
-
-    /* Sidebar Variables */
-    --sidebar-background: 220 15% 10%;
-    --sidebar-foreground: 220 20% 92%;
-    --sidebar-primary: 260 100% 70%;
-    --sidebar-primary-foreground: 220 15% 8%;
-    --sidebar-accent: 220 15% 16%;
-    --sidebar-accent-foreground: 260 100% 70%;
-    --sidebar-border: 220 15% 18%;
-    --sidebar-ring: 260 100% 70%;
-
-    /* Dark Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(260 100% 70%), hsl(280 100% 65%));
-    --gradient-accent: linear-gradient(135deg, hsl(220 15% 16%), hsl(260 100% 20%));
-    
-    /* Dark Shadows */
-    --shadow-glow: 0 0 20px hsl(260 100% 70% / 0.4);
-    --shadow-panel: 0 2px 10px hsl(220 15% 4% / 0.8);
-  }
-}
-
-@layer base {
   * {
-    @apply border-border;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    text-decoration: none;
+    color: inherit;
   }
 
   body {
-    @apply bg-background text-foreground;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto
   }
-}
 
-@layer base {
   :root {
-    /* Terminal Variables */
-    --terminal-background: 0 0% 98%;
-    --terminal-foreground: 0 0% 13%;
-    --terminal-header: 0 0% 95%;
-    --terminal-hover: 0 0% 92%;
-    --terminal-border: 0 0% 88%;
+    --terminal-bg: hsl(220 13% 10%);
+    --terminal-fg: hsl(220 13% 90%);
   }
 
-  .dark {
-    /* Terminal Dark Variables */
-    --terminal-background: 0 0% 8%;
-    --terminal-foreground: 0 0% 95%;
-    --terminal-header: 0 0% 10%;
-    --terminal-hover: 0 0% 15%;
-    --terminal-border: 0 0% 20%;
+  /* Terminal container styles */
+  .xterm {
+    height: 100%;
+    padding: 0.5rem;
+  }
+  
+  .xterm-viewport {
+    width: 100% !important;
+    height: 100% !important;
+  }
+  
+  .xterm-screen {
+    width: 100% !important;
+    height: 100% !important;
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
+@layer utilities {
+  .drag {
+    -webkit-app-region: drag;
   }
-
-  body {
-    @apply bg-background text-foreground;
+  .no-drag {
+    -webkit-app-region: no-drag;
   }
 }

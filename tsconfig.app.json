@@ -23,8 +23,8 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./mikoide/*"]
     }
   },
-  "include": ["src"]
+  "include": ["mikoide"]
 }

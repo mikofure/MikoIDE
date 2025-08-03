@@ -92,7 +92,7 @@ export const CodeEditor = () => {
 
   if (!activeTab) {
     return (
-      <div className="flex-1 bg-editor-bg flex items-center justify-center">
+      <div className="flex-1 bg-editor-bg dark:bg-editor-bg flex items-center justify-center">
         <div className="text-center text-muted-foreground">
           <div className="text-6xl mb-4">📝</div>
           <h2 className="text-xl font-semibold mb-2">No file open</h2>
@@ -103,7 +103,7 @@ export const CodeEditor = () => {
   }
 
   return (
-    <div className="flex-1 bg-editor-bg h-full">
+    <div className="flex-1 bg-editor-bg dark:bg-editor-bg h-full">
       <Editor
         height="100%"
         defaultLanguage={activeTab.language}

@@ -60,9 +60,9 @@ export const IDESidebar = () => {
   };
 
   return (
-    <div className="flex h-full bg-sidebar border-r border-sidebar-border">
+    <div className="flex h-full bg-sidebar dark:bg-sidebar border-r border-sidebar-border">
       {/* Activity Bar */}
-      <div className="w-10 bg-editor-sidebar border-r border-editor-border flex flex-col">
+      <div className="w-10 bg-editor-sidebar dark:bg-editor-sidebar border-r border-editor-border flex flex-col">
         {/* Panel Icons */}
         <div className="flex-1">
           {sidebarPanels.map((panel) => (

@@ -2,107 +2,94 @@ import { useEffect, useRef, useState } from 'react';
 import { Terminal as TerminalIcon, X, Minus, Square, ChevronDown, Plus, Columns2, Trash } from 'lucide-react';
 import { useIDEStore } from '@/store/ide-store';
 import { cn } from '@/lib/utils';
+import { themeColors } from '@/lib/theme';
+import { SimpleTerminal } from './SimpleTerminal';
 import { Terminal } from 'xterm';
-import { FitAddon } from '@xterm/addon-fit';
-import { WebLinksAddon } from '@xterm/addon-web-links';
 
 export const TerminalComponent = () => {
   const { terminalVisible, setTerminalVisible } = useIDEStore();
   const terminalRef = useRef<HTMLDivElement>(null);
   const [terminal, setTerminal] = useState<Terminal | null>(null);
-  const [terminalId, setTerminalId] = useState<string | null>(null);
-  const fitAddon = useRef<FitAddon>(new FitAddon());
 
   useEffect(() => {
     if (!terminalRef.current || !terminalVisible) return;
 
+    const theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 
+      themeColors.dark.terminal : 
+      themeColors.light.terminal;
+
     // Initialize xterm.js terminal
     const term = new Terminal({
       theme: {
-        background: '#1e1e1e',
-        foreground: '#d4d4d4',
-        cursor: '#ffffff',
-        black: '#000000',
-        red: '#cd3131',
-        green: '#0dbc79',
-        yellow: '#e5e510',
-        blue: '#2472c8',
-        magenta: '#bc3fbc',
-        cyan: '#11a8cd',
-        white: '#e5e5e5',
-        brightBlack: '#666666',
-        brightRed: '#f14c4c',
-        brightGreen: '#23d18b',
-        brightYellow: '#f5f543',
-        brightBlue: '#3b8eea',
-        brightMagenta: '#d670d6',
-        brightCyan: '#29b8db',
-        brightWhite: '#e5e5e5'
+        background: theme.bg,
+        foreground: theme.fg,
+        cursor: theme.cursor,
+        cursorAccent: theme.cursorAccent,
+        black: theme.black,
+        red: theme.red,
+        green: theme.green,
+        yellow: theme.yellow,
+        blue: theme.blue,
+        magenta: theme.magenta,
+        cyan: theme.cyan,
+        white: theme.white,
+        brightBlack: theme.brightBlack,
+        brightRed: theme.brightRed,
+        brightGreen: theme.brightGreen,
+        brightYellow: theme.brightYellow,
+        brightBlue: theme.brightBlue,
+        brightMagenta: theme.brightMagenta,
+        brightCyan: theme.brightCyan,
+        brightWhite: theme.brightWhite
       },
       fontSize: 14,
-      fontFamily: 'Consolas, "Courier New", monospace',
+      fontFamily: 'JetBrains Mono, Consolas, monospace',
+      lineHeight: 1.5,
       cursorBlink: true,
+      cursorStyle: 'block',
       allowTransparency: true,
       rows: 24,
-      cols: 80
+      cols: 80,
+      scrollback: 5000,
+      fastScrollModifier: 'alt',
+      fastScrollSensitivity: 5,
     });
 
-    // Add addons
-    term.loadAddon(fitAddon.current);
-    term.loadAddon(new WebLinksAddon());
-
-    // Open terminal in the DOM
+    // Open terminal and focus
     term.open(terminalRef.current);
+    term.focus();
     
-    // Fit terminal to container
-    setTimeout(() => {
-      fitAddon.current.fit();
-    }, 100);
+    // Initial fit after DOM is ready
+    requestAnimationFrame(() => {
+      term.write('\x1b[1;36mWelcome to MikoIDE Terminal\x1b[0m\r\n\$ ');
+    });
 
-    setTerminal(term);
-
-    // Create terminal process via Electron IPC
-    if (window.electronAPI) {
-      window.electronAPI.terminal.create().then((id: string) => {
-        setTerminalId(id);
-        
-        // Listen for data from terminal process
-        window.electronAPI.terminal.onData(id, (data: string) => {
-          term.write(data);
-        });
-
-        // Listen for terminal exit
-        window.electronAPI.terminal.onExit(id, (code: number) => {
-          term.write(`\r\n\r\nProcess exited with code ${code}\r\n`);
-        });
-      });
-    }
-
-    // Handle user input
+    // Handle user input with command simulation
     term.onData((data) => {
-      if (terminalId && window.electronAPI) {
-        window.electronAPI.terminal.write(terminalId, data);
+      term.write(data);
+      if (data === '\r') {
+        term.write('\n\$ ');
       }
     });
 
-    // Handle resize
+    // Handle resize with debounce
+    let resizeTimeout: NodeJS.Timeout;
     const handleResize = () => {
-      if (fitAddon.current && term) {
-        fitAddon.current.fit();
-        if (terminalId && window.electronAPI) {
-          const { cols, rows } = term;
-          window.electronAPI.terminal.resize(terminalId, cols, rows);
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        if (term) {
+          //@ts-expect-error
+          term.fit();
         }
-      }
+      }, 100);
     };
 
     window.addEventListener('resize', handleResize);
-
+    
+    // Clean up
     return () => {
+      clearTimeout(resizeTimeout);
       window.removeEventListener('resize', handleResize);
-      if (terminalId && window.electronAPI) {
-        window.electronAPI.terminal.kill(terminalId);
-      }
       term.dispose();
     };
   }, [terminalVisible]);
@@ -118,8 +105,8 @@ export const TerminalComponent = () => {
   };
 
   const handleKillTerminal = () => {
-    if (terminalId && window.electronAPI) {
-      window.electronAPI.terminal.kill(terminalId);
+    if (terminal) {
+      terminal.clear();
     }
   };
 
@@ -132,16 +119,19 @@ export const TerminalComponent = () => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-terminal">
-      {/* Terminal Header - Keep existing UI */}
-      <div className="flex items-center justify-between px-3 py-1">
+    <div className={`flex flex-col h-full bg-[${themeColors.dark.terminal.bg}]`}>
+      <div className={`flex items-center justify-between px-3 py-1 bg-[${themeColors.dark.terminal.toolbar}]`}>
         <div className="flex items-center gap-2">
-          <TerminalIcon size={14} className="text-terminal-foreground" />
-          <span className="text-sm font-medium text-terminal-foreground">Terminal</span>
+          <TerminalIcon size={14} className={`text-[${themeColors.light.terminal.fg}] dark:text-[${themeColors.dark.terminal.fg}]`} />
+          <span className={`text-sm font-medium text-[${themeColors.light.terminal.fg}] dark:text-[${themeColors.dark.terminal.fg}]`}>Terminal</span>
         </div>
         <div className="flex items-center gap-1">
           <div className='flex items-center space-x-1 pr-2'>
-            <button className='text-xs font-semibold bg-[#272b33] text-terminal-foreground px-2 py-1 rounded-full'>
+            <button className={`text-xs font-semibold 
+              bg-[${themeColors.light.terminal.button}] dark:bg-[${themeColors.dark.terminal.button}]
+              text-[${themeColors.light.terminal.fg}] dark:text-[${themeColors.dark.terminal.fg}]
+              hover:bg-[${themeColors.light.terminal.buttonHover}] dark:hover:bg-[${themeColors.dark.terminal.buttonHover}]
+              px-2 py-1 rounded-full transition-colors`}>
               <p>Powershell</p>
             </button>
             <div className='flex items-center'>
@@ -190,13 +180,10 @@ export const TerminalComponent = () => {
         </div>
       </div>
 
-      {/* Terminal Content - Replace with xterm.js */}
-      <div className="flex-1 min-h-0 p-3">
-        <div 
-          ref={terminalRef} 
-          className="w-full h-full"
-          style={{ minHeight: '300px' }}
-        />
+      <div className="flex-1 min-h-0 p-3 relative">
+        <div className="w-full h-full absolute inset-0 overflow-hidden">
+          <SimpleTerminal />
+        </div>
       </div>
     </div>
   );

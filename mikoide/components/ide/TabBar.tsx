@@ -16,44 +16,27 @@ export const TabBar = () => {
   
   if (tabs.length === 0) {
     return (
-      <div 
-        className="relative bg-editor-panel border-b border-editor-border/50 h-10" 
-        style={{ 
-          WebkitAppRegion: 'drag',
-          WebkitUserSelect: 'none'
-        } as React.CSSProperties}
-      />
+      <div className="relative bg-editor-panel dark:bg-editor-panel border-b border-editor-border/50 h-10 select-none [&]:drag" />
     );
   }
 
   return (
-    <div 
-      className="relative bg-editor-panel border-b border-editor-border/50" 
-      style={{ 
-        WebkitAppRegion: 'drag',
-        WebkitUserSelect: 'none'
-      } as React.CSSProperties}
-    >
+    <div className="relative bg-editor-panel dark:bg-editor-panel border-b border-editor-border/50 select-none [&]:drag">
       {/* Floating tab container */}
-      <div 
-        className="flex items-center gap-1 px-3 py-[5px] overflow-x-auto scrollbar-hide pr-32" 
-        style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
-      >
+      <div className="flex items-center gap-1 px-3 py-[5px] overflow-x-auto scrollbar-hide pr-32 [&]:drag">
         {tabs.map((tab, index) => (
           <div
             key={tab.id}
             className={cn(
               "relative flex items-center gap-2 px-3 py-1.5 text-sm cursor-pointer group min-w-0 max-w-48 transition-all duration-200 ease-out",
               "rounded-lg backdrop-blur-sm",
+              "translate-y-0 [&[data-active=true]]:translate-y-[-1px] [&[data-active=true]]:no-drag",
               activeTabId === tab.id
                 ? "bg-editor-bg shadow-lg shadow-black/10 text-foreground scale-[1.02] z-10 border border-editor-border/30"
                 : "bg-editor-panel/80 text-muted-foreground hover:bg-editor-bg/60 hover:scale-[1.01] hover:shadow-md hover:shadow-black/5 border border-transparent hover:border-editor-border/20"
             )}
             onClick={() => setActiveTab(tab.id)}
-            style={{
-              transform: activeTabId === tab.id ? 'translateY(-1px)' : 'translateY(0px)',
-              WebkitAppRegion: 'no-drag'
-            } as React.CSSProperties}
+            data-active={activeTabId === tab.id}
           >
             {/* Floating active indicator */}
             {activeTabId === tab.id && (
@@ -128,10 +111,9 @@ export const TabBar = () => {
           "flex items-center justify-center w-8 h-8 ml-2 rounded-lg transition-all duration-200",
           "text-muted-foreground hover:text-foreground",
           "hover:bg-editor-bg/60 hover:scale-105",
-          "border border-transparent hover:border-editor-border/20"
-        )}
-        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-        >
+          "border border-transparent hover:border-editor-border/20",
+          "no-drag"
+        )}>
           <svg width="12" height="12" viewBox="0 0 12 12" className="fill-current">
             <path d="M6.5 1.5v4h4v1h-4v4h-1v-4h-4v-1h4v-4h1z"/>
           </svg>
