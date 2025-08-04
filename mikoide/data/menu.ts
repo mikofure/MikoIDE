@@ -170,6 +170,27 @@ const editorMenu: MenuSection[] = [
                     { label: "Merge", action: "git.merge" },
                     { label: "View Diff", action: "git.diff" }
                 ]
+            },
+            { label: "Database Viewer", action: "tools.databaseViewer" },
+            { label: "Toolchain Manager", action: "tools.toolchainManager" },
+            { label: "API Tester", action: "tools.apiTester" },
+            { label: "Environment Manager", action: "tools.envManager" },
+            { label: "System Inspector", action: "tools.systemInspector" },
+            { label: "Task Manager", action: "tools.taskManager" },
+            { label: "Memory Profiler", action: "tools.memoryProfiler" },
+            { label: "CEF Debugger", action: "tools.cefDebugger" },
+            { label: "RPC Monitor", action: "tools.rpcMonitor" },
+            { label: "MessageBox Tester", action: "tools.messageBoxTester" },
+            { label: "Windowed Mode Debugger", action: "tools.windowedDebugger" },
+            {
+                label: "Advanced Options",
+                submenu: [
+                    { label: "Open Dev Config", action: "tools.advanced.devConfig" },
+                    { label: "Reload Window", action: "tools.advanced.reloadWindow" },
+                    { label: "Reload UI", action: "tools.advanced.reloadUI" },
+                    { label: "Restart Application", action: "tools.advanced.restartApp" },
+                    { label: "Open Logs Folder", action: "tools.advanced.logsFolder" }
+                ]
             }
         ]
     },

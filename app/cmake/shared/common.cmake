@@ -14,7 +14,7 @@ elseif(OS_WINDOWS)
   set(SHARED_COMPATIBILITY_MANIFEST ../../resources/windows/compatibility.manifest)
 endif()
 
-set(SHARED_ASSETS_SRCS ../../assets)
+set(SHARED_ASSETS_SRCS ../../mikoide/dist)
 
 #
 # Shared configuration
