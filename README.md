@@ -191,10 +191,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- **CEF Team** - For the amazing Chromium Embedded Framework
+- **CEF** - For the ultimate performance Chromium Embedded Framework
 - **Monaco Editor** - For the powerful code editor
-- **SolidJS Team** - For the reactive UI framework
-- **Vite Team** - For the fast build tool
+- **SolidJS** - For the reactive UI framework
+- **Vite** - For the fast build tool
 
 ---
 
