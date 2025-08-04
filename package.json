@@ -1,11 +1,13 @@
 {
-  "name": "learingfuck",
+  "name": "mikoide",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:win": "concurrently \"vite\" \"cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug && cmake --build build --config Debug && build/Debug/MikoIDE.exe\"",
     "build": "tsc -b && vite build",
+    "build:release": "npm run build && cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -17,8 +19,9 @@
     "tailwindcss": "^4.1.11"
   },
   "devDependencies": {
-    "typescript": "~5.8.3",
-    "vite": "^7.0.4",
-    "vite-plugin-solid": "^2.11.7"
+    "concurrently": "^9.2.0",
+    "typescript": "5.9.2",
+    "vite": "^7.0.6",
+    "vite-plugin-solid": "^2.11.8"
   }
 }
