@@ -1,7 +1,8 @@
 import { onMount, onCleanup } from "solid-js";
 import * as monaco from "monaco-editor";
 import "../../styles/monaco.css";
-
+import { ChevronRight } from "lucide-solid";
+import TypescriptIcon from "../../assets/images/typescript/ts-logo-128.svg";
 interface CodeEditorProps {
     onWordCountChange?: (words: number, chars: number) => void;
     onCursorPositionChange?: (line: number, col: number) => void;
@@ -89,10 +90,20 @@ hello("Aika");
     });
 
     return (
-        <div class="flex flex-col h-full w-full">
+        <div class="flex flex-col h-full w-full select-none">
             {/* Header */}
             <div class="text-xs text-gray-300 px-3 py-1 truncate border-b border-neutral-800">
-                src/index.ts
+                <div class="flex items-center gap-1">
+                    <p>src</p>
+                    <ChevronRight class="w-4 h-4 opacity-50" />
+                    <div class="flex space-x-1 items-center">
+                        <div
+                            class="w-3 h-3 bg-contain bg-center"
+                            style={{ "background-image": `url(${TypescriptIcon})` }}
+                        />
+                        <span>index.ts</span>
+                    </div>
+                </div>
             </div>
 
             {/* Monaco Editor */}
