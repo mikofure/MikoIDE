@@ -10,6 +10,8 @@
 
 A modern, cross-platform Integrated Development Environment (IDE) built with cutting-edge web technologies and native performance.
 
+![](./resources/uipreview.png)
+
 ## 🚀 Features
 
 - **Cross-Platform**: Runs natively on Windows, macOS, and Linux
