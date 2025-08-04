@@ -1,0 +1,52 @@
+/* titlebar.css */
+.wdc_close::before,
+.wdc_min::before,
+.wdc_max::before {
+  font-family: "Segoe Fluent Icons";
+  font-size: 10px;
+  display: inline-block;
+}
+
+.wdc_close::before {
+  content: "\E8BB";
+}
+
+.wdc_min::before {
+  content: "\E921";
+}
+
+.wdc_max::before {
+  content: "\E922";
+}
+
+.wdc_max.restore::before {
+  content: "\E923";
+}
+
+
+.wdc_min, .wdc_max, .wdc_close,.wdc_max.restore {
+  -webkit-app-region: no-drag;
+}
+
+.wdc_close:hover {
+  background: #e81123;
+}
+
+.wdc_min:hover,
+.wdc_max:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+button {
+  border: none;
+  outline: none;
+  cursor: pointer;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+::placeholder {
+  font-family: Inter, monospace;
+}

@@ -5,11 +5,11 @@ set(CMAKE_CONFIGURATION_TYPES Debug Release)
 # Project configuration
 #
 
-project("MyApp")
+project("MikoIDE")
 
 # CEF configuration
 set_property(GLOBAL PROPERTY OS_FOLDERS ON)
-set(CEF_VERSION "137.0.10+g7e14fe1+chromium-137.0.7151.69")
+set(CEF_VERSION "138.0.34+ga94b31b+chromium-138.0.7204.184")
 
 # Determine the platform
 if(NOT DEFINED CEF_PLATFORM)
