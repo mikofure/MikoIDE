@@ -2,7 +2,7 @@
 
 #include <string>
 
-const std::string APP_NAME = "MikoIDE";
+const std::string APP_NAME = "My App";
 const std::string ASSETS_PATH = "assets";
 
 // use this config when develop and test webapp locally (cd webapp && npm run serve)

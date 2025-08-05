@@ -57,12 +57,12 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "FileDescription", "MikoIDE - Ultimate Coding Editor"
+            VALUE "FileDescription", "My App"
             VALUE "FileVersion", CEF_VERSION
-            VALUE "InternalName", "MikoIDE"
-            VALUE "LegalCopyright", "Copyright (C) " MAKE_STRING(COPYRIGHT_YEAR) " Mikofure Project"
-            VALUE "OriginalFilename", "MikoIDE.exe"
-            VALUE "ProductName", "MikoIDE"
+            VALUE "InternalName", "My App"
+            VALUE "LegalCopyright", "Copyright (C) " MAKE_STRING(COPYRIGHT_YEAR) " Paulo Coutinho"
+            VALUE "OriginalFilename", "MyApp.exe"
+            VALUE "ProductName", "My App"
             VALUE "ProductVersion", CEF_VERSION
         END
     END
