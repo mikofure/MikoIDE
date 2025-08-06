@@ -21,7 +21,7 @@ MikoIDE is a modern, cross-platform IDE built with:
 - **Frontend**: SolidJS + TypeScript + TailwindCSS + Monaco Editor
 - **Native Shell**: CEF (Chromium Embedded Framework) + C++
 - **Build System**: CMake + Python automation + Vite
-- **Package Manager**: Bun (preferred) or npm
+- **Package Manager**: Bun (preferred) or npm, pnpm
 
 ## 🚀 Development Setup
 
