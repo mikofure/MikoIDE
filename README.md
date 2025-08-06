@@ -21,6 +21,7 @@ A modern, cross-platform Integrated Development Environment (IDE) built with cut
 - **Customizable**: Xcode-inspired dark theme with customizable fonts and layout
 - **Real-time Stats**: Live word count, character count, and cursor position tracking
 - **Resizable Panels**: Flexible sidebar and workspace layout
+- **Code Capture**: Screenshot functionality with gradient borders and animations
 
 ## 🛠️ Technology Stack
 
@@ -31,6 +32,7 @@ A modern, cross-platform Integrated Development Environment (IDE) built with cut
 - **TailwindCSS** - Utility-first CSS framework
 - **Vite** - Fast build tool and dev server
 - **Lucide Icons** - Beautiful icon library
+- **Motion One** - Smooth animations and transitions
 
 ### Native Shell
 - **CEF (Chromium Embedded Framework)** - Native app wrapper
@@ -131,6 +133,7 @@ mikolite/
 - **Resizable Sidebar**: Drag to resize the file explorer
 - **Custom Title Bar**: Native-looking title bar across platforms
 - **Status Bar**: Shows editor statistics and status information
+- **Animated Capture**: Screenshot functionality with gradient borders and smooth animations
 
 ### Cross-Platform Support
 - **Windows**: Native Windows application with installer
@@ -179,11 +182,24 @@ python script/make.py format
 
 ## 🤝 Contributing
 
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for detailed information on:
+
+- Development setup and prerequisites
+- Project architecture and code organization
+- Development workflow and build system
+- Code style guidelines and best practices
+- Testing procedures
+- Pull request process
+
+Quick start for contributors:
+
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'Add amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
+3. Follow the setup instructions in [CONTRIBUTING.md](CONTRIBUTING.md)
+4. Make your changes and test thoroughly
+5. Submit a pull request
+
+For detailed instructions, please read the [Contributing Guide](CONTRIBUTING.md).
 
 ## 📄 License
 
@@ -195,8 +211,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Monaco Editor** - For the powerful code editor
 - **SolidJS** - For the reactive UI framework
 - **Vite** - For the fast build tool
+- **Motion One** - For smooth animations and transitions
 
 ---
 
 **MikoIDE** - Building the future of code editing, one commit at a time. 🚀
-        
