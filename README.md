@@ -182,7 +182,7 @@ python script/make.py format
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for detailed information on:
+We welcome contributions! Please see our [Contributing Guide](Contributing.md) for detailed information on:
 
 - Development setup and prerequisites
 - Project architecture and code organization
@@ -195,7 +195,7 @@ Quick start for contributors:
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Follow the setup instructions in [CONTRIBUTING.md](CONTRIBUTING.md)
+3. Follow the setup instructions in [CONTRIBUTING.md](Contributing.md)
 4. Make your changes and test thoroughly
 5. Submit a pull request
 
