@@ -5,6 +5,8 @@ import CodeEditor from "../components/editor/editor";
 import StatusBar from "../components/statusbar";
 import { loadFontsWithFallback } from "../assets/fonts/index"; // 👈 use fallback version
 
+import Capture from "../components/interface/capture";
+
 function App() {
   const [sidebarWidth, setSidebarWidth] = createSignal(300);
   const [words, setWords] = createSignal(0);
@@ -12,6 +14,11 @@ function App() {
   const [line, setLine] = createSignal(1);
   const [col, setCol] = createSignal(1);
   const [fontsLoaded, setFontsLoaded] = createSignal(false);
+  const [showCapture, setShowCapture] = createSignal(false);
+
+  const handleCaptureClick = () => {
+    setShowCapture(true);
+  };
 
   // โหลดฟอนต์ตอนเริ่ม
   onMount(async () => {
@@ -24,6 +31,25 @@ function App() {
       console.warn("❌ Font loading failed completely:", error);
       setFontsLoaded(true); // Still continue with system fonts
     }
+
+    // Add keyboard shortcut listener
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.altKey && e.key === 'F') {
+        e.preventDefault();
+        setShowCapture(true);
+      }
+      // ESC to close capture
+      if (e.key === 'Escape' && showCapture()) {
+        setShowCapture(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    
+    // Cleanup
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   });
 
   return (
@@ -33,8 +59,16 @@ function App() {
         <div class="fixed top-0 left-0 w-full h-1 bg-blue-500 animate-pulse z-50" />
       )}
       
+      {/* Show capture overlay when active */}
+      {showCapture() && (
+        <Capture 
+          onClose={() => setShowCapture(false)}
+          targetElementId="code-editor-workspace"
+        />
+      )}
+      
       {/* TitleBar */}
-      <TitleBar />
+      <TitleBar onCaptureClick={handleCaptureClick} />
 
       {/* Content area */}
       <div class="flex flex-1 overflow-hidden pt-[40px] p-2 space-x-2">
@@ -42,9 +76,11 @@ function App() {
 
         {/* Workspace */}
         <div
+          id="code-editor-workspace"
           class="flex-1 bg-neutral-900 rounded-md border border-neutral-800"
           style={{ "min-width": "0" }} // เพื่อให้ flex ทำงานปกติ
         >
+          {/* ให้แคปตรงนี้ */}
           <CodeEditor
             onWordCountChange={(w, c) => {
               setWords(w);

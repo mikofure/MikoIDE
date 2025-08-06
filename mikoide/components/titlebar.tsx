@@ -1,9 +1,13 @@
 // import { createSignal } from "solid-js";
 import MenuBar from "./menubar"; // 👈 import
-import { Search, PanelLeft, PanelBottom, PanelRight, LayoutGrid } from "lucide-solid";
+import { Search, PanelLeft, PanelBottom, PanelRight, LayoutGrid, Aperture } from "lucide-solid";
 import "../styles/titlebar.css";
 
-function TitleBar() {
+interface TitleBarProps {
+  onCaptureClick?: () => void;
+}
+
+function TitleBar(props: TitleBarProps) {
     // const [isRestored, setIsRestored] = createSignal(false);
 
     return (
@@ -27,6 +31,14 @@ function TitleBar() {
 
             {/* ขวา */}
             <div class="flex gap-1 ml-auto h-full">
+                {/* capture button */}
+                <button 
+                    class="p-2 w-8 h-full hover:bg-white/10 transition-colors rounded"
+                    onClick={props.onCaptureClick}
+                    title="Capture Code Editor (Ctrl+Alt+F)"
+                >
+                    <Aperture class="w-4 h-4" />
+                </button>
                 <button class="p-2 w-8 h-full">
                     <PanelLeft class="w-4 h-4" />
                 </button>
