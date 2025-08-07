@@ -33,16 +33,21 @@ async function installNSIS(installerPath: string): Promise<void> {
 }
 
 function getDefaultNSISPath(): string {
-  // Default NSIS path on Windows x64 and x86
+  const userProfile = process.env.USERPROFILE || process.env.HOME || 'C:\\Users\\Default';
+  const scoopShim = path.join(userProfile, 'scoop', 'shims', 'makensis.exe');
+
   const possiblePaths = [
+    scoopShim,
     path.join('C:', 'Program Files (x86)', 'NSIS', 'makensis.exe'),
     path.join('C:', 'Program Files', 'NSIS', 'makensis.exe'),
   ];
+
   for (const p of possiblePaths) {
     if (fs.existsSync(p)) return p;
   }
-  return possiblePaths[0]; // fallback
+  return possiblePaths[0]; // fallback to scoopShim
 }
+
 
 async function ensureNSISExists(): Promise<string> {
   const nsisPath = getDefaultNSISPath();
