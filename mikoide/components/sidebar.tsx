@@ -104,7 +104,7 @@ function SideBar(props: SideBarProps) {
                         onClick={() => setActivePage('git')}
                         title="Source Control"
                     >
-                        <div class="w-4 h-4 bg-center bg-cover" style={{ "background-image": `url(${GitSrcControl})` }} />
+                        <img src={GitSrcControl} alt="Git" class="w-4 h-4" />
                     </button>
                     <button 
                         class={`flex items-center gap-2 hover:text-white transition-colors ${
@@ -149,7 +149,7 @@ function SideBar(props: SideBarProps) {
                         onClick={() => setActivePage('cmake')}
                         title="CMake Tools"
                     >
-                        <div class="w-4 h-4 bg-center bg-cover" style={{ "background-image": `url(${CmakeIcon})` }} />
+                        <img src={CmakeIcon} alt="CMake" class="w-4 h-4" />
                     </button>
                 </div>
                 <div>

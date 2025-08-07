@@ -130,7 +130,7 @@ function Explorer() {
                         <p class="text-gray-400 mb-4 text-xs">No folder opened</p>
                         <button
                             onClick={handleOpenFolder}
-                            class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
+                            class="px-3 py-1.5 bg-white text-black hover:bg-gray-400 text-xs rounded transition-colors"
                         >
                             Open Folder
                         </button>
