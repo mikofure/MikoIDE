@@ -79,14 +79,19 @@ function runTask(task: string): void {
     process.exit(1);
   }
   
-  log.info(`Running task: ${task}`);
+  const startTime = Date.now();
+  log.info(`[${getTimestamp()}] Running task: ${task}`);
   config.setMakeTask(task);
   
   try {
     TASKS[task]();
-    log.ok(`Task completed: ${task}`);
+    const endTime = Date.now();
+    const duration = ((endTime - startTime) / 1000).toFixed(3);
+    log.ok(`[${getTimestamp()}] Task completed: ${task} (${duration}s)`);
   } catch (error: any) {
-    log.error(`Task failed: ${task}`);
+    const endTime = Date.now();
+    const duration = ((endTime - startTime) / 1000).toFixed(3);
+    log.error(`[${getTimestamp()}] Task failed: ${task} (${duration}s)`);
     log.error(error.message);
     process.exit(1);
   }
@@ -130,6 +135,17 @@ function main(): void {
   });
   
   program.parse();
+}
+
+/**
+ * Get current timestamp in seconds.milliseconds format
+ * @returns formatted timestamp string
+ */
+function getTimestamp(): string {
+  const now = new Date();
+  const seconds = Math.floor(now.getTime() / 1000);
+  const milliseconds = now.getMilliseconds().toString().padStart(3, '0');
+  return `${seconds}.${milliseconds}`;
 }
 
 // Export for use as a module

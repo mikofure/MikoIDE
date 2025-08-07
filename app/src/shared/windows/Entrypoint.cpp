@@ -70,6 +70,10 @@ int APIENTRY wWinMain(HINSTANCE hInstance)
     settings.no_sandbox = true;
 #endif
 
+    // Set cache directories to app directory
+    CefString(&settings.root_cache_path).FromWString(L".");
+    CefString(&settings.cache_path).FromWString(L".");
+
     // Initialize CEF for the browser process.
     // The first browser instance will be created in CefBrowserProcessHandler::OnContextInitialized() after CEF has been initialized.
     CefInitialize(mainArgs, settings, app, sandboxInfo);

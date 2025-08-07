@@ -10,8 +10,8 @@
     "build:frontend": "tsc -b && vite build",
     "build:cli:win": "cd cli && zig build -Dtarget=x86_64-windows && copy zig-out/bin/mikoide.exe ../build/release/bin/mikoide.exe",
     "build:cli:linux": "cd cli && zig build -Dtarget=x86_64-linux && cp zig-out/bin/mikoide ../build/release/bin/mikoide",
-    "build:release:win": "pip install -r script/requirements.txt && bun run build:frontend && xcopy dist app/assets /E /Y && cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release",
-    "build:release:linux": "pip install -r script/requirements.txt && bun run build:frontend && cp -r dist/* app/assets && python3 ./script/make.py build"
+    "build:release:win": "bun run build:frontend && bun run script/make.ts build && bun run script/postprocessing/buildinstall.ts",
+    "build:release:linux": "bun run build:frontend && bun run ./script/make.ts build"
   },
   "dependencies": {
     "@motionone/solid": "^10.16.4",
@@ -19,6 +19,7 @@
     "commander": "^14.0.0",
     "file-saver": "^2.0.5",
     "lucide-solid": "^0.536.0",
+    "makensis": "^3.0.1",
     "monaco-editor": "^0.52.2",
     "sass": "^1.89.2",
     "simple-icons": "^15.9.0",

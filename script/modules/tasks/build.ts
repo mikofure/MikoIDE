@@ -14,9 +14,13 @@ import * as config from '../config';
  */
 export function runTaskBuildDefault(): void {
   if (checkCmake()) {
+    const startTime = Date.now();
+    log.info(`[${getTimestamp()}] Starting Visual Studio build...`);
+    
     const rootDir = file.rootDir();
     const buildDir = path.join(rootDir, 'build');
 
+    log.info(`[${getTimestamp()}] Cleaning build directory...`);
     file.removeDir(buildDir);
     file.createDir(buildDir);
 
@@ -28,6 +32,7 @@ export function runTaskBuildDefault(): void {
       `-DCMAKE_BUILD_TYPE=${config.buildType}`
     ];
 
+    log.info(`[${getTimestamp()}] Configuring project with CMake...`);
     runner.run(cmakeGenerateArgs, rootDir);
 
     const cmakeBuildArgs = [
@@ -38,7 +43,12 @@ export function runTaskBuildDefault(): void {
       '-v'
     ];
 
+    log.info(`[${getTimestamp()}] Building project...`);
     runner.run(cmakeBuildArgs, rootDir);
+    
+    const endTime = Date.now();
+    const duration = ((endTime - startTime) / 1000).toFixed(3);
+    log.ok(`[${getTimestamp()}] Visual Studio build completed in ${duration} seconds`);
   }
 }
 
@@ -47,9 +57,13 @@ export function runTaskBuildDefault(): void {
  */
 export function runTaskBuildNinja(): void {
   if (checkCmake()) {
+    const startTime = Date.now();
+    log.info(`[${getTimestamp()}] Starting Ninja build...`);
+    
     const rootDir = file.rootDir();
     const buildDir = path.join(rootDir, 'build');
 
+    log.info(`[${getTimestamp()}] Cleaning build directory...`);
     file.removeDir(buildDir);
     file.createDir(buildDir);
 
@@ -60,6 +74,7 @@ export function runTaskBuildNinja(): void {
       `-DCMAKE_BUILD_TYPE=${config.buildType}`,
       '-G', 'Ninja'
     ];
+    log.info(`[${getTimestamp()}] Configuring project with CMake (Ninja)...`);
     runner.run(runArgs, rootDir);
 
     const buildArgs = [
@@ -69,7 +84,12 @@ export function runTaskBuildNinja(): void {
       '--config', config.buildType,
       '-v'
     ];
+    log.info(`[${getTimestamp()}] Building project with Ninja...`);
     runner.run(buildArgs, rootDir);
+    
+    const endTime = Date.now();
+    const duration = ((endTime - startTime) / 1000).toFixed(3);
+    log.ok(`[${getTimestamp()}] Ninja build completed in ${duration} seconds`);
   }
 }
 
@@ -78,9 +98,13 @@ export function runTaskBuildNinja(): void {
  */
 export function runTaskBuildXcode(): void {
   if (checkCmake()) {
+    const startTime = Date.now();
+    log.info(`[${getTimestamp()}] Starting Xcode build...`);
+    
     const rootDir = file.rootDir();
     const buildDir = path.join(rootDir, 'build');
 
+    log.info(`[${getTimestamp()}] Cleaning build directory...`);
     file.removeDir(buildDir);
     file.createDir(buildDir);
 
@@ -91,6 +115,7 @@ export function runTaskBuildXcode(): void {
       `-DCMAKE_BUILD_TYPE=${config.buildType}`,
       '-G', 'Xcode'
     ];
+    log.info(`[${getTimestamp()}] Configuring project with CMake (Xcode)...`);
     runner.run(runArgs, rootDir);
 
     const buildArgs = [
@@ -100,7 +125,12 @@ export function runTaskBuildXcode(): void {
       '--config', config.buildType,
       '-v'
     ];
+    log.info(`[${getTimestamp()}] Building project with Xcode...`);
     runner.run(buildArgs, rootDir);
+    
+    const endTime = Date.now();
+    const duration = ((endTime - startTime) / 1000).toFixed(3);
+    log.ok(`[${getTimestamp()}] Xcode build completed in ${duration} seconds`);
   }
 }
 
@@ -109,6 +139,9 @@ export function runTaskBuildXcode(): void {
  */
 export function runTaskBuildLinuxArm(): void {
   if (checkDocker()) {
+    const startTime = Date.now();
+    log.info(`[${getTimestamp()}] Starting Linux ARM build...`);
+    
     const targetName = 'linux-arm';
     const platformName = 'linux/arm/v7';
     const platformArch = 'arm';
@@ -119,7 +152,7 @@ export function runTaskBuildLinuxArm(): void {
     const dockerDir = path.join(rootDir, 'docker', targetName);
 
     // Build docker image
-    log.info('Building docker image...');
+    log.info(`[${getTimestamp()}] Building docker image...`);
 
     const dockerBuildArgs = [
       'docker',
@@ -132,13 +165,13 @@ export function runTaskBuildLinuxArm(): void {
     runner.run(dockerBuildArgs, dockerDir);
 
     // Remove old files
-    log.info('Removing old files...');
+    log.info(`[${getTimestamp()}] Removing old files...`);
 
     file.removeDir(buildDir);
     file.createDir(buildDir);
 
     // Config project
-    log.info('Configuring project...');
+    log.info(`[${getTimestamp()}] Configuring project...`);
 
     const configArgs = [
       'docker',
@@ -157,7 +190,7 @@ export function runTaskBuildLinuxArm(): void {
     runner.run(configArgs, rootDir);
 
     // Build project
-    log.info('Building project...');
+    log.info(`[${getTimestamp()}] Building project...`);
 
     const buildArgs = [
       'docker',
@@ -172,6 +205,10 @@ export function runTaskBuildLinuxArm(): void {
       '--config', config.buildType
     ];
     runner.run(buildArgs, rootDir);
+    
+    const endTime = Date.now();
+    const duration = ((endTime - startTime) / 1000).toFixed(3);
+    log.ok(`[${getTimestamp()}] Linux ARM build completed in ${duration} seconds`);
   }
 }
 
@@ -180,6 +217,9 @@ export function runTaskBuildLinuxArm(): void {
  */
 export function runTaskBuildLinuxArm64(): void {
   if (checkDocker()) {
+    const startTime = Date.now();
+    log.info(`[${getTimestamp()}] Starting Linux ARM64 build...`);
+    
     const targetName = 'linux-arm64';
     const platformName = 'linux/arm64';
     const platformArch = 'arm64';
@@ -190,7 +230,7 @@ export function runTaskBuildLinuxArm64(): void {
     const dockerDir = path.join(rootDir, 'docker', targetName);
 
     // Build docker image
-    log.info('Building docker image...');
+    log.info(`[${getTimestamp()}] Building docker image...`);
 
     const dockerBuildArgs = [
       'docker',
@@ -203,13 +243,13 @@ export function runTaskBuildLinuxArm64(): void {
     runner.run(dockerBuildArgs, dockerDir);
 
     // Remove old files
-    log.info('Removing old files...');
+    log.info(`[${getTimestamp()}] Removing old files...`);
 
     file.removeDir(buildDir);
     file.createDir(buildDir);
 
     // Config project
-    log.info('Configuring project...');
+    log.info(`[${getTimestamp()}] Configuring project...`);
 
     const configArgs = [
       'docker',
@@ -228,7 +268,7 @@ export function runTaskBuildLinuxArm64(): void {
     runner.run(configArgs, rootDir);
 
     // Build project
-    log.info('Building project...');
+    log.info(`[${getTimestamp()}] Building project...`);
 
     const buildArgs = [
       'docker',
@@ -243,6 +283,10 @@ export function runTaskBuildLinuxArm64(): void {
       '--config', config.buildType
     ];
     runner.run(buildArgs, rootDir);
+    
+    const endTime = Date.now();
+    const duration = ((endTime - startTime) / 1000).toFixed(3);
+    log.ok(`[${getTimestamp()}] Linux ARM64 build completed in ${duration} seconds`);
   }
 }
 
@@ -258,6 +302,17 @@ function checkCmake(): boolean {
     log.error('CMake is not installed, check: https://www.cmake.org/');
     return false;
   }
+}
+
+/**
+ * Get current timestamp in seconds.milliseconds format
+ * @returns formatted timestamp string
+ */
+function getTimestamp(): string {
+  const now = new Date();
+  const seconds = Math.floor(now.getTime() / 1000);
+  const milliseconds = now.getMilliseconds().toString().padStart(3, '0');
+  return `${seconds}.${milliseconds}`;
 }
 
 /**

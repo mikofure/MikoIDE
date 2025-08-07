@@ -11,7 +11,7 @@
 
   ;Name and file
   Name "MikoIDE"
-  OutFile "MikoIDE-Setup.exe"
+  OutFile "..\..\dist\installer\MikoIDE_win64-setup.exe"
   Unicode True
 
   ;Default installation folder
@@ -33,8 +33,9 @@
 ;Interface Settings
 
   !define MUI_ABORTWARNING
-  !define MUI_ICON "${NSISDIR}\Contrib\Graphics\Icons\modern-install.ico"
-  !define MUI_UNICON "${NSISDIR}\Contrib\Graphics\Icons\modern-uninstall.ico"
+  !define MUI_ICON "..\..\app\resources\windows\app.ico"
+
+  !define MUI_UNICON "..\..\app\resources\windows\app.ico"
 
   ;Show all languages, despite user's codepage
   !define MUI_LANGDLL_ALLLANGUAGES
@@ -42,7 +43,7 @@
 ;--------------------------------
 ;Pages
 
-  !insertmacro MUI_PAGE_LICENSE "License.txt"
+  !insertmacro MUI_PAGE_LICENSE "..\..\License.txt"
   !insertmacro MUI_PAGE_COMPONENTS
   !insertmacro MUI_PAGE_DIRECTORY
 
@@ -74,43 +75,39 @@ Section "MikoIDE Core" SecCore
   SetOutPath "$INSTDIR"
 
   ;Main executable
-  File "build\Release\MikoIDE.exe"
+  File "..\..\build\Release\MikoIDE.exe"
   
   ;Create bin directory
   CreateDirectory "$INSTDIR\bin"
   SetOutPath "$INSTDIR\bin"
-  File "build\Release\bin\miko.exe"
-  File "build\Release\bin\miko.cmd"
+  File "..\..\build\Release\bin\miko.exe"
+  File "..\..\build\Release\bin\miko.cmd"
 
   SetOutPath "$INSTDIR"
 
   ;Core DLL files
-  File "build\Release\chrome_elf.dll"
-  File "build\Release\d3dcompiler_47.dll"
-  File "build\Release\libcef.dll"
-  File "build\Release\libEGL.dll"
-  File "build\Release\libGLESv2.dll"
-  File "build\Release\shared.lib"
-  File "build\Release\shared.pdb"
-  File "build\Release\vk_swiftshader.dll"
-  File "build\Release\vulkan-1.dll"
+  File "..\..\build\Release\chrome_elf.dll"
+  File "..\..\build\Release\d3dcompiler_47.dll"
+  File "..\..\build\Release\libcef.dll"
+  File "..\..\build\Release\libEGL.dll"
+  File "..\..\build\Release\libGLESv2.dll"
+  File "..\..\build\Release\shared.lib"
+  File "..\..\build\Release\shared.pdb"
+  File "..\..\build\Release\vk_swiftshader.dll"
+  File "..\..\build\Release\vulkan-1.dll"
 
   ;Data files
-  File "build\Release\chrome_100_percent.pak"
-  File "build\Release\chrome_200_percent.pak"
-  File "build\Release\icudtl.dat"
-  File "build\Release\resources.pak"
-  File "build\Release\snapshot_blob.bin"
-  File "build\Release\v8_context_snapshot.bin"
-  File "build\Release\vk_swiftshader_icd.json"
-
-  ;Assets folder
-  SetOutPath "$INSTDIR\assets"
-  File /r "build\Release\assets\*.*"
+  File "..\..\build\Release\chrome_100_percent.pak"
+  File "..\..\build\Release\chrome_200_percent.pak"
+  File "..\..\build\Release\icudtl.dat"
+  File "..\..\build\Release\resources.pak"
+  File "..\..\build\Release\snapshot_blob.bin"
+  File "..\..\build\Release\v8_context_snapshot.bin"
+  File "..\..\build\Release\vk_swiftshader_icd.json"
 
   ;Locales folder
   SetOutPath "$INSTDIR\locales"
-  File /r /x "DawnCache" /x "GPUCache" "build\Release\locales\*.*"
+  File /r /x "DawnCache" /x "GPUCache" "..\..\build\Release\locales\*.*"
 
   ;Store installation folder
   WriteRegStr HKCU "Software\MikoIDE" "" $INSTDIR
