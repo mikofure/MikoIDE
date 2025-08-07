@@ -8,9 +8,9 @@
     "dev:win": "concurrently \"vite\" \"cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug && cmake --build build --config Debug && build/Debug/MikoIDE.exe\"",
     "dev:linux": "concurrently \"vite\" \"cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug && cmake --build build && ./build/MikoIDE\"",
     "build:frontend": "tsc -b && vite build",
-    "build:cli:win": "cd cli && zig build -Dtarget=x86_64-windows && copy zig-out/bin/mikoide.exe ../build/release/bin/mikoide.exe",
-    "build:cli:linux": "cd cli && zig build -Dtarget=x86_64-linux && cp zig-out/bin/mikoide ../build/release/bin/mikoide",
-    "build:release:win": "bun run build:frontend && bun run script/make.ts build && bun run script/postprocessing/buildinstall.ts",
+    "build:cli:win": "bun run script/postprocessing/buildcli.ts",
+    "build:cli:linux": "bun run script/postprocessing/buildcli.ts",
+    "build:release:win": "bun run build:frontend && bun run script/make.ts build && bun run build:cli:win && bun run script/postprocessing/buildinstall.ts",
     "build:release:linux": "bun run build:frontend && bun run ./script/make.ts build"
   },
   "dependencies": {
