@@ -31,8 +31,15 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_BIG                 ICON                    "big.ico"
-IDI_SMALL               ICON                    "small.ico"
+IDI_BIG                 ICON                    "app.ico"
+IDI_SMALL               ICON                    "app.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// HTML
+//
+
+IDR_INDEX_HTML          HTML                    "..\\..\\assets\\index.html"
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -60,7 +67,7 @@ BEGIN
             VALUE "FileDescription", "MikoIDE"
             VALUE "FileVersion", CEF_VERSION
             VALUE "InternalName", "MikoIDE"
-            VALUE "LegalCopyright", "Copyright (C) " MAKE_STRING(COPYRIGHT_YEAR) " Paulo Coutinho"
+            VALUE "LegalCopyright", "Copyright (C) " MAKE_STRING(COPYRIGHT_YEAR) " Mikofure Project"
             VALUE "OriginalFilename", "MikoIDE.exe"
             VALUE "ProductName", "MikoIDE"
             VALUE "ProductVersion", CEF_VERSION

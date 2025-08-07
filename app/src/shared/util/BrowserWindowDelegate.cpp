@@ -3,6 +3,7 @@
 #if defined(OS_WIN)
 #include <windows.h>
 #include <dwmapi.h>
+#include "../../../resources/windows/resource.h"
 #pragma comment(lib, "dwmapi.lib")
 
 // Windows 10 version 1903 and later
@@ -39,6 +40,18 @@ void BrowserWindowDelegate::OnWindowCreated(CefRefPtr<CefWindow> window)
         // If that fails, try the older attribute for Windows 10 versions before 1903
         if (FAILED(hr)) {
             DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &darkMode, sizeof(darkMode));
+        }
+        
+        // Set window icon
+        HINSTANCE hInstance = GetModuleHandle(NULL);
+        HICON hIconBig = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_BIG));
+        HICON hIconSmall = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_SMALL));
+        
+        if (hIconBig) {
+            SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)hIconBig);
+        }
+        if (hIconSmall) {
+            SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hIconSmall);
         }
     }
 #endif
