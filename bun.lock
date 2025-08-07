@@ -9,6 +9,7 @@
         "commander": "^14.0.0",
         "file-saver": "^2.0.5",
         "lucide-solid": "^0.536.0",
+        "makensis": "^3.0.1",
         "monaco-editor": "^0.52.2",
         "sass": "^1.89.2",
         "simple-icons": "^15.9.0",
@@ -140,6 +141,8 @@
     "@motionone/types": ["@motionone/types@10.17.1", "", {}, "sha512-KaC4kgiODDz8hswCrS0btrVrzyU2CSQKO7Ps90ibBVSQmjkrt2teqta6/sOG59v7+dPnKMAg13jyqtMKV2yJ7A=="],
 
     "@motionone/utils": ["@motionone/utils@10.18.0", "", { "dependencies": { "@motionone/types": "^10.17.1", "hey-listen": "^1.0.8", "tslib": "^2.3.1" } }, "sha512-3XVF7sgyTSI2KWvTf6uLlBJ5iAgRgmvp3bpuOiQJvInd4nZ19ET8lX5unn30SlmRH7hXbBbH+Gxd0m0klJ3Xtw=="],
+
+    "@nsis/language-data": ["@nsis/language-data@0.9.3", "", {}, "sha512-aLATxfBhi+yp41vxk+XCJxAu9pB6l68/QSBbg66wRvjd3AXv+MXncBQqbXL83uOW291L3EZND5MPKtBYU2OXDg=="],
 
     "@parcel/watcher": ["@parcel/watcher@2.5.1", "", { "dependencies": { "detect-libc": "^1.0.3", "is-glob": "^4.0.3", "micromatch": "^4.0.5", "node-addon-api": "^7.0.0" }, "optionalDependencies": { "@parcel/watcher-android-arm64": "2.5.1", "@parcel/watcher-darwin-arm64": "2.5.1", "@parcel/watcher-darwin-x64": "2.5.1", "@parcel/watcher-freebsd-x64": "2.5.1", "@parcel/watcher-linux-arm-glibc": "2.5.1", "@parcel/watcher-linux-arm-musl": "2.5.1", "@parcel/watcher-linux-arm64-glibc": "2.5.1", "@parcel/watcher-linux-arm64-musl": "2.5.1", "@parcel/watcher-linux-x64-glibc": "2.5.1", "@parcel/watcher-linux-x64-musl": "2.5.1", "@parcel/watcher-win32-arm64": "2.5.1", "@parcel/watcher-win32-ia32": "2.5.1", "@parcel/watcher-win32-x64": "2.5.1" } }, "sha512-dfUnCxiN9H4ap84DvD2ubjw+3vUNpstxa0TneY/Paat8a3R4uQZDLSvWjmznAY/DoahqTHl9V46HF/Zs3F29pg=="],
 
@@ -380,6 +383,8 @@
     "lucide-solid": ["lucide-solid@0.536.0", "", { "peerDependencies": { "solid-js": "^1.4.7" } }, "sha512-azUZ52GB1kkuQgvhhYa6TYyFpTOuV63uUxsQKm2jfrEQCsGZj23fVVzbbRzkmxEhp8y4DiGV9ZK+S9352MUPGQ=="],
 
     "magic-string": ["magic-string@0.30.17", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.0" } }, "sha512-sNPKHvyjVf7gyjwS4xGTaW/mCnF8wnjtifKBEhxfZ7E/S8tQ0rssrwGNn6q8JH/ohItJfSQp9mBtQYuTlH5QnA=="],
+
+    "makensis": ["makensis@3.0.1", "", { "dependencies": { "@nsis/language-data": "^0.9.3" } }, "sha512-BLFeBQaKFlIW99d7nW9CtqEeLn8ODTHU6Z219VgLhjhvfcPpLWmG2LaWsB2U8oI5h/8OFs3QvNz+P5XBc4Geww=="],
 
     "merge-anything": ["merge-anything@5.1.7", "", { "dependencies": { "is-what": "^4.1.8" } }, "sha512-eRtbOb1N5iyH0tkQDAoQ4Ipsp/5qSR79Dzrz8hEPxRX10RWWR/iQXdoKmBSRCThY1Fh5EhISDtpSc93fpxUniQ=="],
 
