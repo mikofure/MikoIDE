@@ -10,7 +10,8 @@
 
 A modern, cross-platform Integrated Development Environment (IDE) built with cutting-edge web technologies and native performance.
 
-![](./resources/uipreview.png)
+<img width="1426" height="914" alt="image" src="https://github.com/user-attachments/assets/f9b9cad8-a50b-4abd-94f6-f3c3c80e5a83" />
+
 
 ## 🚀 Features
 
