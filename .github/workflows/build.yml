@@ -20,7 +20,7 @@ jobs:
       - name: Install Python deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3 python3-pip cmake ninja-build build-essential libgtk-3-dev libwebkit2gtk-4.0-dev
+          sudo apt-get install -y python3 python3-pip cmake ninja-build build-essential libgtk-3-dev libwebkit2gtk-4.1-dev
           pip3 install -r script/requirements.txt
 
       - name: Install JS deps
@@ -48,6 +48,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Setup MSVC
+        uses: microsoft/setup-msbuild@v2
 
       - name: Install Python deps
         run: |

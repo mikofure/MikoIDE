@@ -7,9 +7,11 @@
     "dev": "vite",
     "dev:win": "concurrently \"vite\" \"cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug && cmake --build build --config Debug && build/Debug/MikoIDE.exe\"",
     "dev:linux": "concurrently \"vite\" \"cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug && cmake --build build && ./build/MikoIDE\"",
-    "build": "tsc -b && vite build",
-    "build:release:win": "pip install -r scripts\\requirements.txt && bun run build && xcopy dist app\\assets /E /Y && cmd /c \"\\\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat\\\" && python .\\script\\make.py build\"",
-    "build:release:linux": "pip install -r scripts/requirements.txt && bun run build && cp -r dist/* app/assets && python3 ./script/make.py build"
+    "build:frontend": "tsc -b && vite build",
+    "build:cli:win": "cd cli && zig build -Dtarget=x86_64-windows && copy zig-out/bin/mikoide.exe ../build/release/bin/mikoide.exe",
+    "build:cli:linux": "cd cli && zig build -Dtarget=x86_64-linux && cp zig-out/bin/mikoide ../build/release/bin/mikoide",
+    "build:release:win": "pip install -r script/requirements.txt && bun run build && xcopy dist app/assets /E /Y && cmd /c \"C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvars64.bat\" && python ./script/make.py build",
+    "build:release:linux": "pip install -r script/requirements.txt && bun run build && cp -r dist/* app/assets && python3 ./script/make.py build"
   },
   "dependencies": {
     "@motionone/solid": "^10.16.4",

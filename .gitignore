@@ -10,7 +10,14 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+
+# ==============================
+# Build Artifacts
+# ==============================
 *.pyc
+cli/.zig-cache
+cli/zig-out
+cli/build
 
 # ===============================
 # Dependency directories
