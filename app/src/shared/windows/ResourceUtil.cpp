@@ -1,6 +1,7 @@
 #include "shared/util/ResourceUtil.hpp"
 #include "shared/AppConfig.hpp"
 #include "shared/util/BinaryResourceProvider.hpp"
+#include "../../../resources/windows/resource.h"
 
 #include "include/base/cef_logging.h"
 #include "include/wrapper/cef_byte_read_handler.h"
@@ -47,7 +48,10 @@ int ResourceUtil::getResourceId(const std::string &resourcePath)
     {
         const char *name;
         int id;
-    } resourceMap[] = {{}};
+    } resourceMap[] = {
+        {"index.html", IDR_INDEX_HTML},
+        {}
+    };
 
     for (size_t i = 0; i < sizeof(resourceMap) / sizeof(ResourceMap); ++i)
     {
@@ -63,7 +67,7 @@ int ResourceUtil::getResourceId(const std::string &resourcePath)
 bool ResourceUtil::loadBinaryResource(int binaryId, DWORD &dwSize, LPBYTE &pBytes)
 {
     HINSTANCE hInst = GetModuleHandle(nullptr);
-    HRSRC hRes = FindResource(hInst, MAKEINTRESOURCE(binaryId), MAKEINTRESOURCE(256));
+    HRSRC hRes = FindResource(hInst, MAKEINTRESOURCE(binaryId), RT_HTML);
 
     if (hRes)
     {

@@ -5,6 +5,7 @@
 
 #define IDI_BIG 100
 #define IDI_SMALL 101
+#define IDR_INDEX_HTML 102
 
 // Avoid files associated with MacOS
 #define _X86_

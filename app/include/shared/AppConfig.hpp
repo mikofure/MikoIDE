@@ -10,6 +10,6 @@ const std::string ASSETS_PATH = "assets";
 // const std::string APP_ORIGIN = "http://localhost:8080";
 // const bool USE_LOCAL_RESOURCES = false;
 
-const std::string APP_CONFIG_START_URL = "http://__app/index.html";
-const std::string APP_ORIGIN = "http://__app/";
-const bool USE_LOCAL_RESOURCES = true;
+const std::string APP_CONFIG_START_URL = "https://miko.local/index.html";
+const std::string APP_ORIGIN = "https://miko.local/";
+const bool USE_LOCAL_RESOURCES = false;

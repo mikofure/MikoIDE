@@ -22,8 +22,8 @@ AppClient::AppClient()
 
 void AppClient::OnTitleChange(CefRefPtr<CefBrowser> browser, const CefString &title)
 {
-    // call the default shared implementation
-    shared::util::ClientUtil::onTitleChange(browser, title);
+    // set permanent title to MikoIDE
+    shared::util::ClientUtil::onTitleChange(browser, "MikoIDE");
 }
 
 void AppClient::OnAfterCreated(CefRefPtr<CefBrowser> browser)
@@ -99,6 +99,11 @@ void AppClient::setupResourceManager(CefRefPtr<CefResourceManager> resourceManag
         {
             resourceManager->AddDirectoryProvider(APP_ORIGIN, resourceDir, 100, std::string());
         }
+    }
+    else
+    {
+        // add the Provider for embedded binary resources
+        resourceManager->AddProvider(shared::util::ResourceUtil::createBinaryResourceProvider(APP_ORIGIN), 100, std::string());
     }
 }
 
