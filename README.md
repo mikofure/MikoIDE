@@ -2,7 +2,7 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
-![CEF Version](https://img.shields.io/badge/CEF-138.0.34-green.svg)
+![CEF Version](https://img.shields.io/badge/CEF-120.2.7-green.svg)
 ![SolidJS](https://img.shields.io/badge/SolidJS-1.9.7-blue.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg)
 ![Monaco Editor](https://img.shields.io/badge/Monaco%20Editor-0.52.2-red.svg)
@@ -41,7 +41,7 @@ A modern, cross-platform Integrated Development Environment (IDE) built with cut
 - **CMake** - Cross-platform build system
 
 ### Build & Development
-- **Python** - Build automation and tooling
+- **TypeScript** - Modern build system with type safety
 - **Bun** - Fast JavaScript runtime and package manager
 - **Docker** - Containerized builds for Linux ARM/ARM64
 
@@ -73,15 +73,20 @@ bun run build
 ### 3. Build Native Application
 
 ```bash
-# Build the native CEF application
+# Build the native CEF application (Python)
 python script/make.py build
+
+# Build with TypeScript (modern alternative)
+node script/make.ts build
 
 # For debug builds
 python script/make.py build --debug
+node script/make.ts build --debug
 ```
 
 ### 4. Available Build Tasks
 
+#### Python Build System (Legacy)
 ```bash
 # Web application tasks
 python script/make.py webapp-build    # Build web assets
@@ -100,6 +105,31 @@ python script/make.py clean         # Clean build artifacts
 python script/make.py dmg           # Create macOS DMG (macOS only)
 ```
 
+#### TypeScript Build System (Modern)
+```bash
+# Web application tasks
+node script/make.ts webapp-build     # Build web assets
+node script/make.ts webapp-serve     # Serve web app
+node script/make.ts webapp-install   # Install web dependencies
+
+# Native application tasks
+node script/make.ts build           # Build native app
+node script/make.ts build-ninja     # Build with Ninja
+node script/make.ts build-xcode     # Build Xcode project (macOS)
+node script/make.ts build-linux-arm # Build for Linux ARM
+node script/make.ts build-linux-arm64 # Build for Linux ARM64
+node script/make.ts run            # Run the application
+
+# Utility tasks
+node script/make.ts format         # Format code
+node script/make.ts clean          # Clean build artifacts
+node script/make.ts dmg            # Create macOS DMG (macOS only)
+
+# Code signing and notarization (TypeScript)
+node script/codesign.ts <path>     # Code sign files/bundles
+node script/notarize.ts --dmg <dmg> --user <user> --passwd <passwd>
+```
+
 ## 🏗️ Project Structure
 
 ```
@@ -114,8 +144,18 @@ mikolite/
 │   ├── styles/           # CSS and styling
 │   ├── assets/           # Static assets
 │   └── core/             # Core application logic
-├── modules/               # Python build modules
+├── modules/               # Python build modules (legacy)
 ├── script/                # Build and automation scripts
+│   ├── modules/          # TypeScript build modules
+│   │   ├── tasks/        # Build task implementations
+│   │   ├── config.ts     # Configuration management
+│   │   ├── file.ts       # File system utilities
+│   │   ├── log.ts        # Logging utilities
+│   │   └── runner.ts     # Command execution
+│   ├── postprocessing/   # Post-build processing
+│   ├── make.ts           # Main TypeScript build script
+│   ├── codesign.ts       # Code signing utilities
+│   └── notarize.ts       # macOS notarization
 ├── docker/                # Docker configurations
 └── shared/                # Shared build utilities
 ```
@@ -156,15 +196,21 @@ bun run dev
 # Build web assets
 bun run build
 
-# Build native application
+# Build native application (Python)
 python script/make.py build
+
+# Build native application (TypeScript)
+node script/make.ts build
 ```
 
 ### Code Formatting
 
 ```bash
-# Format C++ code
+# Format C++ code (Python)
 python script/make.py format
+
+# Format C++ code (TypeScript)
+node script/make.ts format
 ```
 
 ## 📦 Distribution
@@ -175,7 +221,9 @@ python script/make.py format
 
 ### macOS
 - DMG package with code signing and notarization
-- Build with: `python script/make.py dmg`
+- Build with: `python script/make.py dmg` or `node script/make.ts dmg`
+- Code signing: `node script/codesign.ts <path>`
+- Notarization: `node script/notarize.ts --dmg <dmg> --user <user> --passwd <passwd>`
 
 ### Linux
 - AppImage or package distribution
