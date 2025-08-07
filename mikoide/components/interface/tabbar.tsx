@@ -32,13 +32,13 @@ export default function TabBar(props: TabBarProps) {
   };
 
   return (
-    <div class="flex items-center bg-[#121212] border-b border-neutral-800 h-10 p-1 select-none">
+    <div class="flex items-center bg-[#121212] border-b border-neutral-800 px-1 select-none">
       {/* Tabs */}
       <div class="flex flex-1 overflow-x-auto scrollbar-hide space-x-1">
         <For each={props.tabs}>
           {(tab) => (
             <div
-              class={`flex items-center justify-between px-0 py-1 rounded-md border border-neutral-700 cursor-pointer min-w-0 max-w-48 group hover:bg-neutral-700 transition-colors ${
+              class={`flex items-center justify-between px-0 rounded-md border border-neutral-700 cursor-pointer min-w-0 max-w-48 group hover:bg-neutral-700 transition-colors ${
                 props.activeTabId === tab.id
                   ? "bg-neutral-900 text-white"
                   : "bg-neutral-800 text-gray-300"

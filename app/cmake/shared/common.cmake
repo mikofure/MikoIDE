@@ -7,14 +7,12 @@ if(OS_MAC)
   set(SHARED_HELPER_INFO_PLIST ../../resources/macos/helper-Info.plist)
 elseif(OS_WINDOWS)
   # Shared Windows resources (version information, icons)
-  set(SHARED_RESOURCES_SRCS ../../resources/windows/big.ico ../../resources/windows/resource.h ../../resources/windows/app.rc ../../resources/windows/small.ico)
+  set(SHARED_RESOURCES_SRCS ../../resources/windows/resource.h ../../resources/windows/app.rc ../../resources/windows/app.ico)
 
   # Manifest files used for executables
   set(SHARED_EXE_MANIFEST ../../resources/windows/app.exe.manifest)
   set(SHARED_COMPATIBILITY_MANIFEST ../../resources/windows/compatibility.manifest)
 endif()
-
-set(SHARED_ASSETS_SRCS ../../assets)
 
 #
 # Shared configuration

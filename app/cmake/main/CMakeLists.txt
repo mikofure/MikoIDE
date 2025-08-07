@@ -74,14 +74,14 @@ if(OS_LINUX)
   target_link_libraries(${APP_TARGET} shared)
 
   # Manually copy assets directory
-  add_custom_command(
-      TARGET ${APP_TARGET}
-      POST_BUILD
-      COMMAND
-        ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/${SHARED_ASSETS_SRCS}"
-        "${APP_TARGET_OUT_DIR}/assets"
-      VERBATIM)
+  # add_custom_command(
+  #     TARGET ${APP_TARGET}
+  #     POST_BUILD
+  #     COMMAND
+  #       ${CMAKE_COMMAND} -E copy_directory
+  #       "${CMAKE_CURRENT_SOURCE_DIR}/${SHARED_ASSETS_SRCS}"
+  #       "${APP_TARGET_OUT_DIR}/assets"
+  #     VERBATIM)
 endif()
 
 #
@@ -177,14 +177,14 @@ if(OS_MAC)
   copy_mac_resources("${APP_RESOURCES_SRCS}" "${PREFIXES}" "${APP_TARGET}" "${CMAKE_CURRENT_SOURCE_DIR}" "${APP_PATH}")
 
   # Manually copy assets directory
-  add_custom_command(
-      TARGET ${APP_TARGET}
-      POST_BUILD
-      COMMAND
-        ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/${SHARED_ASSETS_SRCS}"
-        "${APP_PATH}/Contents/Resources/assets"
-      VERBATIM)
+  # add_custom_command(
+  #     TARGET ${APP_TARGET}
+  #     POST_BUILD
+  #     COMMAND
+  #       ${CMAKE_COMMAND} -E copy_directory
+  #       "${CMAKE_CURRENT_SOURCE_DIR}/${SHARED_ASSETS_SRCS}"
+  #       "${APP_PATH}/Contents/Resources/assets"
+  #     VERBATIM)
 endif()
 
 #
@@ -205,12 +205,12 @@ if(OS_WINDOWS)
   target_link_libraries(${APP_TARGET} shared)
 
   # Manually copy assets directory
-  add_custom_command(
-      TARGET ${APP_TARGET}
-      POST_BUILD
-      COMMAND
-        ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/${SHARED_ASSETS_SRCS}"
-        "${APP_TARGET_OUT_DIR}/assets"
-      VERBATIM)
+  # add_custom_command(
+  #     TARGET ${APP_TARGET}
+  #     POST_BUILD
+  #     COMMAND
+  #       ${CMAKE_COMMAND} -E copy_directory
+  #       "${CMAKE_CURRENT_SOURCE_DIR}/${SHARED_ASSETS_SRCS}"
+  #       "${APP_TARGET_OUT_DIR}/assets"
+  #     VERBATIM)
 endif()
