@@ -2,6 +2,7 @@ import { createSignal, onCleanup } from "solid-js";
 import { Folder, Settings, Search, Blocks, Database, Pyramid, FlaskConical } from "lucide-solid";
 import GitSrcControl from "../assets/images/tools/gitcontrol.svg";
 import CmakeIcon from "../assets/images/tools/cmake.svg";
+import chromeIPC from "../data/chromeipc";
 
 // Import sidebar pages
 import Explorer from "./sidebar/explorer";
@@ -20,6 +21,15 @@ function SideBar(props: SideBarProps) {
     let resizer: HTMLDivElement | undefined;
     let isResizing = false;
     const [activePage, setActivePage] = createSignal<SidebarPage>('explorer');
+
+    // Handle settings button click
+    const handleSettingsClick = async () => {
+        try {
+            await chromeIPC.executeMenuAction('tools.settings');
+        } catch (error) {
+            console.error('Failed to open settings:', error);
+        }
+    };
 
     const onMouseDown = (e: MouseEvent) => {
         isResizing = true;
@@ -143,7 +153,11 @@ function SideBar(props: SideBarProps) {
                     </button>
                 </div>
                 <div>
-                    <button class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors" title="Settings">
+                    <button 
+                        class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors" 
+                        onClick={handleSettingsClick}
+                        title="Settings"
+                    >
                         <Settings size={16} />
                     </button>
                 </div>

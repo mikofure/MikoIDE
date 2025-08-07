@@ -65,7 +65,7 @@ function GitPage() {
                         placeholder="Commit message"
                         value={commitMessage()}
                         onInput={(e) => setCommitMessage(e.currentTarget.value)}
-                        class="w-full px-3 py-2 bg-neutral-800 placeholder:text-xs border border-neutral-700 rounded text-sm text-gray-300 placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none"
+                        class="w-full text-xs px-3 py-2 bg-neutral-800 placeholder:text-xs border border-neutral-700 rounded  text-gray-300 placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none"
                         rows="3"
                     />
                     <button
@@ -83,7 +83,7 @@ function GitPage() {
                 {/* Staged Changes */}
                 <div class="border-b border-neutral-800">
                     <div class="p-2 bg-neutral-800/50">
-                        <h4 class="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                        <h4 class="text-[11px] font-medium text-gray-400 uppercase tracking-wide">
                             Staged Changes ({stagedFiles().length})
                         </h4>
                     </div>
@@ -109,7 +109,7 @@ function GitPage() {
                 {/* Unstaged Changes */}
                 <div>
                     <div class="p-2 bg-neutral-800/50">
-                        <h4 class="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                        <h4 class="text-[11px] font-medium text-gray-400 uppercase tracking-wide">
                             Changes ({unstagedFiles().length})
                         </h4>
                     </div>
@@ -118,7 +118,7 @@ function GitPage() {
                             <div class="flex items-center justify-between p-2 hover:bg-neutral-800 group">
                                 <div class="flex items-center gap-2 flex-1 min-w-0">
                                     {getStatusIcon(file.status)}
-                                    <span class="text-sm text-gray-300 truncate">{file.name}</span>
+                                    <span class="text-xs text-gray-300 truncate">{file.name}</span>
                                 </div>
                                 <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button

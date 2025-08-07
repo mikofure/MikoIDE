@@ -1,9 +1,14 @@
-import { onMount, onCleanup } from "solid-js";
+import { onMount, onCleanup, createEffect } from "solid-js";
 import * as monaco from "monaco-editor";
 import "../../styles/monaco.css";
 import { ChevronRight } from "lucide-solid";
 import TypescriptIcon from "../../assets/images/typescript/ts-logo-128.svg";
+
 interface CodeEditorProps {
+    initialContent?: string;
+    language?: string;
+    fileName?: string;
+    onContentChange?: (content: string) => void;
     onWordCountChange?: (words: number, chars: number) => void;
     onCursorPositionChange?: (line: number, col: number) => void;
 }
@@ -11,12 +16,11 @@ interface CodeEditorProps {
 export default function CodeEditor(props: CodeEditorProps) {
     let editorContainer: HTMLDivElement | undefined;
     let editor: monaco.editor.IStandaloneCodeEditor;
-    let fontSize = 14; // state font size ไว้ใช้ตอน zoom
+    let fontSize = 14;
 
     onMount(() => {
         if (!editorContainer) return;
 
-        // Theme แบบ Xcode
         monaco.editor.defineTheme("xcode-dark", {
             base: "vs-dark",
             inherit: true,
@@ -37,15 +41,10 @@ export default function CodeEditor(props: CodeEditorProps) {
             },
         });
 
-        // สร้าง editor
+        // editor
         editor = monaco.editor.create(editorContainer, {
-            value: `// JetBrains Mono + Xcode Theme
-function hello(name: string) {
-  console.log(\`Hello, \${name}\`);
-}
-hello("Aika");
-`,
-            language: "typescript",
+            value: props.initialContent || "",
+            language: props.language || "typescript",
             theme: "xcode-dark",
             automaticLayout: true,
             minimap: { enabled: false },
@@ -54,28 +53,26 @@ hello("Aika");
             useShadowDOM: false,
         });
 
-        // Event: เปลี่ยนเนื้อหา -> ส่ง word/char count
+        // Event: Adjust Content -> Send Words/Character Count
         editor.onDidChangeModelContent(() => {
             const text = editor.getValue();
             const words = text.trim() === "" ? 0 : text.trim().split(/\s+/).length;
             const chars = text.length;
 
+            props.onContentChange?.(text);
             props.onWordCountChange?.(words, chars);
         });
 
-        // Event: เปลี่ยน cursor
         editor.onDidChangeCursorPosition((e) => {
             props.onCursorPositionChange?.(e.position.lineNumber, e.position.column);
         });
 
-        // บล็อค Ctrl+Wheel ของ root UI + ใช้ zoom monaco แทน
         const handleWheel = (e: WheelEvent) => {
             if (e.ctrlKey) {
                 e.preventDefault();
                 if (e.deltaY < 0) fontSize++;
                 else fontSize--;
 
-                // จำกัด fontSize ไม่ให้เล็ก/ใหญ่เกินไป
                 fontSize = Math.min(Math.max(fontSize, 10), 28);
                 editor.updateOptions({ fontSize });
             }
@@ -89,9 +86,29 @@ hello("Aika");
         });
     });
 
+    // Update editor content when props change
+    createEffect(() => {
+        if (editor && props.initialContent !== undefined) {
+            const currentContent = editor.getValue();
+            if (currentContent !== props.initialContent) {
+                editor.setValue(props.initialContent);
+            }
+        }
+    });
+
+    // Update language when props change
+    createEffect(() => {
+        if (editor && props.language) {
+            const model = editor.getModel();
+            if (model) {
+                monaco.editor.setModelLanguage(model, props.language);
+            }
+        }
+    });
+
     return (
         <div class="flex flex-col h-full w-full select-none">
-            {/* Header */}
+            {/* Header - now shows current file name */}
             <div class="text-xs text-gray-300 px-3 py-1 truncate border-b border-neutral-800">
                 <div class="flex items-center gap-1">
                     <p>src</p>
@@ -101,17 +118,15 @@ hello("Aika");
                             class="w-3 h-3 bg-contain bg-center"
                             style={{ "background-image": `url(${TypescriptIcon})` }}
                         />
-                        <span>index.ts</span>
+                        <span>{props.fileName || "untitled"}</span>
                     </div>
                 </div>
             </div>
 
-            {/* Monaco Editor */}
             <div
                 ref={editorContainer}
-                style="flex: 1; width: 100%; border-radius: 6px; overflow: hidden;"
+                style="flex: 1; width: 100%; border-radius: 8px; overflow: hidden;"
             ></div>
         </div>
     );
-
 }

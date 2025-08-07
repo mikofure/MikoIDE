@@ -37,7 +37,7 @@
   background: rgba(255,255,255,0.2);
 }
 
-button {
+button.titlebar {
   border: none;
   outline: none;
   cursor: pointer;

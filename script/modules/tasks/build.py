@@ -15,28 +15,28 @@ def run_task_build_default():
         file.remove_dir(build_dir)
         file.create_dir(build_dir)
 
-        run_args = [
+        # Set target architecture and toolset explicitly
+        cmake_generate_args = [
             "cmake",
-            "-S",
-            ".",
-            "-B",
-            "build",
+            "-S", ".",
+            "-B", "build",
+            "-G", "Visual Studio 17 2022",
+            "-A", "x64",
+            "-T", "v143",
             "-DCMAKE_BUILD_TYPE={0}".format(config.build_type),
         ]
-        runner.run(run_args, root_dir)
 
-        run_args = [
+        runner.run(cmake_generate_args, root_dir)
+
+        cmake_build_args = [
             "cmake",
-            "--build",
-            "build",
-            "--target",
-            config.app_name,
-            "--config",
-            config.build_type,
+            "--build", "build",
+            "--target", config.app_name,
+            "--config", config.build_type,
             "-v",
         ]
-        runner.run(run_args, root_dir)
 
+        runner.run(cmake_build_args, root_dir)
 
 def run_task_build_ninja():
     if check_cmake():

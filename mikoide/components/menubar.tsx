@@ -1,6 +1,7 @@
 // src/components/MenuBar.tsx
 import { For, Show, createSignal } from "solid-js";
 import { editorMenu, type MenuItem } from "../data/menu";
+import chromeIPC, { type MenuActionType } from "../data/chromeipc";
 import { ChevronRight } from "lucide-solid";
 
 function MenuBar() {
@@ -13,6 +14,20 @@ function MenuBar() {
   const handleMenuHover = (title: string) => {
     if (activeMenu()) {
       setActiveMenu(title);
+    }
+  };
+
+  const handleMenuItemClick = async (item: MenuItem) => {
+    if (item.action) {
+      try {
+        // Close the menu
+        setActiveMenu(null);
+        
+        // Execute the menu action via IPC
+        await chromeIPC.executeMenuAction(item.action as MenuActionType);
+      } catch (error) {
+        console.error(`Failed to execute menu action '${item.action}':`, error);
+      }
     }
   };
 
@@ -31,7 +46,7 @@ function MenuBar() {
             <Show when={activeMenu() === section.title}>
               <div class="absolute left-0 top-full mt-2 bg-[#1a1a1a98] backdrop-blur-lg border border-[#323132] shadow-lg rounded-md min-w-48 z-[999] py-1">
                 <For each={section.items}>
-                  {(item) => <MenuItemComponent item={item} />}
+                  {(item) => <MenuItemComponent item={item} onItemClick={handleMenuItemClick} />}
                 </For>
               </div>
             </Show>
@@ -42,9 +57,15 @@ function MenuBar() {
   );
 }
 
-function MenuItemComponent(props: { item: MenuItem }) {
+function MenuItemComponent(props: { item: MenuItem; onItemClick: (item: MenuItem) => void }) {
   const item = props.item;
   const [isHovered, setIsHovered] = createSignal(false);
+  
+  const handleClick = () => {
+    if (item.action && !item.submenu) {
+      props.onItemClick(item);
+    }
+  };
   
   return (
     <div 
@@ -56,7 +77,10 @@ function MenuItemComponent(props: { item: MenuItem }) {
         <div class="border-t border-[#323132] my-1 mx-2"></div>
       </Show>
 
-      <div class="flex justify-between items-center px-2 py-1 mx-1 rounded hover:bg-[#323132] cursor-pointer transition-colors duration-150">
+      <div 
+        class="flex justify-between items-center px-2 py-1 mx-1 rounded hover:bg-[#323132] cursor-pointer transition-colors duration-150"
+        onClick={handleClick}
+      >
         <span class="text-white text-xs font-medium">{item.label}</span>
         <Show when={item.submenu}>
           <ChevronRight 
@@ -72,7 +96,7 @@ function MenuItemComponent(props: { item: MenuItem }) {
       <Show when={item.submenu}>
         <div class="absolute left-full top-0 ml-1 bg-[#1a1a1a98] backdrop-blur-lg border border-[#323132] shadow-lg rounded-md hidden group-hover:block min-w-40 py-1 z-50">
           <For each={item.submenu}>
-            {(sub) => <MenuItemComponent item={sub} />}
+            {(sub) => <MenuItemComponent item={sub} onItemClick={props.onItemClick} />}
           </For>
         </div>
       </Show>

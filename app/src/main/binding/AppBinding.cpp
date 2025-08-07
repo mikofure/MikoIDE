@@ -1,8 +1,15 @@
 #include "main/binding/AppBinding.hpp"
 #include "main/net/RequestClient.hpp"
 #include "shared/AppConfig.hpp"
+#include "shared/util/ResourceUtil.hpp"
 
 #include <algorithm>
+#include <nlohmann/json.hpp>
+#include <yaml-cpp/yaml.h>
+#include <filesystem>
+#include <fstream>
+
+using json = nlohmann::json;
 
 namespace app
 {
@@ -36,6 +43,26 @@ bool AppBinding::OnQuery(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> fram
         if (requestMessage.rfind(messageName, 0) == 0)
         {
             return onTaskNetworkRequest(browser, frame, queryId, request, persistent, callback, messageName, requestMessage);
+        }
+    }
+
+    {
+        const std::string &messageName = "App::MenuAction";
+        const std::string &requestMessage = request;
+
+        if (requestMessage.rfind(messageName, 0) == 0)
+        {
+            return onTaskMenuAction(browser, frame, queryId, request, persistent, callback, messageName, requestMessage);
+        }
+    }
+
+    {
+        const std::string &messageName = "App::FileOperation";
+        const std::string &requestMessage = request;
+
+        if (requestMessage.rfind(messageName, 0) == 0)
+        {
+            return onTaskFileOperation(browser, frame, queryId, request, persistent, callback, messageName, requestMessage);
         }
     }
 
@@ -102,6 +129,179 @@ void AppBinding::onRequestComplete(CefRefPtr<Callback> callback, CefURLRequest::
     }
 
     callback = nullptr;
+}
+
+bool AppBinding::onTaskMenuAction(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int64_t queryId, const CefString &request, bool persistent, CefRefPtr<Callback> callback, const std::string &messageName, const std::string &requestMessage)
+{
+    try
+    {
+        // Parse the JSON message
+        std::string jsonStr = requestMessage.substr(messageName.size() + 1);
+        json data = json::parse(jsonStr);
+        std::string action = data["action"];
+        
+        json response;
+        response["success"] = true;
+        
+        if (action == "file.new")
+        {
+            response["message"] = "New file action triggered";
+        }
+        else if (action == "file.open")
+        {
+            response["message"] = "Open file action triggered";
+        }
+        else if (action == "file.open_folder")
+        {
+            response["message"] = "Open folder action triggered";
+            // TODO: Implement native folder picker dialog
+        }
+        else if (action == "file.save")
+        {
+            response["message"] = "Save file action triggered";
+        }
+        else if (action == "file.save_as")
+        {
+            response["message"] = "Save as action triggered";
+        }
+        else if (action == "git.clone")
+        {
+            response["message"] = "Git clone action triggered";
+            // TODO: Implement git clone functionality
+        }
+        else if (action == "git.init")
+        {
+            response["message"] = "Git init action triggered";
+        }
+        else if (action == "git.commit")
+        {
+            response["message"] = "Git commit action triggered";
+        }
+        else if (action == "git.push")
+        {
+            response["message"] = "Git push action triggered";
+        }
+        else if (action == "git.pull")
+        {
+            response["message"] = "Git pull action triggered";
+        }
+        else
+        {
+            response["success"] = false;
+            response["error"] = "Unknown menu action: " + action;
+        }
+        
+        callback->Success(response.dump());
+        return true;
+    }
+    catch (const std::exception &e)
+    {
+        json errorResponse;
+        errorResponse["success"] = false;
+        errorResponse["error"] = "Failed to parse menu action: " + std::string(e.what());
+        callback->Success(errorResponse.dump());
+        return true;
+    }
+}
+
+bool AppBinding::onTaskFileOperation(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int64_t queryId, const CefString &request, bool persistent, CefRefPtr<Callback> callback, const std::string &messageName, const std::string &requestMessage)
+{
+    try
+    {
+        // Parse the JSON message
+        std::string jsonStr = requestMessage.substr(messageName.size() + 1);
+        json data = json::parse(jsonStr);
+        std::string operation = data["operation"];
+        
+        json response;
+        response["success"] = true;
+        
+        if (operation == "read_file")
+        {
+            std::string filePath = data["path"];
+            std::ifstream file(filePath);
+            
+            if (file.is_open())
+            {
+                std::string content((std::istreambuf_iterator<char>(file)),
+                                   std::istreambuf_iterator<char>());
+                file.close();
+                response["content"] = content;
+                response["message"] = "File read successfully";
+            }
+            else
+            {
+                response["success"] = false;
+                response["error"] = "Failed to read file: " + filePath;
+            }
+        }
+        else if (operation == "write_file")
+        {
+            std::string filePath = data["path"];
+            std::string content = data["content"];
+            
+            std::ofstream file(filePath);
+            if (file.is_open())
+            {
+                file << content;
+                file.close();
+                response["message"] = "File written successfully";
+            }
+            else
+            {
+                response["success"] = false;
+                response["error"] = "Failed to write file: " + filePath;
+            }
+        }
+        else if (operation == "file_exists")
+        {
+            std::string filePath = data["path"];
+            bool exists = std::filesystem::exists(filePath);
+            response["exists"] = exists;
+            response["message"] = exists ? "File exists" : "File does not exist";
+        }
+        else if (operation == "list_directory")
+        {
+            std::string dirPath = data["path"];
+            json files = json::array();
+            
+            try
+            {
+                for (const auto &entry : std::filesystem::directory_iterator(dirPath))
+                {
+                    json fileInfo;
+                    fileInfo["name"] = entry.path().filename().string();
+                    fileInfo["path"] = entry.path().string();
+                    fileInfo["is_directory"] = entry.is_directory();
+                    fileInfo["size"] = entry.is_regular_file() ? entry.file_size() : 0;
+                    files.push_back(fileInfo);
+                }
+                response["files"] = files;
+                response["message"] = "Directory listed successfully";
+            }
+            catch (const std::filesystem::filesystem_error &e)
+            {
+                response["success"] = false;
+                response["error"] = "Failed to list directory: " + std::string(e.what());
+            }
+        }
+        else
+        {
+            response["success"] = false;
+            response["error"] = "Unknown file operation: " + operation;
+        }
+        
+        callback->Success(response.dump());
+        return true;
+    }
+    catch (const std::exception &e)
+    {
+        json errorResponse;
+        errorResponse["success"] = false;
+        errorResponse["error"] = "Failed to parse file operation: " + std::string(e.what());
+        callback->Success(errorResponse.dump());
+        return true;
+    }
 }
 
 void AppBinding::init(CefRefPtr<CefMessageRouterBrowserSide> router)

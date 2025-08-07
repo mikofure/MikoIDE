@@ -9,34 +9,34 @@ import modules.runner as runner
 def run_task_build():
     if check_npm():
         root_dir = file.root_dir()
-        webapp_dir = os.path.join(root_dir, "webapp")
+        webapp_dir = os.path.join(root_dir, "mikoide")
 
-        run_args = ["npm", "run", "build"]
+        run_args = ["bun", "run", "build"]
         runner.run(run_args, webapp_dir)
 
 
 def run_task_serve():
     if check_npm():
         root_dir = file.root_dir()
-        webapp_dir = os.path.join(root_dir, "webapp")
+        webapp_dir = os.path.join(root_dir, "mikoide")
 
-        run_args = ["npm", "run", "serve"]
+        run_args = ["bun", "run", "serve"]
         runner.run(run_args, webapp_dir)
 
 
 def run_task_install():
     if check_npm():
         root_dir = file.root_dir()
-        webapp_dir = os.path.join(root_dir, "webapp")
+        webapp_dir = os.path.join(root_dir, "mikoide")
 
-        run_args = ["npm", "install"]
+        run_args = ["bun", "install"]
         runner.run(run_args, webapp_dir)
 
 
 def check_npm():
     """Checks if invoking supplied NPM binary works."""
     try:
-        subprocess.check_output(["npm", "--version"])
+        subprocess.check_output(["bun", "--version"])
         return True
     except OSError:
         log.error("NPM is not installed, check: https://www.npmjs.com/")

@@ -1,5 +1,6 @@
 import { createSignal, For } from "solid-js";
 import {  X, FileText, Replace } from "lucide-solid";
+import chromeIPC from "../../data/chromeipc";
 
 interface SearchResult {
     file: string;
@@ -30,13 +31,26 @@ function SearchPage() {
         }
     ]);
 
-    const handleSearch = () => {
+    const handleSearch = async () => {
         if (!searchTerm().trim()) {
             setResults([]);
             return;
         }
-        // Mock search results - in real implementation, this would search through files
-        console.log('Searching for:', searchTerm());
+        
+        try {
+            const response = await chromeIPC.searchFiles(searchTerm());
+            if (response.success && response.data) {
+                // Transform backend response to SearchResult format
+                const searchResults: SearchResult[] = response.data.results || [];
+                setResults(searchResults);
+            } else {
+                console.error('Search failed:', response.error);
+                setResults([]);
+            }
+        } catch (error) {
+            console.error('Search error:', error);
+            setResults([]);
+        }
     };
 
     const clearSearch = () => {

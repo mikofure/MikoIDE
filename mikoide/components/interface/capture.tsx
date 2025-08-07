@@ -79,14 +79,14 @@ function Capture(props: CaptureProps) {
     };
 
     return (
-        <Motion.div 
+        <Motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.1, easing: "ease-out" }}
             class="h-screen w-screen fixed z-[100] bg-[#12121275] backdrop-blur-sm flex flex-col items-center justify-center"
         >
-            <Motion.div 
+            <Motion.div
                 initial={{ scale: 0.8, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.8, opacity: 0, y: 20 }}
@@ -95,29 +95,35 @@ function Capture(props: CaptureProps) {
             >
                 {/* Capture preview area */}
                 {isCapturing() ? (
-                    <Motion.div 
+                    <Motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        class="flex items-center justify-center h-64"
+                        class="flex items-center justify-center h-64 min-h-[400px]"
                     >
                         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
                         <span class="ml-2">Generating preview...</span>
                     </Motion.div>
                 ) : previewUrl() ? (
-                    <Motion.div 
+                    <Motion.div
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ duration: 0.1, easing: "ease-out" }}
-                        class="relative p-0.5 rounded-lg" 
+                        class="relative p-0.5 rounded-lg"
                         style={{
                             background: 'conic-gradient(from 0deg, #7AB6FF, #A2E6B8, #FFD366, #FF9494, #DCA7FF, #7AB6FF)',
                             filter: 'drop-shadow(0 0 20px rgba(122, 182, 255, 0.5))'
                         }}
                     >
-                        <img
-                            src={previewUrl()}
-                            alt="Code editor capture preview"
-                            class="max-w-full h-auto rounded border-0 block"
+                        <div
+                            class="max-w-full h-auto rounded border-0 block min-h-[400px] bg-cover bg-center bg-no-repeat"
+                            style={{
+                                'background-image': `url(${previewUrl()})`,
+                                'width': '800px',
+                                'aspect-ratio': 'auto',
+                                'user-select': 'none',
+                                'pointer-events': 'none',
+                            }}
+                            title="Code editor capture preview"
                         />
                     </Motion.div>
                 ) : (
@@ -127,7 +133,7 @@ function Capture(props: CaptureProps) {
                 )}
             </Motion.div>
 
-            <Motion.div 
+            <Motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, easing: "ease-out", delay: 0.2 }}
@@ -150,9 +156,8 @@ function Capture(props: CaptureProps) {
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => handleScaleChange(1)}
-                        class={`text-sm px-2 py-1 rounded transition-colors ${
-                            scale() === 1 ? ' text-white' : 'text-white/40'
-                        }`}
+                        class={`text-sm px-2 py-1 rounded transition-colors ${scale() === 1 ? ' text-white' : 'text-white/40'
+                            }`}
                     >
                         x1
                     </Motion.button>
@@ -160,9 +165,8 @@ function Capture(props: CaptureProps) {
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => handleScaleChange(2)}
-                        class={`text-sm px-2 py-1 rounded transition-colors ${
-                            scale() === 2 ? ' text-white' : 'text-white/40'
-                        }`}
+                        class={`text-sm px-2 py-1 rounded transition-colors ${scale() === 2 ? ' text-white' : 'text-white/40'
+                            }`}
                     >
                         x2
                     </Motion.button>
@@ -170,7 +174,7 @@ function Capture(props: CaptureProps) {
             </Motion.div>
 
             {/* Instructions */}
-            <Motion.div 
+            <Motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3, easing: "ease-out", delay: 0.3 }}

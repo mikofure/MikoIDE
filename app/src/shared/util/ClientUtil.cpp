@@ -46,6 +46,11 @@ void ClientUtil::onAfterCreated(CefRefPtr<CefBrowser> browser)
 
     // add to the list of existing browsers
     ClientManager::getInstance()->onAfterCreated(browser);
+    
+#if defined(OS_WIN)
+    // Enable dark titlebar on Windows
+    enableDarkTitlebar(browser);
+#endif
 }
 
 bool ClientUtil::doClose(CefRefPtr<CefBrowser> browser)

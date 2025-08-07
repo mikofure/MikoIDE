@@ -47,6 +47,8 @@ function ExtensionsPage() {
     const [error, setError] = createSignal<string | null>(null);
     const [page, setPage] = createSignal(1);
     const [hasMore, setHasMore] = createSignal(true);
+    const [sortBy, setSortBy] = createSignal(0);
+    const [selectedCategory, setSelectedCategory] = createSignal<string>("");
     const [installedExtensions, setInstalledExtensions] = createSignal<Extension[]>([
         {
             extensionId: "ms-python.python",
@@ -73,24 +75,43 @@ function ExtensionsPage() {
 
     const API_URL = import.meta.env.VITE_VSMKT_API;
 
-    const fetchExtensions = async (searchQuery: string = "", pageNum: number = 1, append: boolean = false) => {
+    const fetchExtensions = async (
+        searchQuery: string = "", 
+        pageNum: number = 1, 
+        append: boolean = false,
+        category?: string,
+        sortByOption: number = 0
+    ) => {
         setLoading(true);
         setError(null);
 
         try {
+            const criteria = [
+                { filterType: 8, value: "Microsoft.VisualStudio.Code" },
+                { filterType: 12, value: "37888" }
+            ];
+
+            if (searchQuery) {
+                criteria.push({ filterType: 10, value: searchQuery });
+            }
+
+            if (category) {
+                criteria.push({ filterType: 5, value: category });
+            }
+
             const requestBody = {
                 filters: [{
-                    criteria: [
-                        { filterType: 8, value: "Microsoft.VisualStudio.Code" },
-                        { filterType: 12, value: "37888" },
-                        ...(searchQuery ? [{ filterType: 10, value: searchQuery }] : [])
-                    ],
+                    criteria,
                     pageNumber: pageNum,
                     pageSize: 20,
-                    sortBy: 0,
+                    sortBy: sortByOption,
                     sortOrder: 0
                 }],
-                assetTypes: ["Microsoft.VisualStudio.Services.Icons.Small"],
+                assetTypes: [
+                    "Microsoft.VisualStudio.Services.Icons.Default",
+                    "Microsoft.VisualStudio.Services.Icons.Small",
+                    "Microsoft.VisualStudio.Services.Icons.Large"
+                ],
                 flags: 914
             };
 
@@ -124,12 +145,64 @@ function ExtensionsPage() {
             setLoading(false);
         }
     };
+    //@ts-expect-error
+    const fetchExtensionById = async (extensionId: string) => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            const requestBody = {
+                filters: [{
+                    criteria: [
+                        { filterType: 7, value: extensionId }
+                    ]
+                }],
+                assetTypes: [
+                    "Microsoft.VisualStudio.Services.Icons.Default",
+                    "Microsoft.VisualStudio.Services.Icons.Small",
+                    "Microsoft.VisualStudio.Services.Icons.Large"
+                ],
+                flags: 914
+            };
+
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json;api-version=3.0-preview.1',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data: MarketplaceResponse = await response.json();
+            return data.results[0]?.extensions[0] || null;
+        } catch (err) {
+            console.error('Error fetching extension by ID:', err);
+            return null;
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const getExtensionIcon = (extension: Extension): string => {
-        const iconFile = extension.versions[0]?.files?.find(f =>
-            f.assetType === "Microsoft.VisualStudio.Services.Icons.Default"
-        );
-        return iconFile ? `${extension.versions[0].assetUri}${iconFile.source}` : '';
+        if (!extension?.versions?.[0]?.files) return '/default-extension-icon.png';
+        
+        const assetTypes = ['Default', 'Small', 'Large'];
+        
+        for (const assetType of assetTypes) {
+            const iconFile = extension.versions[0].files.find(
+              file => file.assetType === `Microsoft.VisualStudio.Services.Icons.${assetType}`
+            );
+            if (iconFile?.source) {
+              return iconFile.source;
+            }
+        }
+        
+        return '/default-extension-icon.png';
     };
 
     const getDownloadCount = (extension: Extension): number => {
@@ -168,7 +241,7 @@ function ExtensionsPage() {
         if (!loading() && hasMore()) {
             const nextPage = page() + 1;
             setPage(nextPage);
-            fetchExtensions(searchTerm(), nextPage, true);
+            fetchExtensions(searchTerm(), nextPage, true, selectedCategory(), sortBy());
         }
     };
 
@@ -181,8 +254,6 @@ function ExtensionsPage() {
         }
     };
 
-
-    // เพิ่ม helper สำหรับเลขแบบย่อ
     const formatNumber = (num: number): string => {
         if (num >= 1_000_000_000) return (num / 1_000_000_000).toFixed(1).replace(/\.0$/, '') + 'B';
         if (num >= 1_000_000) return (num / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
@@ -196,7 +267,7 @@ function ExtensionsPage() {
         const timeoutId = setTimeout(() => {
             if (activeTab() === 'marketplace') {
                 setPage(1);
-                fetchExtensions(term, 1, false);
+                fetchExtensions(term, 1, false, selectedCategory(), sortBy());
             }
         }, 300);
 
@@ -237,6 +308,48 @@ function ExtensionsPage() {
                     />
                 </div>
 
+                {/* Sort and Filter Controls */}
+                <Show when={activeTab() === 'marketplace'}>
+                    <div class="flex gap-2 mb-3">
+                        {/* Sort Dropdown */}
+                        <select
+                            value={sortBy()}
+                            onChange={(e) => {
+                                const newSortBy = parseInt(e.currentTarget.value);
+                                setSortBy(newSortBy);
+                                setPage(1);
+                                fetchExtensions(searchTerm(), 1, false, selectedCategory(), newSortBy);
+                            }}
+                            class="flex-1 px-2 py-1 text-xs bg-neutral-800 border border-neutral-700 rounded text-gray-300 focus:outline-none focus:border-blue-500"
+                        >
+                            <option value={0}>Relevance</option>
+                            <option value={4}>Rating</option>
+                            <option value={5}>Downloads</option>
+                            <option value={6}>Name</option>
+                        </select>
+
+                        {/* Category Dropdown */}
+                        <select
+                            value={selectedCategory()}
+                            onChange={(e) => {
+                                const newCategory = e.currentTarget.value;
+                                setSelectedCategory(newCategory);
+                                setPage(1);
+                                fetchExtensions(searchTerm(), 1, false, newCategory, sortBy());
+                            }}
+                            class="flex-1 px-2 py-1 text-xs bg-neutral-800 border border-neutral-700 rounded text-gray-300 focus:outline-none focus:border-blue-500"
+                        >
+                            <option value="">All Categories</option>
+                            <option value="Programming Languages">Languages</option>
+                            <option value="Debuggers">Debuggers</option>
+                            <option value="Formatters">Formatters</option>
+                            <option value="Themes">Themes</option>
+                            <option value="Snippets">Snippets</option>
+                            <option value="Linters">Linters</option>
+                        </select>
+                    </div>
+                </Show>
+
                 {/* Tabs */}
                 <div class="flex bg-neutral-800 rounded p-1">
                     <button
@@ -245,10 +358,11 @@ function ExtensionsPage() {
                             setExtensions([]);
                             setPage(1);
                         }}
-                        class={`flex-1 px-3 py-1 text-xs rounded transition-colors ${activeTab() === 'installed'
-                            ? 'bg-blue-600 text-white'
-                            : 'text-gray-400 hover:text-gray-300'
-                            }`}
+                        class={`flex-1 px-3 py-1 text-xs rounded transition-colors ${
+                            activeTab() === 'installed'
+                                ? 'bg-blue-600 text-white'
+                                : 'text-gray-400 hover:text-gray-300'
+                        }`}
                     >
                         Installed
                     </button>
@@ -257,13 +371,14 @@ function ExtensionsPage() {
                             setActiveTab('marketplace');
                             setPage(1);
                             if (extensions().length === 0) {
-                                fetchExtensions(searchTerm());
+                                fetchExtensions(searchTerm(), 1, false, selectedCategory(), sortBy());
                             }
                         }}
-                        class={`flex-1 px-3 py-1 text-xs rounded transition-colors ${activeTab() === 'marketplace'
-                            ? 'bg-blue-600 text-white'
-                            : 'text-gray-400 hover:text-gray-300'
-                            }`}
+                        class={`flex-1 px-3 py-1 text-xs rounded transition-colors ${
+                            activeTab() === 'marketplace'
+                                ? 'bg-blue-600 text-white'
+                                : 'text-gray-400 hover:text-gray-300'
+                        }`}
                     >
                         Marketplace
                     </button>
@@ -289,7 +404,7 @@ function ExtensionsPage() {
                             <div class="p-3 border-b border-neutral-800/50 hover:bg-neutral-800/30">
                                 <div class="flex items-start gap-3 mb-2">
                                     {/* Extension Icon */}
-                                    <div class="w-10 h-10 flex-shrink-0 bg-neutral-700 rounded overflow-hidden">
+                                    <div class="w-10 h-10 flex-shrink-0 rounded overflow-hidden">
                                         <Show
                                             when={iconUrl}
                                             fallback={
@@ -328,10 +443,11 @@ function ExtensionsPage() {
                                                 <Show when={installed}>
                                                     <button
                                                         onClick={() => toggleExtension(extension.extensionId)}
-                                                        class={`px-2 py-1 text-xs rounded ${enabled
-                                                            ? 'bg-green-600 text-white'
-                                                            : 'bg-gray-600 text-gray-300'
-                                                            }`}
+                                                        class={`px-2 py-1 text-xs rounded ${
+                                                            enabled
+                                                                ? 'bg-green-600 text-white'
+                                                                : 'bg-gray-600 text-gray-300'
+                                                        }`}
                                                     >
                                                         {enabled ? 'Enabled' : 'Disabled'}
                                                     </button>

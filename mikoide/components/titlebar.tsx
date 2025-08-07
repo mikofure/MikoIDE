@@ -1,6 +1,7 @@
-// import { createSignal } from "solid-js";
+import { createSignal } from "solid-js";
 import MenuBar from "./menubar"; // 👈 import
 import { Search, PanelLeft, PanelBottom, PanelRight, LayoutGrid, Aperture } from "lucide-solid";
+import chromeIPC from "../data/chromeipc";
 import "../styles/titlebar.css";
 
 interface TitleBarProps {
@@ -8,7 +9,53 @@ interface TitleBarProps {
 }
 
 function TitleBar(props: TitleBarProps) {
-    // const [isRestored, setIsRestored] = createSignal(false);
+    const [searchQuery, setSearchQuery] = createSignal("");
+    const [isSearchFocused, setIsSearchFocused] = createSignal(false);
+    
+    // Handle search functionality
+    const handleSearch = async (query: string) => {
+        if (query.trim()) {
+            try {
+                await chromeIPC.searchFiles(query);
+            } catch (error) {
+                console.error('Search failed:', error);
+            }
+        }
+    };
+    
+    // Handle search input
+    const handleSearchInput = (e: Event) => {
+        const target = e.target as HTMLInputElement;
+        setSearchQuery(target.value);
+    };
+    
+    // Handle search submit
+    const handleSearchSubmit = (e: KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            handleSearch(searchQuery());
+        }
+    };
+    
+    // Panel toggle handlers
+    const handlePanelToggle = async (panel: 'left' | 'bottom' | 'right' | 'grid') => {
+        try {
+            await chromeIPC.togglePanel(panel);
+        } catch (error) {
+            console.error(`Failed to toggle ${panel} panel:`, error);
+        }
+    };
+    
+    // Capture handler
+    const handleCapture = async () => {
+        try {
+            await chromeIPC.captureEditor();
+            if (props.onCaptureClick) {
+                props.onCaptureClick();
+            }
+        } catch (error) {
+            console.error('Capture failed:', error);
+        }
+    };
 
     return (
         <div class="fixed w-screen flex items-center text-white select-none z-[999] h-[40px] px-2" style={{ "-webkit-app-region": "drag" }}>
@@ -19,11 +66,18 @@ function TitleBar(props: TitleBarProps) {
 
             {/* กลาง (search กลางเป๊ะ) */}
             <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ "-webkit-app-region": "no-drag" }}>
-                <div class="flex items-center gap-2 border border-white/20 rounded-full bg-neutral-900 px-3 py-1 hover:border-white/40 transition-colors duration-200">
+                <div class={`flex items-center gap-2 border rounded-full bg-neutral-900 px-3 py-1 transition-colors duration-200 ${
+                    isSearchFocused() ? 'border-blue-500/60' : 'border-white/20 hover:border-white/40'
+                }`}>
                     <Search class="w-4 h-4 text-gray-400" />
                     <input
                         type="text"
-                        placeholder="Search"
+                        placeholder="Search files..."
+                        value={searchQuery()}
+                        onInput={handleSearchInput}
+                        onKeyDown={handleSearchSubmit}
+                        onFocus={() => setIsSearchFocused(true)}
+                        onBlur={() => setIsSearchFocused(false)}
                         class="bg-transparent text-xs placeholder:text-gray-500 outline-none w-40 focus:w-60 transition-all duration-300 ease-in-out"
                     />
                 </div>
@@ -34,21 +88,37 @@ function TitleBar(props: TitleBarProps) {
                 {/* capture button */}
                 <button 
                     class="p-2 w-8 h-full hover:bg-white/10 transition-colors rounded"
-                    onClick={props.onCaptureClick}
+                    onClick={handleCapture}
                     title="Capture Code Editor (Ctrl+Alt+F)"
                 >
                     <Aperture class="w-4 h-4" />
                 </button>
-                <button class="p-2 w-8 h-full">
+                <button 
+                    class="p-2 w-8 h-full hover:bg-white/10 transition-colors rounded"
+                    onClick={() => handlePanelToggle('left')}
+                    title="Toggle Left Panel"
+                >
                     <PanelLeft class="w-4 h-4" />
                 </button>
-                <button class="p-2 w-8 h-full">
+                <button 
+                    class="p-2 w-8 h-full hover:bg-white/10 transition-colors rounded"
+                    onClick={() => handlePanelToggle('bottom')}
+                    title="Toggle Bottom Panel"
+                >
                     <PanelBottom class="w-4 h-4" />
                 </button>
-                <button class="p-2 w-8 h-full">
+                <button 
+                    class="p-2 w-8 h-full hover:bg-white/10 transition-colors rounded"
+                    onClick={() => handlePanelToggle('right')}
+                    title="Toggle Right Panel"
+                >
                     <PanelRight class="w-4 h-4" />
                 </button>
-                <button class="p-2 w-8 h-full">
+                <button 
+                    class="p-2 w-8 h-full hover:bg-white/10 transition-colors rounded"
+                    onClick={() => handlePanelToggle('grid')}
+                    title="Toggle Grid Layout"
+                >
                     <LayoutGrid class="w-4 h-4" />
                 </button>
                 <div class="p-2 h-full flex items-center">

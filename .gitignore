@@ -10,6 +10,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+*.pyc
 
 # ===============================
 # Dependency directories
@@ -56,3 +57,4 @@ compile_commands.json
 Makefile
 # match build, build-debug, build-release, etc.
 build*/
+app/assets

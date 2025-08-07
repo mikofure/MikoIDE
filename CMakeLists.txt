@@ -48,6 +48,29 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CEF_ROOT}/cmake")
 find_package(CEF REQUIRED)
 
 #
+# Third-party libraries
+#
+
+# Include FetchContent module for downloading dependencies
+include(FetchContent)
+
+# nlohmann/json library
+FetchContent_Declare(
+  nlohmann_json
+  GIT_REPOSITORY https://github.com/nlohmann/json.git
+  GIT_TAG v3.11.3  # Use a stable version
+)
+FetchContent_MakeAvailable(nlohmann_json)
+
+# yaml-cpp library
+FetchContent_Declare(
+  yaml-cpp
+  GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+  GIT_TAG 0.8.0  # Use a stable version
+)
+FetchContent_MakeAvailable(yaml-cpp)
+
+#
 # Target configuration
 #
 

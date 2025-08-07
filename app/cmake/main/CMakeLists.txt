@@ -53,11 +53,11 @@ endif()
 #
 
 # Target executable names
-set(APP_TARGET "MyApp")
+set(APP_TARGET "MikoIDE")
 
 if(OS_MAC)
-  set(APP_HELPER_TARGET "MyApp_Helper")
-  set(APP_HELPER_OUTPUT_NAME "MyApp Helper")
+  set(APP_HELPER_TARGET "MikoIDE_Helper")
+  set(APP_HELPER_OUTPUT_NAME "MikoIDE Helper")
 endif()
 
 include_directories(../../include)
