@@ -39,7 +39,7 @@ IDI_SMALL               ICON                    "app.ico"
 // HTML
 //
 
-IDR_INDEX_HTML          HTML                    "..\\..\\assets\\index.html"
+IDR_INDEX_HTML          HTML                    "..\\..\\..\\dist\\index.html"
 
 
 /////////////////////////////////////////////////////////////////////////////

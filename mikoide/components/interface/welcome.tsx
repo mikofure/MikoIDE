@@ -124,7 +124,7 @@ function Welcome(props: WelcomeProps) {
           </div>
 
           {/* Learning Resources */}
-          <div class="bg-[#252526] rounded-lg p-6 border border-[#464647]">
+          <div class="p-2">
             <h2 class="text-lg font-semibold mb-4 text-[#cccccc] flex items-center gap-2">
               <Star class="w-5 h-5 text-[#4fc3f7]" />
               Learning Resources
@@ -178,6 +178,11 @@ function Welcome(props: WelcomeProps) {
             <button class="hover:text-[#4fc3f7] transition-colors">Release Notes</button>
             <span>•</span>
             <button class="hover:text-[#4fc3f7] transition-colors">GitHub</button>
+          </div>
+          <div class="flex justify-center items-center gap-6 text-[#8c8c8c] text-xs mt-2">
+            <p>MikoIDE Version: 0.1.0</p>
+            <p>Chromium Version: 120.0.6099.234</p>
+            <p>CEF Version: 120.2.7</p>
           </div>
         </div>
       </div>
