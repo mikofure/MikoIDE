@@ -1,5 +1,6 @@
 import { createSignal, onMount, onCleanup } from "solid-js";
 import MenuBar from "./menubar"; // 👈 import
+import CommandPalette from "./cmdpalette";
 import { Search, PanelLeft, PanelBottom, PanelRight, LayoutGrid, Aperture, ChevronDown, Settings, User,  LogOut, Github } from "lucide-solid";
 import chromeIPC from "../data/chromeipc";
 import microsoftIcon from "../assets/images/brand/microsoft.svg";
@@ -9,6 +10,7 @@ import "../styles/titlebar.css";
 
 interface TitleBarProps {
   onCaptureClick?: () => void;
+  editorInstance?: any; // Monaco editor instance
 }
 
 function TitleBar(props: TitleBarProps) {
@@ -16,12 +18,16 @@ function TitleBar(props: TitleBarProps) {
     const [isSearchFocused, setIsSearchFocused] = createSignal(false);
     const [isAccountMenuOpen, setIsAccountMenuOpen] = createSignal(false);
     const [isLoggedIn, setIsLoggedIn] = createSignal(false);
+    const [isCommandPaletteOpen, setIsCommandPaletteOpen] = createSignal(false);
     
     // Close dropdown when clicking outside
     const handleClickOutside = (e: MouseEvent) => {
         const target = e.target as HTMLElement;
         if (!target.closest('.account-menu-container')) {
             setIsAccountMenuOpen(false);
+        }
+        if (!target.closest('.search-container')) {
+            setIsCommandPaletteOpen(false);
         }
     };
     
@@ -48,13 +54,40 @@ function TitleBar(props: TitleBarProps) {
     const handleSearchInput = (e: Event) => {
         const target = e.target as HTMLInputElement;
         setSearchQuery(target.value);
+        // Show command palette when typing
+        if (target.value.trim()) {
+            setIsCommandPaletteOpen(true);
+        }
     };
     
-    // Handle search submit
-    const handleSearchSubmit = (e: KeyboardEvent) => {
-        if (e.key === 'Enter') {
+    // Handle search submit and keyboard events
+    const handleSearchKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Enter' && !isCommandPaletteOpen()) {
             handleSearch(searchQuery());
+        } else if (e.key === 'Escape') {
+            setIsCommandPaletteOpen(false);
+            setSearchQuery("");
         }
+    };
+    
+    // Handle search focus
+    const handleSearchFocus = () => {
+        setIsSearchFocused(true);
+        if (searchQuery().trim()) {
+            setIsCommandPaletteOpen(true);
+        }
+    };
+    
+    // Handle command palette close
+    const handleCommandPaletteClose = () => {
+        setIsCommandPaletteOpen(false);
+    };
+    
+    // Handle command execution
+    const handleCommandExecute = (command: string) => {
+        console.log('Executing command:', command);
+        setIsCommandPaletteOpen(false);
+        setSearchQuery("");
     };
     
     // Panel toggle handlers
@@ -86,21 +119,30 @@ function TitleBar(props: TitleBarProps) {
             </div>
 
             {/* กลาง (search กลางเป๊ะ) */}
-            <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ "-webkit-app-region": "no-drag" }}>
-                <div class={`flex items-center gap-2 border rounded-full bg-neutral-900 px-3 py-1 transition-colors duration-200 ${
-                    isSearchFocused() ? 'border-blue-500/60' : 'border-white/20 hover:border-white/40'
+            <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 search-container" style={{ "-webkit-app-region": "no-drag" }}>
+                <div class={`flex items-center gap-2 border rounded-full bg-neutral-900 px-3 py-1 transition-colors duration-200 relative ${
+                    isSearchFocused() || isCommandPaletteOpen() ? 'border-blue-500/60' : 'border-white/20 hover:border-white/40'
                 }`}>
                     <Search class="w-4 h-4 text-gray-400" />
                     <input
                         type="text"
-                        placeholder="Search files..."
+                        placeholder="Search files or commands..."
                         value={searchQuery()}
                         onInput={handleSearchInput}
-                        onKeyDown={handleSearchSubmit}
-                        onFocus={() => setIsSearchFocused(true)}
+                        onKeyDown={handleSearchKeyDown}
+                        onFocus={handleSearchFocus}
                         onBlur={() => setIsSearchFocused(false)}
                         class="bg-transparent text-xs placeholder:text-gray-500 outline-none w-40 focus:w-60 transition-all duration-300 ease-in-out"
                     />
+                    
+                    {/* Command Palette */}
+                     <CommandPalette 
+                         isOpen={isCommandPaletteOpen()}
+                         searchQuery={searchQuery()}
+                         onClose={handleCommandPaletteClose}
+                         onExecute={handleCommandExecute}
+                         editorInstance={props.editorInstance}
+                     />
                 </div>
             </div>
 

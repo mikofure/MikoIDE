@@ -11,6 +11,7 @@ interface CodeEditorProps {
     onContentChange?: (content: string) => void;
     onWordCountChange?: (words: number, chars: number) => void;
     onCursorPositionChange?: (line: number, col: number) => void;
+    onEditorReady?: (editor: monaco.editor.IStandaloneCodeEditor) => void;
 }
 
 export default function CodeEditor(props: CodeEditorProps) {
@@ -51,7 +52,51 @@ export default function CodeEditor(props: CodeEditorProps) {
             fontSize,
             fontFamily: "JetBrains Mono, monospace",
             useShadowDOM: false,
+            // Disable Monaco's built-in command palette
+            quickSuggestions: false,
+            parameterHints: { enabled: false },
+            suggest: { showKeywords: false },
         });
+        
+        // Completely disable Monaco's built-in command palette and related features
+        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyP, () => {
+            // Prevent Monaco's command palette from opening
+        });
+        
+        editor.addCommand(monaco.KeyCode.F1, () => {
+            // Prevent Monaco's command palette from opening via F1
+        });
+        
+        // Disable quick command action
+        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyP, () => {
+            // Prevent quick command palette
+        });
+        
+        // Override additional command palette shortcuts
+        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.F1, () => {
+            // Prevent command palette via Ctrl+F1
+        });
+        
+        // Disable context menu command palette access
+        editor.onContextMenu(() => {
+            // Custom context menu handling if needed
+        });
+        
+        // Remove command palette from editor actions
+        try {
+            const commandPaletteAction = editor.getAction('editor.action.quickCommand');
+            if (commandPaletteAction) {
+                // Disable the action by overriding its run method
+                commandPaletteAction.run = async () => {
+                    // Do nothing - command palette is disabled
+                };
+            }
+        } catch (error) {
+            console.warn('Could not disable command palette action:', error);
+        }
+        
+        // Notify parent component that editor is ready
+        props.onEditorReady?.(editor);
 
         // Event: Adjust Content -> Send Words/Character Count
         editor.onDidChangeModelContent(() => {

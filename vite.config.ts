@@ -10,6 +10,7 @@ export default defineConfig({
     assetsInlineLimit: 0, // Don't inline font files
   },
   server: {
+    port: 8080,
     fs: {
       strict: false // Allow serving files outside of root
     }
