@@ -20,6 +20,7 @@
     "lucide-solid": "^0.536.0",
     "monaco-editor": "^0.52.2",
     "sass": "^1.89.2",
+    "simple-icons": "^15.9.0",
     "solid-js": "^1.9.7",
     "tailwindcss": "^4.1.11"
   },
