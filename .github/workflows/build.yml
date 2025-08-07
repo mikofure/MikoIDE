@@ -8,34 +8,67 @@ on:
 
 jobs:
   build-linux:
+    name: Build on Ubuntu
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Bun
+      - name: Install Bun
         uses: oven-sh/setup-bun@v1
 
-      - name: Install dependencies
+      - name: Install Python deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 python3-pip cmake ninja-build build-essential libgtk-3-dev libwebkit2gtk-4.0-dev
+          pip3 install -r script/requirements.txt
+
+      - name: Install JS deps
         run: bun install
 
-      - name: Build release
-        run: bun run build:release:linux
+      - name: Build Web
+        run: bun run build
+
+      - name: Copy dist to assets
+        run: |
+          mkdir -p app/assets
+          cp -r dist/* app/assets
+
+      - name: Build Native
+        run: python3 script/make.py build
 
   build-windows:
+    name: Build on Windows
     runs-on: windows-latest
+
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python deps
+        run: |
+          pip install -r script\\requirements.txt
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
 
-      - name: Setup Python (for make.py)
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies
+      - name: Install JS deps
         run: bun install
 
-      - name: Build release
-        run: bun run build:release:win
+      - name: Build Web
+        run: bun run build
+
+      - name: Copy dist to assets
+        run: |
+          mkdir app\\assets
+          xcopy /E /Y dist app\\assets
+
+      - name: Build Native
+        shell: cmd
+        run: |
+          call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat"
+          python script\\make.py build

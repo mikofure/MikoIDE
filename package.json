@@ -6,9 +6,10 @@
   "scripts": {
     "dev": "vite",
     "dev:win": "concurrently \"vite\" \"cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug && cmake --build build --config Debug && build/Debug/MikoIDE.exe\"",
+    "dev:linux": "concurrently \"vite\" \"cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug && cmake --build build && ./build/MikoIDE\"",
     "build": "tsc -b && vite build",
-    "build:release": "npm run build && xcopy dist app\\assets && cmd /c \"\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat\" && python .\\script\\make.py build\"",
-    "preview": "vite preview"
+    "build:release:win": "pip install -r scripts\\requirements.txt && bun run build && xcopy dist app\\assets /E /Y && cmd /c \"\\\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat\\\" && python .\\script\\make.py build\"",
+    "build:release:linux": "pip install -r scripts/requirements.txt && bun run build && cp -r dist/* app/assets && python3 ./script/make.py build"
   },
   "dependencies": {
     "@motionone/solid": "^10.16.4",
