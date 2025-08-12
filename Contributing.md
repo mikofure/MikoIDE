@@ -28,13 +28,13 @@ MikoIDE is a modern, cross-platform IDE built with:
 ### Prerequisites
 
 - **Node.js** 18+ or **Bun** 1.2.19+ (recommended)
-- **Typescript** 3.8+ with pip
+- **TypeScript** 5.9.2+ (included in package.json devDependencies)
 - **CMake** 3.13+
 - **C++ Compiler**:
   - Windows: MSVC (Visual Studio 2019+)
   - macOS: Xcode Command Line Tools
   - Linux: GCC 7+ or Clang 6+
-- **Git**
+- **Git** (for version control and submodules)
 
 ### Initial Setup
 
@@ -42,15 +42,23 @@ MikoIDE is a modern, cross-platform IDE built with:
    ```bash
    git clone https://github.com/mikofure/mikoide.git
    cd mikoide
+   
+   # Initialize submodules (required for crashpad and other components)
+   git submodule update --init --recursive
    ```
 
-2. **Install Typescript dependencies**:
+2. **Environment setup**:
    ```bash
-   pip install -r script/requirements.txt
+   # Copy the environment template
+   cp .env.example .env
+   
+   # The .env.example file includes default values for:
+   # VITE_VSMKT_API=
    ```
 
-3. **Install frontend dependencies**:
+3. **Install TypeScript dependencies**:
    ```bash
+   # TypeScript is included in package.json devDependencies
    bun install
    # or
    npm install
@@ -70,11 +78,14 @@ MikoIDE is a modern, cross-platform IDE built with:
 ### Directory Structure
 
 ```
-mikolite/
+mikoide/
 ├── app/                    # Native CEF application (C++)
 │   ├── src/               # C++ source code
 │   │   ├── main/          # Main application logic
-│   │   └── shared/        # Shared utilities
+│   │   │   ├── v8/        # V8 JavaScript engine integration
+│   │   │   ├── binding/   # Native-JS bindings
+│   │   │   └── net/       # Network utilities
+│   │   └── shared/        # Shared utilities across platforms
 │   ├── include/           # Header files
 │   ├── cmake/             # CMake configuration
 │   └── resources/         # Platform-specific resources
@@ -86,11 +97,19 @@ mikolite/
 │   ├── styles/           # CSS and styling
 │   ├── assets/           # Static assets (fonts, images)
 │   ├── core/             # Core application logic
+│   ├── data/             # Application data and configuration
 │   └── root/             # Root application component
-├── modules/               # Typescript build system
-│   └── tasks/            # Build task implementations
+├── mikoshell/             # Shell applications and utilities
+│   ├── taskmgr/          # Task Manager application
+│   ├── toolchainmgr/     # Toolchain Manager
+│   └── floating/         # Floating window utilities
 ├── script/                # Build and automation scripts
+│   ├── modules/          # TypeScript build modules
+│   │   └── tasks/        # Build task implementations
+├── crashpad/              # Crash reporting system
+├── cli/                   # Command-line interface
 ├── docker/                # Docker configurations for ARM builds
+├── installer/             # Installation packages
 └── shared/                # Shared build utilities
 ```
 
@@ -105,11 +124,17 @@ mikolite/
 
 #### Native Shell (app/)
 - **CEF Integration**: C++ wrapper around Chromium
+- **V8 Bindings**: JavaScript-C++ communication layer
 - **Cross-platform**: Windows, macOS, Linux support
 - **Resource Management**: Platform-specific resource handling
 
-#### Build System (modules/ & script/)
-- **Typescript Automation**: Task-based build system
+#### Shell Applications (mikoshell/)
+- **Task Manager**: System process monitoring and management
+- **Toolchain Manager**: Development toolchain management
+- **Floating Windows**: Utility window system
+
+#### Build System (script/ & modules/)
+- **TypeScript Automation**: Task-based build system (v5.9.2)
 - **CMake**: Native application building
 - **Vite**: Frontend bundling and development server
 
@@ -127,6 +152,23 @@ mikolite/
    ```bash
    bun run build
    ```
+
+### Shell Applications Development
+
+The `mikoshell/` directory contains modular shell applications:
+
+1. **Task Manager** (`mikoshell/taskmgr/`):
+   - System process monitoring interface
+   - Built with SolidJS and Lucide icons
+   - IPC communication with native backend
+
+2. **Toolchain Manager** (`mikoshell/toolchainmgr/`):
+   - Development toolchain management
+   - Integration with build systems
+
+3. **Floating Windows** (`mikoshell/floating/`):
+   - Utility window system
+   - Modular UI components
 
 ### Native Development
 
@@ -265,11 +307,11 @@ Use conventional commits:
 
 ## 🔧 Build System Details
 
-### Typescript Build System
-The project uses a custom Typescript-based build system located in `modules/`:
+### TypeScript Build System
+The project uses a custom TypeScript-based build system located in `script/modules/`:
 
-- **modules/config.ts**: Build configuration
-- **modules/tasks/**: Individual build tasks
+- **script/modules/config.ts**: Build configuration
+- **script/modules/tasks/**: Individual build tasks
 - **script/make.ts**: Main build script entry point
 
 ### CMake Configuration
@@ -300,9 +342,9 @@ The project uses a custom Typescript-based build system located in `modules/`:
    - Check CMake version (3.13+ required)
    - Verify C++ compiler setup
 
-4. **Typescript Script Errors**:
-   - Install requirements: `pip install -r script/requirements.txt`
-   - Check Typescript version (3.8+ required)
+4. **TypeScript Script Errors**:
+   - Ensure TypeScript is installed: `bun install` or `npm install`
+   - Check TypeScript version (5.9.2 from package.json)
 
 ### Getting Help
 

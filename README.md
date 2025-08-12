@@ -4,8 +4,9 @@
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
 ![CEF Version](https://img.shields.io/badge/CEF-120.2.7-green.svg)
 ![SolidJS](https://img.shields.io/badge/SolidJS-1.9.7-blue.svg)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9.2-blue.svg)
 ![Monaco Editor](https://img.shields.io/badge/Monaco%20Editor-0.52.2-red.svg)
+![Vite](https://img.shields.io/badge/Vite-7.0.6-purple.svg)
 ![Build System](https://img.shields.io/badge/Build-CMake%20%7C%20Vite-orange.svg)
 
 A modern, cross-platform Integrated Development Environment (IDE) built with cutting-edge web technologies and native performance.
@@ -23,6 +24,10 @@ A modern, cross-platform Integrated Development Environment (IDE) built with cut
 - **Real-time Stats**: Live word count, character count, and cursor position tracking
 - **Resizable Panels**: Flexible sidebar and workspace layout
 - **Code Capture**: Screenshot functionality with gradient borders and animations
+- **Task Manager**: Built-in system process monitoring and management
+- **Toolchain Management**: Integrated development toolchain management
+- **V8 Integration**: JavaScript-C++ bindings for native functionality
+- **Shell Applications**: Modular shell utilities and floating windows
 
 ## 🛠️ Technology Stack
 
@@ -41,26 +46,50 @@ A modern, cross-platform Integrated Development Environment (IDE) built with cut
 - **CMake** - Cross-platform build system
 
 ### Build & Development
-- **TypeScript** - Modern build system with type safety
+- **TypeScript** - Modern build system with type safety (v5.9.2)
 - **Bun** - Fast JavaScript runtime and package manager
 - **Docker** - Containerized builds for Linux ARM/ARM64
 
 ## 📋 Prerequisites
 
-- **Node.js** 18+ or **Bun** 1.2.19+
-- **Python** 3.8+
+- **Node.js** 18+ or **Bun** 1.2.19+ (recommended)
 - **CMake** 3.13+
 - **C++ Compiler** (MSVC on Windows, Clang on macOS, GCC on Linux)
+- **Git** (for version control and submodules)
 
 ## 🚀 Quick Start
 
-### 1. Install Dependencies
+### 1. Clone and Initialize
+
+```bash
+# Clone the repository
+git clone https://github.com/mikofure/mikoide.git
+cd mikoide
+
+# Initialize submodules (required for crashpad and other components)
+git submodule update --init --recursive
+```
+
+### 2. Environment Configuration
+
+```bash
+# Copy the environment template
+cp .env.example .env
+
+# The .env.example file includes default values for:
+# VITE_VSMKT_API=
+```
+
+**Environment Variables:**
+- `VITE_VSMKT_API`: Visual Studio Marketplace API endpoint (optional, for extension marketplace functionality)
+
+### 3. Install Dependencies
 
 ```bash
 bun install
 ```
 
-### 2. Development Mode
+### 4. Development Mode
 
 ```bash
 # Start the web development server
@@ -70,7 +99,7 @@ bun run dev
 bun run build
 ```
 
-### 3. Build Native Application
+### 5. Build Native Application
 
 ```bash
 # Build with TypeScript (modern alternative)
@@ -80,7 +109,7 @@ node script/make.ts build
 node script/make.ts build --debug
 ```
 
-### 4. Available Build Tasks
+### 6. Available Build Tasks
 
 #### TypeScript Build System (Modern)
 ```bash
@@ -110,30 +139,43 @@ node script/notarize.ts --dmg <dmg> --user <user> --passwd <passwd>
 ## 🏗️ Project Structure
 
 ```
-mikolite/
-├── app/                    # Native CEF application
+mikoide/
+├── app/                    # Native CEF application (C++)
 │   ├── src/               # C++ source code
+│   │   ├── main/          # Main application logic
+│   │   │   ├── v8/        # V8 JavaScript engine integration
+│   │   │   ├── binding/   # Native-JS bindings
+│   │   │   └── net/       # Network utilities
+│   │   └── shared/        # Shared utilities across platforms
 │   ├── include/           # Header files
 │   ├── cmake/             # CMake configuration
 │   └── resources/         # Platform-specific resources
 ├── mikoide/               # Frontend SolidJS application
 │   ├── components/        # UI components
 │   ├── styles/           # CSS and styling
-│   ├── assets/           # Static assets
-│   └── core/             # Core application logic
-├── modules/               # Python build modules (legacy)
+│   ├── assets/           # Static assets (fonts, images)
+│   ├── core/             # Core application logic
+│   ├── data/             # Application data and configuration
+│   └── root/             # Root application component
+├── mikoshell/             # Shell applications and utilities
+│   ├── taskmgr/          # Task Manager application
+│   ├── toolchainmgr/     # Toolchain Manager
+│   └── floating/         # Floating window utilities
 ├── script/                # Build and automation scripts
 │   ├── modules/          # TypeScript build modules
 │   │   ├── tasks/        # Build task implementations
 │   │   ├── config.ts     # Configuration management
 │   │   ├── file.ts       # File system utilities
 │   │   ├── log.ts        # Logging utilities
-│   │   └── runner.ts     # Command execution
+│   │   └── index.ts      # Module exports
 │   ├── postprocessing/   # Post-build processing
 │   ├── make.ts           # Main TypeScript build script
 │   ├── codesign.ts       # Code signing utilities
 │   └── notarize.ts       # macOS notarization
+├── crashpad/              # Crash reporting system
+├── cli/                   # Command-line interface
 ├── docker/                # Docker configurations
+├── installer/             # Installation packages
 └── shared/                # Shared build utilities
 ```
 
