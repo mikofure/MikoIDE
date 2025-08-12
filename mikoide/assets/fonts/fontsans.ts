@@ -56,7 +56,7 @@ export async function loadFontSans() {
       const failed = results.filter(result => result.status === 'rejected').length;
       
       if (failed === 0) {
-        document.documentElement.style.fontFamily = `"InterVariable", sans-serif`;
+        document.documentElement.style.fontFamily = `"InterVariable","Leelawadee UI" ,sans-serif`;
         document.documentElement.style.fontOpticalSizing = "auto";
         console.log("✅ InterVariable fonts loaded successfully");
         return;
