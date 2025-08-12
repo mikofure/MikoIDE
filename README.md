@@ -73,37 +73,14 @@ bun run build
 ### 3. Build Native Application
 
 ```bash
-# Build the native CEF application (Python)
-python script/make.py build
-
 # Build with TypeScript (modern alternative)
 node script/make.ts build
 
 # For debug builds
-python script/make.py build --debug
 node script/make.ts build --debug
 ```
 
 ### 4. Available Build Tasks
-
-#### Python Build System (Legacy)
-```bash
-# Web application tasks
-python script/make.py webapp-build    # Build web assets
-python script/make.py webapp-serve    # Serve web app
-python script/make.py webapp-install  # Install web dependencies
-
-# Native application tasks
-python script/make.py build          # Build native app
-python script/make.py build-ninja    # Build with Ninja
-python script/make.py build-xcode    # Build Xcode project (macOS)
-python script/make.py run           # Run the application
-
-# Utility tasks
-python script/make.py format        # Format code
-python script/make.py clean         # Clean build artifacts
-python script/make.py dmg           # Create macOS DMG (macOS only)
-```
 
 #### TypeScript Build System (Modern)
 ```bash
@@ -165,7 +142,6 @@ mikolite/
 ### Code Editor
 - **Monaco Editor Integration**: Full VS Code editor experience
 - **Syntax Highlighting**: Support for TypeScript, JavaScript, and more
-- **Xcode-inspired Theme**: Beautiful dark theme with carefully chosen colors
 - **Font Support**: JetBrains Mono and custom font loading
 - **Real-time Statistics**: Word count, character count, line/column tracking
 
@@ -196,9 +172,6 @@ bun run dev
 # Build web assets
 bun run build
 
-# Build native application (Python)
-python script/make.py build
-
 # Build native application (TypeScript)
 node script/make.ts build
 ```
@@ -206,9 +179,6 @@ node script/make.ts build
 ### Code Formatting
 
 ```bash
-# Format C++ code (Python)
-python script/make.py format
-
 # Format C++ code (TypeScript)
 node script/make.ts format
 ```
@@ -221,7 +191,7 @@ node script/make.ts format
 
 ### macOS
 - DMG package with code signing and notarization
-- Build with: `python script/make.py dmg` or `node script/make.ts dmg`
+- Build with: `node script/make.ts dmg`
 - Code signing: `node script/codesign.ts <path>`
 - Notarization: `node script/notarize.ts --dmg <dmg> --user <user> --passwd <passwd>`
 
@@ -257,6 +227,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - **CEF** - For the ultimate performance Chromium Embedded Framework
+- **CEF Template** - CEF with VueJS Template by [@paulocoutinhox]([https://github.com/paulocoutinhox/cef-sample])
 - **Monaco Editor** - For the powerful code editor
 - **SolidJS** - For the reactive UI framework
 - **Vite** - For the fast build tool
