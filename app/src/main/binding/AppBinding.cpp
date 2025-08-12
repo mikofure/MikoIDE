@@ -66,6 +66,16 @@ bool AppBinding::OnQuery(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> fram
         }
     }
 
+    {
+        const std::string &messageName = "App::TaskManager";
+        const std::string &requestMessage = request;
+
+        if (requestMessage.rfind(messageName, 0) == 0)
+        {
+            return onTaskManagerOperation(browser, frame, queryId, request, persistent, callback, messageName, requestMessage);
+        }
+    }
+
     return false;
 }
 
@@ -299,6 +309,61 @@ bool AppBinding::onTaskFileOperation(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
         json errorResponse;
         errorResponse["success"] = false;
         errorResponse["error"] = "Failed to parse file operation: " + std::string(e.what());
+        callback->Success(errorResponse.dump());
+        return true;
+    }
+}
+
+bool AppBinding::onTaskManagerOperation(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int64_t queryId, const CefString &request, bool persistent, CefRefPtr<Callback> callback, const std::string &messageName, const std::string &requestMessage)
+{
+    try
+    {
+        // Parse the JSON message
+        std::string jsonStr = requestMessage.substr(messageName.size() + 1);
+        json data = json::parse(jsonStr);
+        std::string operation = data["operation"];
+        
+        json response;
+        response["success"] = true;
+        
+        if (operation == "get_processes")
+        {
+            // This would typically interface with the V8 TaskManager extension
+            // For now, return a success response indicating the operation was received
+            response["message"] = "Process list request received";
+            response["data"] = json::array(); // Empty array for now
+        }
+        else if (operation == "end_process")
+        {
+            int processId = data["processId"];
+            // This would typically interface with the V8 TaskManager extension
+            response["message"] = "Process termination request received";
+            response["processId"] = processId;
+        }
+        else if (operation == "get_system_stats")
+        {
+            // This would typically interface with the V8 TaskManager extension
+            response["message"] = "System stats request received";
+            response["data"] = {
+                {"totalCpuUsage", 0.0},
+                {"totalMemoryUsage", 0.0},
+                {"totalNetworkUsage", 0.0}
+            };
+        }
+        else
+        {
+            response["success"] = false;
+            response["error"] = "Unknown task manager operation: " + operation;
+        }
+        
+        callback->Success(response.dump());
+        return true;
+    }
+    catch (const std::exception &e)
+    {
+        json errorResponse;
+        errorResponse["success"] = false;
+        errorResponse["error"] = "Failed to parse task manager operation: " + std::string(e.what());
         callback->Success(errorResponse.dump());
         return true;
     }

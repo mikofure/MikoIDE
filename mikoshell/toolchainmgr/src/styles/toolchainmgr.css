@@ -1,0 +1,408 @@
+@import 'tailwindcss';
+
+/* CSS Variables for Theme Colors */
+:root {
+  /* Base colors */
+  --color-primary: #007acc;
+  --color-secondary: #1e1e1e;
+  --color-background: #252526;
+  --color-surface: #2d2d30;
+  --color-text: #cccccc;
+  --color-text-secondary: #969696;
+  --color-border: #3e3e42;
+  --color-accent: #0078d4;
+  --color-success: #4caf50;
+  --color-warning: #ff9800;
+  --color-error: #f44336;
+  --color-info: #2196f3;
+
+  /* Component-specific colors */
+  --color-welcome-background: #1e1e1e;
+  --color-welcome-card-background: #252526;
+  --color-welcome-title-text: #ffffff;
+  --color-welcome-subtitle-text: #cccccc;
+  --color-welcome-accent-color: #007acc;
+  --color-welcome-hover-color: #094771;
+  --color-welcome-border-color: #3e3e42;
+  --color-welcome-button-background: #0e639c;
+  --color-welcome-badge-background: #007acc;
+
+  --color-editor-background: #1e1e1e;
+  --color-editor-line-numbers: #858585;
+  --color-editor-selection: #264f78;
+  --color-editor-cursor: #ffffff;
+  --color-editor-syntax-keyword: #569cd6;
+  --color-editor-syntax-string: #ce9178;
+  --color-editor-syntax-comment: #6a9955;
+  --color-editor-syntax-number: #b5cea8;
+  --color-editor-syntax-function: #dcdcaa;
+  --color-editor-syntax-variable: #9cdcfe;
+
+  --color-sidebar-background: #252526;
+  --color-sidebar-text: #cccccc;
+  --color-sidebar-hover: #2a2d2e;
+  --color-sidebar-selected: #37373d;
+
+  --color-statusbar-background: #007acc;
+  --color-statusbar-text: #ffffff;
+
+  --color-toolbar-background: #2d2d30;
+  --color-toolbar-text: #cccccc;
+  --color-toolbar-hover: #3e3e42;
+
+  /* Typography */
+  --font-primary: 'Inter Variable', "Leelawadee UI", sans-serif;
+  --font-monospace: 'JetBrains Mono', monospace;
+  --font-size-small: 12px;
+  --font-size-medium: 14px;
+  --font-size-large: 16px;
+  --font-size-xlarge: 18px;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  /* Border radius */
+  --border-radius-small: 2px;
+  --border-radius-medium: 4px;
+  --border-radius-large: 8px;
+
+  /* Shadows */
+  --shadow-small: 0 1px 3px rgba(0, 0, 0, 0.12);
+  --shadow-medium: 0 4px 6px rgba(0, 0, 0, 0.16);
+  --shadow-large: 0 10px 20px rgba(0, 0, 0, 0.19);
+}
+
+/* Tailwind CSS Custom Classes */
+@layer utilities {
+  .bg-primary { background-color: var(--color-primary); }
+  .bg-secondary { background-color: var(--color-secondary); }
+  .bg-background { background-color: var(--color-background); }
+  .bg-surface { background-color: var(--color-surface); }
+  .bg-sidebar { background-color: var(--color-sidebar-background); }
+  .bg-hover { background-color: var(--color-sidebar-hover); }
+  .bg-selected { background-color: var(--color-sidebar-selected); }
+  .bg-success { background-color: var(--color-success); }
+  .bg-warning { background-color: var(--color-warning); }
+  .bg-error { background-color: var(--color-error); }
+  .bg-info { background-color: var(--color-info); }
+
+  .text-primary { color: var(--color-primary); }
+  .text-text { color: var(--color-text); }
+  .text-textSecondary { color: var(--color-text-secondary); }
+  .text-accent { color: var(--color-accent); }
+  .text-success { color: var(--color-success); }
+  .text-warning { color: var(--color-warning); }
+  .text-error { color: var(--color-error); }
+  .text-info { color: var(--color-info); }
+
+  .border-border { border-color: var(--color-border); }
+  .border-primary { border-color: var(--color-primary); }
+
+  .font-primary { font-family: var(--font-primary); }
+  .font-monospace { font-family: var(--font-monospace); }
+
+  .shadow-small { box-shadow: var(--shadow-small); }
+  .shadow-medium { box-shadow: var(--shadow-medium); }
+  .shadow-large { box-shadow: var(--shadow-large); }
+}
+
+/* Custom Component Styles */
+.toolchain-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-large);
+  transition: all 0.2s ease;
+}
+
+.toolchain-card:hover {
+  border-color: rgba(0, 122, 204, 0.5);
+  box-shadow: var(--shadow-medium);
+}
+
+.category-button {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--border-radius-large);
+  font-size: var(--font-size-medium);
+  font-weight: 500;
+  transition: all 0.2s ease;
+  width: 100%;
+  text-align: left;
+}
+
+.category-button:hover {
+  background-color: var(--color-sidebar-hover);
+  color: var(--color-text);
+}
+
+.category-button.active {
+  background-color: var(--color-sidebar-selected);
+  color: white;
+}
+
+.install-button {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--color-primary);
+  color: white;
+  border-radius: var(--border-radius-large);
+  font-size: var(--font-size-medium);
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.install-button:hover {
+  background-color: rgba(0, 122, 204, 0.8);
+}
+
+.install-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.uninstall-button {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--color-error);
+  color: white;
+  border-radius: var(--border-radius-large);
+  font-size: var(--font-size-medium);
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.uninstall-button:hover {
+  background-color: rgba(244, 67, 54, 0.8);
+}
+
+.uninstall-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.website-button {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  border-radius: var(--border-radius-large);
+  font-size: var(--font-size-medium);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.website-button:hover {
+  color: var(--color-text);
+  border-color: rgba(0, 122, 204, 0.5);
+}
+
+.search-input {
+  width: 100%;
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-large);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-medium);
+  color: var(--color-text);
+  transition: all 0.2s ease;
+}
+
+.search-input::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+}
+
+.install-target-select {
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-medium);
+  padding: var(--spacing-xs) var(--spacing-md);
+  color: var(--color-text);
+  font-size: var(--font-size-medium);
+  transition: all 0.2s ease;
+}
+
+.install-target-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-medium);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-badge.installed {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: var(--color-success);
+}
+
+.version-badge {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background-color: var(--color-background);
+  color: var(--color-text-secondary);
+  border-radius: var(--border-radius-medium);
+  font-size: 12px;
+  font-family: var(--font-monospace);
+}
+
+.info-card {
+  padding: var(--spacing-md);
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-large);
+}
+
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-secondary);
+}
+
+/* Focus styles for accessibility */
+.focus\:ring-primary:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.5);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: -100%;
+    height: 100vh;
+    z-index: 50;
+    transition: left 0.3s ease;
+  }
+
+  .sidebar.open {
+    left: 0;
+  }
+
+  .main-content {
+    margin-left: 0;
+  }
+}
+
+/* Animation utilities */
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.transition-colors {
+  transition-property: color, background-color, border-color;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Hover effects */
+.hover\:bg-primary\/80:hover {
+  background-color: rgba(0, 122, 204, 0.8);
+}
+
+.hover\:bg-error\/80:hover {
+  background-color: rgba(244, 67, 54, 0.8);
+}
+
+.hover\:border-primary\/50:hover {
+  border-color: rgba(0, 122, 204, 0.5);
+}
+
+.hover\:text-text:hover {
+  color: var(--color-text);
+}
+
+/* Opacity utilities */
+.opacity-50 {
+  opacity: 0.5;
+}
+
+/* Cursor utilities */
+.cursor-not-allowed {
+  cursor: not-allowed;
+}
+
+/* Background opacity utilities */
+.bg-success\/20 {
+  background-color: rgba(76, 175, 80, 0.2);
+}
+
+.bg-primary\/20 {
+  background-color: rgba(0, 122, 204, 0.2);
+}
+
+/* Text opacity utilities */
+.text-white\/30 {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* Border opacity utilities */
+.border-white\/30 {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.border-t-white {
+  border-top-color: white;
+}
