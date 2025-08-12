@@ -1,4 +1,5 @@
 #include "main/v8/AppExtension.hpp"
+#include "main/v8/ipc/TaskManager.hpp"
 
 #include <chrono>
 #include <ctime>
@@ -53,6 +54,9 @@ void AppExtension::init()
         "})();";
 
     CefRegisterExtension("v8/app", code, new app::v8::AppExtension());
+    
+    // Initialize TaskManager extension
+    app::v8::ipc::TaskManager::init();
 }
 
 } // namespace v8

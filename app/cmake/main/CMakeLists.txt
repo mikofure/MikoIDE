@@ -20,6 +20,8 @@ set(APP_SRCS
   ../../src/main/net/RequestClient.cpp
   ../../include/main/net/RequestClient.hpp
   ../../src/main/main.cpp
+  ../../src/main/v8/ipc/TaskManager.cpp
+
   )
 
 if(OS_LINUX OR OS_WINDOWS)
@@ -29,7 +31,8 @@ if(OS_LINUX OR OS_WINDOWS)
     ../../src/main/AppFactoryRenderer.cpp  
     ../../src/main/AppRenderer.cpp        
     ../../src/main/v8/AppExtension.cpp
-    ../../include/main/v8/AppExtension.hpp    
+    ../../include/main/v8/AppExtension.hpp   
+    ../../src/main/v8/ipc/TaskManager.cpp
     )
 elseif(OS_MAC)
   # On macOS a separate helper executable is used for subprocesses
@@ -40,6 +43,8 @@ elseif(OS_MAC)
     ../../src/main/macos/ProcessEntrypoint.cpp
     ../../src/main/v8/AppExtension.cpp
     ../../include/main/v8/AppExtension.hpp
+    ../../src/main/v8/ipc/TaskManager.cpp
+
     )
 endif()
 

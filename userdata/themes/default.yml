@@ -62,8 +62,8 @@ components:
 
 # Typography
 fonts:
-  primary: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
-  monospace: "'Consolas', 'Courier New', monospace"
+  primary: "'Inter', sans-serif"
+  monospace: "'JetBrains Mono', monospace"
   sizes:
     small: "12px"
     medium: "14px"

@@ -14,6 +14,8 @@
     "build:release:linux": "bun run build:frontend && bun run ./script/make.ts build"
   },
   "dependencies": {
+    "@fontsource-variable/inter": "^5.2.6",
+    "@fontsource-variable/jetbrains-mono": "^5.2.6",
     "@motionone/solid": "^10.16.4",
     "@tailwindcss/vite": "^4.1.11",
     "commander": "^14.0.0",
