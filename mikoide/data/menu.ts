@@ -9,6 +9,15 @@ interface MenuItem {
     toggle?: boolean;
 }
 
+interface KeymapEntry {
+    key: string;
+    action: string;
+    ctrlKey?: boolean;
+    shiftKey?: boolean;
+    altKey?: boolean;
+    metaKey?: boolean;
+}
+
 interface MenuSection {
     title: string;
     items: MenuItem[];
@@ -19,56 +28,56 @@ const editorMenu: MenuSection[] = [
     {
         title: "File",
         items: [
-            { label: "New File", action: "file.new" },
-            { label: "New Window", action: "file.newWindow" },
-            { label: "Open File...", action: "file.open" },
-            { label: "Open Folder...", action: "file.openFolder" },
-            { label: "Open Recent", action: "file.openRecent" },
+            { label: "New File", action: "file.new", shortcut: "Ctrl+N" },
+            { label: "New Window", action: "file.newWindow", shortcut: "Ctrl+Shift+N" },
+            { label: "Open File...", action: "file.open", shortcut: "Ctrl+O" },
+            { label: "Open Folder...", action: "file.openFolder", shortcut: "Ctrl+K Ctrl+O" },
+            { label: "Open Recent", action: "file.openRecent", shortcut: "Ctrl+R" },
 
-            { label: "Save", action: "file.save" },
-            { label: "Save As...", action: "file.saveAs" },
-            { label: "Save All", action: "file.saveAll" },
+            { label: "Save", action: "file.save", shortcut: "Ctrl+S" },
+            { label: "Save As...", action: "file.saveAs", shortcut: "Ctrl+Shift+S" },
+            { label: "Save All", action: "file.saveAll", shortcut: "Ctrl+K S" },
             { label: "Auto Save", action: "file.autoSave", toggle: true },
 
-            { label: "Close", action: "file.close" },
-            { label: "Close All", action: "file.closeAll" },
+            { label: "Close", action: "file.close", shortcut: "Ctrl+W" },
+            { label: "Close All", action: "file.closeAll", shortcut: "Ctrl+K Ctrl+W" },
             { label: "Revert File", action: "file.revert" },
 
-            { label: "Preferences", action: "file.preferences" },
-            { label: "Exit / Quit", action: "file.exit" }
+            { label: "Preferences", action: "file.preferences", shortcut: "Ctrl+," },
+            { label: "Exit / Quit", action: "file.exit", shortcut: "Ctrl+Q" }
         ]
     },
     {
         title: "Edit",
         items: [
-            { label: "Undo", action: "edit.undo" },
-            { label: "Redo", action: "edit.redo" },
+            { label: "Undo", action: "edit.undo", shortcut: "Ctrl+Z" },
+            { label: "Redo", action: "edit.redo", shortcut: "Ctrl+Y" },
 
-            { label: "Cut", action: "edit.cut" },
-            { label: "Copy", action: "edit.copy" },
-            { label: "Paste", action: "edit.paste" },
-            { label: "Delete", action: "edit.delete" },
+            { label: "Cut", action: "edit.cut", shortcut: "Ctrl+X" },
+            { label: "Copy", action: "edit.copy", shortcut: "Ctrl+C" },
+            { label: "Paste", action: "edit.paste", shortcut: "Ctrl+V" },
+            { label: "Delete", action: "edit.delete", shortcut: "Del" },
 
-            { label: "Select All", action: "edit.selectAll" },
-            { label: "Expand Selection", action: "edit.expandSelection" },
-            { label: "Shrink Selection", action: "edit.shrinkSelection" },
+            { label: "Select All", action: "edit.selectAll", shortcut: "Ctrl+A" },
+            { label: "Expand Selection", action: "edit.expandSelection", shortcut: "Shift+Alt+Right" },
+            { label: "Shrink Selection", action: "edit.shrinkSelection", shortcut: "Shift+Alt+Left" },
 
-            { label: "Find", action: "edit.find" },
-            { label: "Find Next", action: "edit.findNext" },
-            { label: "Find Previous", action: "edit.findPrevious" },
-            { label: "Replace", action: "edit.replace" },
-            { label: "Replace All", action: "edit.replaceAll" },
-            { label: "Find in Files", action: "edit.findInFiles" },
-            { label: "Replace in Files", action: "edit.replaceInFiles" },
+            { label: "Find", action: "edit.find", shortcut: "Ctrl+F" },
+            { label: "Find Next", action: "edit.findNext", shortcut: "F3" },
+            { label: "Find Previous", action: "edit.findPrevious", shortcut: "Shift+F3" },
+            { label: "Replace", action: "edit.replace", shortcut: "Ctrl+H" },
+            { label: "Replace All", action: "edit.replaceAll", shortcut: "Ctrl+Alt+Enter" },
+            { label: "Find in Files", action: "edit.findInFiles", shortcut: "Ctrl+Shift+F" },
+            { label: "Replace in Files", action: "edit.replaceInFiles", shortcut: "Ctrl+Shift+H" },
 
-            { label: "Go To Line...", action: "edit.goToLine" },
-            { label: "Go To Symbol...", action: "edit.goToSymbol" },
+            { label: "Go To Line...", action: "edit.goToLine", shortcut: "Ctrl+G" },
+            { label: "Go To Symbol...", action: "edit.goToSymbol", shortcut: "Ctrl+Shift+O" },
 
-            { label: "Toggle Line Comment", action: "edit.toggleLineComment" },
-            { label: "Toggle Block Comment", action: "edit.toggleBlockComment" },
+            { label: "Toggle Line Comment", action: "edit.toggleLineComment", shortcut: "Ctrl+/" },
+            { label: "Toggle Block Comment", action: "edit.toggleBlockComment", shortcut: "Shift+Alt+A" },
 
-            { label: "Format Document", action: "edit.formatDocument" },
-            { label: "Format Selection", action: "edit.formatSelection" },
+            { label: "Format Document", action: "edit.formatDocument", shortcut: "Shift+Alt+F" },
+            { label: "Format Selection", action: "edit.formatSelection", shortcut: "Ctrl+K Ctrl+F" },
             { label: "Trim Trailing Whitespace", action: "edit.trimWhitespace" },
             {
                 label: "Convert Case",
@@ -155,7 +164,7 @@ const editorMenu: MenuSection[] = [
 
             { label: "Settings / Preferences", action: "tools.settings" },
             { label: "Keyboard Shortcuts", action: "tools.shortcuts" },
-            { label: "Command Palette", action: "tools.commandPalette" },
+            { label: "Command Palette", action: "tools.commandPalette", shortcut: "Ctrl+Shift+P" },
             { label: "Snippets Manager", action: "tools.snippets" },
 
             { label: "Format Document", action: "tools.format" },
@@ -251,5 +260,72 @@ function findMenuItemInSection(items: MenuItem[], path: MenuPath): MenuItem | nu
     return null;
 }
 
-// Export the main menu structure
-export { editorMenu, type MenuItem, type MenuSection, type MenuAction, type MenuPath, findMenuItem };
+// Create keymap array for keyboard shortcuts
+const keymap: KeymapEntry[] = [
+    // File operations
+    { key: "n", action: "file.new", ctrlKey: true },
+    { key: "n", action: "file.newWindow", ctrlKey: true, shiftKey: true },
+    { key: "o", action: "file.open", ctrlKey: true },
+    { key: "r", action: "file.openRecent", ctrlKey: true },
+    { key: "s", action: "file.save", ctrlKey: true },
+    { key: "s", action: "file.saveAs", ctrlKey: true, shiftKey: true },
+    { key: "w", action: "file.close", ctrlKey: true },
+    { key: ",", action: "file.preferences", ctrlKey: true },
+    { key: "q", action: "file.exit", ctrlKey: true },
+    
+    // Edit operations
+    { key: "z", action: "edit.undo", ctrlKey: true },
+    { key: "y", action: "edit.redo", ctrlKey: true },
+    { key: "x", action: "edit.cut", ctrlKey: true },
+    { key: "c", action: "edit.copy", ctrlKey: true },
+    { key: "v", action: "edit.paste", ctrlKey: true },
+    { key: "Delete", action: "edit.delete" },
+    { key: "a", action: "edit.selectAll", ctrlKey: true },
+    { key: "f", action: "edit.find", ctrlKey: true },
+    { key: "F3", action: "edit.findNext" },
+    { key: "F3", action: "edit.findPrevious", shiftKey: true },
+    { key: "h", action: "edit.replace", ctrlKey: true },
+    { key: "f", action: "edit.findInFiles", ctrlKey: true, shiftKey: true },
+    { key: "h", action: "edit.replaceInFiles", ctrlKey: true, shiftKey: true },
+    { key: "g", action: "edit.goToLine", ctrlKey: true },
+    { key: "o", action: "edit.goToSymbol", ctrlKey: true, shiftKey: true },
+    { key: "/", action: "edit.toggleLineComment", ctrlKey: true },
+    { key: "a", action: "edit.toggleBlockComment", shiftKey: true, altKey: true },
+    { key: "f", action: "edit.formatDocument", shiftKey: true, altKey: true },
+    
+    // Tools
+    { key: "p", action: "tools.commandPalette", ctrlKey: true, shiftKey: true }
+];
+
+// Helper function to match keyboard events with keymap entries
+function matchKeyboardEvent(event: KeyboardEvent): string | null {
+    const key = event.key;
+    const ctrlKey = event.ctrlKey;
+    const shiftKey = event.shiftKey;
+    const altKey = event.altKey;
+    const metaKey = event.metaKey;
+    
+    for (const entry of keymap) {
+        if (entry.key.toLowerCase() === key.toLowerCase() &&
+            !!entry.ctrlKey === ctrlKey &&
+            !!entry.shiftKey === shiftKey &&
+            !!entry.altKey === altKey &&
+            !!entry.metaKey === metaKey) {
+            return entry.action;
+        }
+    }
+    return null;
+}
+
+// Export the main menu structure and keymap utilities
+export { 
+    editorMenu, 
+    keymap, 
+    matchKeyboardEvent,
+    type MenuItem, 
+    type MenuSection, 
+    type MenuAction, 
+    type MenuPath, 
+    type KeymapEntry,
+    findMenuItem 
+};

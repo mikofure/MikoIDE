@@ -1,11 +1,45 @@
 // src/components/MenuBar.tsx
-import { For, Show, createSignal } from "solid-js";
-import { editorMenu, type MenuItem } from "../data/menu";
+import { For, Show, createSignal, onMount, onCleanup } from "solid-js";
+import { editorMenu, matchKeyboardEvent, type MenuItem } from "../data/menu";
 import chromeIPC, { type MenuActionType } from "../data/chromeipc";
 import { ChevronRight } from "lucide-solid";
 
 function MenuBar() {
   const [activeMenu, setActiveMenu] = createSignal<string | null>(null);
+
+  // Handle global keyboard shortcuts
+  const handleKeyDown = async (event: KeyboardEvent) => {
+    const action = matchKeyboardEvent(event);
+    if (action) {
+      // Only prevent default if chromeIPC is available and can handle the action
+      if (chromeIPC.isAvailable()) {
+        try {
+          const response = await chromeIPC.executeMenuAction(action as MenuActionType);
+          // Only prevent default if the action was successfully handled
+          if (response.success) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+        } catch (error) {
+          console.error(`Failed to execute keyboard shortcut action '${action}':`, error);
+          // Don't prevent default if there was an error - let the event bubble up
+        }
+      } else {
+        // If chromeIPC is not available, don't prevent the event
+        // This allows the browser/editor to handle standard shortcuts
+        console.log(`ChromeIPC not available, allowing default behavior for action: ${action}`);
+      }
+    }
+  };
+
+  // Add global keyboard event listener
+  onMount(() => {
+    document.addEventListener('keydown', handleKeyDown);
+  });
+
+  onCleanup(() => {
+    document.removeEventListener('keydown', handleKeyDown);
+  });
 
   const handleMenuClick = (title: string) => {
     setActiveMenu(activeMenu() === title ? null : title);
@@ -69,7 +103,7 @@ function MenuItemComponent(props: { item: MenuItem; onItemClick: (item: MenuItem
   
   return (
     <div 
-      class="relative group"
+      class="relative group w-64"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -82,15 +116,20 @@ function MenuItemComponent(props: { item: MenuItem; onItemClick: (item: MenuItem
         onClick={handleClick}
       >
         <span class="text-white text-xs font-medium">{item.label}</span>
-        <Show when={item.submenu}>
-          <ChevronRight 
-            size={14} 
-            class="text-gray-400 transition-transform duration-150"
-            classList={{
-              "rotate-90": isHovered() && !!item.submenu
-            }}
-          />
-        </Show>
+        <div class="flex items-center gap-2">
+          <Show when={item.shortcut}>
+            <span class="text-gray-400 text-xs ">{item.shortcut}</span>
+          </Show>
+          <Show when={item.submenu}>
+            <ChevronRight 
+              size={14} 
+              class="text-gray-400 transition-transform duration-150"
+              classList={{
+                "rotate-90": isHovered() && !!item.submenu
+              }}
+            />
+          </Show>
+        </div>
       </div>
 
       <Show when={item.submenu}>

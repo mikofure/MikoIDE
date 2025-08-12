@@ -1,0 +1,91 @@
+# MikoIDE Default Theme Configuration
+name: "Default Theme"
+version: "1.0.0"
+author: "MikoIDE Team"
+description: "Default theme for MikoIDE"
+
+# Base colors
+colors:
+  primary: "#007acc"
+  secondary: "#1e1e1e"
+  background: "#252526"
+  surface: "#2d2d30"
+  text: "#cccccc"
+  textSecondary: "#969696"
+  border: "#3e3e42"
+  accent: "#0078d4"
+  success: "#4caf50"
+  warning: "#ff9800"
+  error: "#f44336"
+  info: "#2196f3"
+
+# Component-specific colors
+components:
+  welcome:
+    background: "#1e1e1e"
+    cardBackground: "#252526"
+    titleText: "#ffffff"
+    subtitleText: "#cccccc"
+    accentColor: "#007acc"
+    hoverColor: "#094771"
+    borderColor: "#3e3e42"
+    buttonBackground: "#0e639c"
+    badgeBackground: "#007acc"
+  
+  editor:
+    background: "#1e1e1e"
+    lineNumbers: "#858585"
+    selection: "#264f78"
+    cursor: "#ffffff"
+    syntax:
+      keyword: "#569cd6"
+      string: "#ce9178"
+      comment: "#6a9955"
+      number: "#b5cea8"
+      function: "#dcdcaa"
+      variable: "#9cdcfe"
+  
+  sidebar:
+    background: "#252526"
+    text: "#cccccc"
+    hover: "#2a2d2e"
+    selected: "#37373d"
+  
+  statusbar:
+    background: "#007acc"
+    text: "#ffffff"
+  
+  toolbar:
+    background: "#2d2d30"
+    text: "#cccccc"
+    hover: "#3e3e42"
+
+# Typography
+fonts:
+  primary: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+  monospace: "'Consolas', 'Courier New', monospace"
+  sizes:
+    small: "12px"
+    medium: "14px"
+    large: "16px"
+    xlarge: "18px"
+
+# Spacing
+spacing:
+  xs: "4px"
+  sm: "8px"
+  md: "16px"
+  lg: "24px"
+  xl: "32px"
+
+# Border radius
+borderRadius:
+  small: "2px"
+  medium: "4px"
+  large: "8px"
+
+# Shadows
+shadows:
+  small: "0 1px 3px rgba(0, 0, 0, 0.12)"
+  medium: "0 4px 6px rgba(0, 0, 0, 0.16)"
+  large: "0 10px 20px rgba(0, 0, 0, 0.19)"

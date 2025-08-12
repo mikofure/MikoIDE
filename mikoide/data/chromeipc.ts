@@ -21,9 +21,17 @@ type MenuActionType =
     | 'file.new' | 'file.open' | 'file.open_folder' | 'file.save' | 'file.saveAs' | 'file.exit'
     | 'edit.undo' | 'edit.redo' | 'edit.cut' | 'edit.copy' | 'edit.paste'
     | 'view.explorer' | 'view.fullScreen' | 'view.zoomIn' | 'view.zoomOut'
-    | 'window.minimize' | 'window.maximize' | 'window.close' | 'window.restore'
+    | 'window.minimize' | 'window.maximize' | 'window.close' | 'window.restore' | 'window.new'
     | 'tools.terminal' | 'tools.settings' | 'help.about'
     | 'git.clone' | 'git.init' | 'git.commit' | 'git.push' | 'git.pull';
+
+// File operation types
+type FileOperationType = 
+    | 'read_file' | 'write_file' | 'file_exists' | 'list_directory'
+    | 'open_file_dialog' | 'save_file_dialog';
+
+// Window operation types
+type WindowOperationType = 'spawn_new';
 
 // Window control types
 type WindowControlType = 'minimize' | 'maximize' | 'restore' | 'close';
@@ -78,6 +86,62 @@ class ChromeIPC {
             } else {
                 // Fallback for development/testing
                 console.log('IPC Message (dev mode):', message);
+                
+                // Handle menu actions in development mode
+                if (type === 'menu_action' && payload?.action) {
+                    const action = payload.action;
+                    
+                    // Handle window.new action specially in dev mode
+                    if (action === 'window.new') {
+                        // In dev mode, open a new tab/window
+                        window.open(window.location.href, '_blank');
+                        setTimeout(() => {
+                            resolve({
+                                id,
+                                success: true,
+                                data: { message: 'New window opened in dev mode' },
+                                timestamp: Date.now()
+                            });
+                        }, 10);
+                        return;
+                    }
+                    
+                    // Try to call the global menu action handler if available
+                    if (typeof window !== 'undefined' && (window as any).handleMenuAction) {
+                        try {
+                            (window as any).handleMenuAction(action);
+                            setTimeout(() => {
+                                resolve({
+                                    id,
+                                    success: true,
+                                    data: { message: `Menu action '${action}' executed in dev mode` },
+                                    timestamp: Date.now()
+                                });
+                            }, 10);
+                            return;
+                        } catch (error) {
+                            console.error(`Failed to execute menu action '${action}':`, error);
+                        }
+                    }
+                }
+                
+                // Handle window operations in development mode
+                if (type === 'App::WindowOperation' && payload?.operation === 'spawn_new') {
+                    // In dev mode, open a new tab/window
+                    const url = payload.url || window.location.href;
+                    window.open(url, '_blank');
+                    setTimeout(() => {
+                        resolve({
+                            id,
+                            success: true,
+                            data: { message: 'New window spawned in dev mode' },
+                            timestamp: Date.now()
+                        });
+                    }, 10);
+                    return;
+                }
+                
+                // Default fallback response
                 setTimeout(() => {
                     resolve({
                         id,
@@ -136,6 +200,46 @@ class ChromeIPC {
 
     async newFile(): Promise<IPCResponse> {
         return this.sendMessage('file_operation', { action: 'new' });
+    }
+
+    // Enhanced file operations
+    async readFile(filePath: string): Promise<IPCResponse> {
+        return this.sendMessage('App::FileOperation', { operation: 'read_file', path: filePath });
+    }
+
+    async writeFile(filePath: string, content: string): Promise<IPCResponse> {
+        return this.sendMessage('App::FileOperation', { operation: 'write_file', path: filePath, content });
+    }
+
+    async fileExists(filePath: string): Promise<IPCResponse> {
+        return this.sendMessage('App::FileOperation', { operation: 'file_exists', path: filePath });
+    }
+
+    async listDirectory(dirPath: string): Promise<IPCResponse> {
+        return this.sendMessage('App::FileOperation', { operation: 'list_directory', path: dirPath });
+    }
+
+    async openFileDialog(): Promise<IPCResponse> {
+        return this.sendMessage('App::FileOperation', { operation: 'open_file_dialog' });
+    }
+
+    async saveFileDialog(): Promise<IPCResponse> {
+        return this.sendMessage('App::FileOperation', { operation: 'save_file_dialog' });
+    }
+
+    async openFolderDialog(): Promise<IPCResponse> {
+        return this.executeMenuAction('file.open_folder');
+    }
+
+    // Window operations
+    async spawnNewWindow(url?: string): Promise<IPCResponse> {
+        return this.sendMessage('App::WindowOperation', { operation: 'spawn_new', url });
+    }
+
+    // Check if already running and spawn new window
+    async handleRunAction(): Promise<IPCResponse> {
+        // Always spawn a new window when run is clicked
+        return this.spawnNewWindow();
     }
 
     // Application state
@@ -204,6 +308,8 @@ export {
     type IPCMessage,
     type IPCResponse,
     type MenuActionType,
+    type FileOperationType,
+    type WindowOperationType,
     type WindowControlType,
     type PanelControlType
 };

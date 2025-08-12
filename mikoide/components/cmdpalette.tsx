@@ -1,5 +1,7 @@
 import { createSignal, For, Show } from "solid-js";
-import { Search, File, Folder, Settings, Command, Code, Edit, Copy, Scissors, RotateCcw, RotateCw } from "lucide-solid";
+//@ts-expect-error
+import { Motion } from "@motionone/solid";
+import { Search, File, Folder, Settings, Command, Code, Edit, Copy, Scissors, RotateCcw, RotateCw, GitBranch, Terminal, Download, Upload, Database, Globe, Package, Zap, RefreshCw } from "lucide-solid";
 import * as monaco from "monaco-editor";
 
 interface CommandPaletteProps {
@@ -7,6 +9,7 @@ interface CommandPaletteProps {
     searchQuery: string;
     onClose: () => void;
     onExecute: (command: string) => void;
+    onSearchChange?: (query: string) => void;
     editorInstance?: monaco.editor.IStandaloneCodeEditor;
 }
 
@@ -21,6 +24,7 @@ interface CommandItem {
 
 function CommandPalette(props: CommandPaletteProps) {
     const [selectedIndex, setSelectedIndex] = createSignal(0);
+    const [localSearchQuery, setLocalSearchQuery] = createSignal("");
     
     // Get all Monaco editor commands dynamically
     const getMonacoCommands = (): CommandItem[] => {
@@ -154,6 +158,66 @@ function CommandPalette(props: CommandPaletteProps) {
         }
     };
     
+    // Dialog helper function
+    const showDialog = (title: string, message: string, inputPlaceholder?: string) => {
+        return new Promise<string | null>((resolve) => {
+            const dialog = document.createElement('div');
+            dialog.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]';
+            
+            const content = `
+                <div class="bg-[#1a1a1a] border border-[#323132] rounded-lg p-6 min-w-96 max-w-md">
+                    <h3 class="text-white text-lg font-semibold mb-4">${title}</h3>
+                    <p class="text-gray-300 text-sm mb-4">${message}</p>
+                    ${inputPlaceholder ? `<input type="text" placeholder="${inputPlaceholder}" class="w-full bg-[#2d2d30] border border-[#464647] rounded px-3 py-2 text-white text-sm mb-4 focus:outline-none focus:border-[#4fc3f7]" />` : ''}
+                    <div class="flex gap-2 justify-end">
+                        <button class="px-4 py-2 bg-[#2d2d30] hover:bg-[#3e3e42] text-gray-300 rounded text-sm transition-colors" data-action="cancel">Cancel</button>
+                        <button class="px-4 py-2 bg-[#4fc3f7] hover:bg-[#29b6f6] text-white rounded text-sm transition-colors" data-action="confirm">${inputPlaceholder ? 'Execute' : 'OK'}</button>
+                    </div>
+                </div>
+            `;
+            
+            dialog.innerHTML = content;
+            document.body.appendChild(dialog);
+            
+            const input = dialog.querySelector('input') as HTMLInputElement;
+            const cancelBtn = dialog.querySelector('[data-action="cancel"]') as HTMLButtonElement;
+            const confirmBtn = dialog.querySelector('[data-action="confirm"]') as HTMLButtonElement;
+            
+            if (input) input.focus();
+            
+            const cleanup = () => {
+                document.body.removeChild(dialog);
+            };
+            
+            cancelBtn.onclick = () => {
+                cleanup();
+                resolve(null);
+            };
+            
+            confirmBtn.onclick = () => {
+                const value = input ? input.value : 'confirmed';
+                cleanup();
+                resolve(value);
+            };
+            
+            if (input) {
+                input.onkeydown = (e) => {
+                    if (e.key === 'Enter') {
+                        confirmBtn.click();
+                    } else if (e.key === 'Escape') {
+                        cancelBtn.click();
+                    }
+                };
+            }
+            
+            dialog.onclick = (e) => {
+                if (e.target === dialog) {
+                    cancelBtn.click();
+                }
+            };
+        });
+    };
+
     // Sample commands - can be expanded
     const generalCommands: CommandItem[] = [
         {
@@ -173,6 +237,14 @@ function CommandPalette(props: CommandPaletteProps) {
             action: () => console.log("Open file")
         },
         {
+            id: "file.openFolder",
+            title: "Open Folder",
+            description: "Open a folder in workspace",
+            icon: Folder,
+            category: "File",
+            action: () => console.log("Open folder")
+        },
+        {
             id: "view.settings",
             title: "Open Settings",
             description: "Open IDE settings",
@@ -187,6 +259,197 @@ function CommandPalette(props: CommandPaletteProps) {
             icon: Search,
             category: "Search",
             action: () => console.log("Search files")
+        },
+        // Git Commands
+        {
+            id: "git.clone",
+            title: "Git: Clone Repository",
+            description: "Clone a git repository",
+            icon: GitBranch,
+            category: "Git",
+            action: async () => {
+                const url = await showDialog(
+                    "Clone Repository",
+                    "Enter the repository URL to clone:",
+                    "https://github.com/user/repo.git"
+                );
+                if (url) {
+                    console.log(`Cloning repository: ${url}`);
+                    // Here you would integrate with actual git clone functionality
+                }
+            }
+        },
+        {
+            id: "git.init",
+            title: "Git: Initialize Repository",
+            description: "Initialize a new git repository",
+            icon: GitBranch,
+            category: "Git",
+            action: async () => {
+                const confirm = await showDialog(
+                    "Initialize Repository",
+                    "Initialize a new Git repository in the current workspace?"
+                );
+                if (confirm) {
+                    console.log("Initializing git repository");
+                }
+            }
+        },
+        {
+            id: "git.addRemote",
+            title: "Git: Add Remote",
+            description: "Add a remote repository",
+            icon: Globe,
+            category: "Git",
+            action: async () => {
+                const url = await showDialog(
+                    "Add Remote",
+                    "Enter the remote repository URL:",
+                    "https://github.com/user/repo.git"
+                );
+                if (url) {
+                    console.log(`Adding remote: ${url}`);
+                }
+            }
+        },
+        // Terminal Commands
+        {
+            id: "terminal.new",
+            title: "Terminal: New Terminal",
+            description: "Open a new terminal instance",
+            icon: Terminal,
+            category: "Terminal",
+            action: () => console.log("Opening new terminal")
+        },
+        {
+            id: "terminal.runCommand",
+            title: "Terminal: Run Command",
+            description: "Run a custom command in terminal",
+            icon: Terminal,
+            category: "Terminal",
+            action: async () => {
+                const command = await showDialog(
+                    "Run Command",
+                    "Enter the command to execute:",
+                    "npm install"
+                );
+                if (command) {
+                    console.log(`Running command: ${command}`);
+                }
+            }
+        },
+        // Package Management
+        {
+            id: "npm.install",
+            title: "NPM: Install Package",
+            description: "Install an npm package",
+            icon: Package,
+            category: "Package",
+            action: async () => {
+                const packageName = await showDialog(
+                    "Install Package",
+                    "Enter the package name to install:",
+                    "package-name"
+                );
+                if (packageName) {
+                    console.log(`Installing package: ${packageName}`);
+                }
+            }
+        },
+        {
+            id: "npm.uninstall",
+            title: "NPM: Uninstall Package",
+            description: "Uninstall an npm package",
+            icon: Package,
+            category: "Package",
+            action: async () => {
+                const packageName = await showDialog(
+                    "Uninstall Package",
+                    "Enter the package name to uninstall:",
+                    "package-name"
+                );
+                if (packageName) {
+                    console.log(`Uninstalling package: ${packageName}`);
+                }
+            }
+        },
+        // Project Commands
+        {
+            id: "project.build",
+            title: "Project: Build",
+            description: "Build the current project",
+            icon: Zap,
+            category: "Project",
+            action: () => console.log("Building project")
+        },
+        {
+            id: "project.clean",
+            title: "Project: Clean",
+            description: "Clean build artifacts",
+            icon: RefreshCw,
+            category: "Project",
+            action: async () => {
+                const confirm = await showDialog(
+                    "Clean Project",
+                    "This will remove all build artifacts. Continue?"
+                );
+                if (confirm) {
+                    console.log("Cleaning project");
+                }
+            }
+        },
+        // Database Commands
+        {
+            id: "db.connect",
+            title: "Database: Connect",
+            description: "Connect to a database",
+            icon: Database,
+            category: "Database",
+            action: async () => {
+                const connectionString = await showDialog(
+                    "Database Connection",
+                    "Enter the database connection string:",
+                    "mongodb://localhost:27017/mydb"
+                );
+                if (connectionString) {
+                    console.log(`Connecting to database: ${connectionString}`);
+                }
+            }
+        },
+        // File Operations
+        {
+            id: "file.download",
+            title: "File: Download from URL",
+            description: "Download a file from URL",
+            icon: Download,
+            category: "File",
+            action: async () => {
+                const url = await showDialog(
+                    "Download File",
+                    "Enter the URL to download:",
+                    "https://example.com/file.zip"
+                );
+                if (url) {
+                    console.log(`Downloading file: ${url}`);
+                }
+            }
+        },
+        {
+            id: "file.upload",
+            title: "File: Upload to Server",
+            description: "Upload current file to server",
+            icon: Upload,
+            category: "File",
+            action: async () => {
+                const server = await showDialog(
+                    "Upload File",
+                    "Enter the server URL:",
+                    "ftp://server.com/path/"
+                );
+                if (server) {
+                    console.log(`Uploading to server: ${server}`);
+                }
+            }
         }
     ];
     
@@ -196,11 +459,12 @@ function CommandPalette(props: CommandPaletteProps) {
     // Filter commands based on search query
     const filteredCommands = () => {
         const allCommands = commands();
-        if (!props.searchQuery.trim()) return allCommands;
+        const query = localSearchQuery().trim();
+        if (!query) return allCommands;
         return allCommands.filter(cmd => 
-            cmd.title.toLowerCase().includes(props.searchQuery.toLowerCase()) ||
-            cmd.description?.toLowerCase().includes(props.searchQuery.toLowerCase()) ||
-            cmd.category.toLowerCase().includes(props.searchQuery.toLowerCase())
+            cmd.title.toLowerCase().includes(query.toLowerCase()) ||
+            cmd.description?.toLowerCase().includes(query.toLowerCase()) ||
+            cmd.category.toLowerCase().includes(query.toLowerCase())
         );
     };
     
@@ -236,25 +500,88 @@ function CommandPalette(props: CommandPaletteProps) {
         setSelectedIndex(0);
     };
     
-    // Watch for search query changes
+    // Sync local search with props and reset selection
     (() => {
-        props.searchQuery; // Track dependency
+        if (props.isOpen && !localSearchQuery()) {
+            setLocalSearchQuery(props.searchQuery);
+        }
+        if (!props.isOpen) {
+            setLocalSearchQuery("");
+        }
+        resetSelection();
+    })();
+    
+    // Watch for local search query changes
+    (() => {
+        localSearchQuery(); // Track dependency
         resetSelection();
     })();
     
     return (
         <Show when={props.isOpen}>
-            <div 
-                class="absolute left-0 top-full mt-2 bg-[#1a1a1a98] backdrop-blur-lg border border-[#323132] shadow-lg rounded-md min-w-96 z-[999] py-1 max-h-80 overflow-y-auto"
+            {/* Backdrop */}
+            <Motion.div 
+                class="fixed inset-0 duration-200 z-[9998]"
+                onClick={props.onClose}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.125 }}
+            />
+            {/* Centered Command Palette */}
+            <Motion.div 
+                class="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#1a1a1a] border border-[#323132] shadow-2xl rounded-lg w-[600px] max-w-[90vw] max-h-[70vh] z-[9999] overflow-hidden"
                 onKeyDown={handleKeyDown}
+                onClick={(e: MouseEvent) => e.stopPropagation()}
                 tabIndex={-1}
+                initial={{ opacity: 0, scale: 0.95, y: "-50%", x: "-50%" }}
+                animate={{ opacity: 1, scale: 1, y: "-50%", x: "-50%" }}
+                exit={{ opacity: 0, scale: 0.95, y: "-50%", x: "-50%" }}
+                transition={{ duration: 0.125, easing: "ease-out" }}
             >
+                {/* Search Input */}
+                <Motion.div 
+                    class="flex items-center gap-3 px-4 py-3 border-b border-[#323132]"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: 0.1 }}
+                >
+                    <Search class="w-5 h-5 text-gray-400" />
+                    <input
+                        type="text"
+                        placeholder="Type a command or search..."
+                        value={localSearchQuery()}
+                        onInput={(e) => {
+                            const value = (e.target as HTMLInputElement).value;
+                            setLocalSearchQuery(value);
+                            props.onSearchChange?.(value);
+                        }}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Escape') {
+                                props.onClose();
+                            }
+                        }}
+                        class="bg-transparent text-sm placeholder:text-gray-500 outline-none flex-1 text-white"
+                        autofocus
+                    />
+                </Motion.div>
+                
+                {/* Commands List */}
+                <Motion.div 
+                    class="overflow-y-auto max-h-96 py-2"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.3, delay: 0.125 }}
+                >
                 <Show 
                     when={filteredCommands().length > 0}
                     fallback={
                         <div class="px-3 py-4 text-center text-gray-400 text-xs">
                             <Search class="w-6 h-6 mx-auto mb-2 opacity-50" />
-                            No commands found for "{props.searchQuery}"
+                            No commands found for "{localSearchQuery()}"
                         </div>
                     }
                 >
@@ -285,21 +612,27 @@ function CommandPalette(props: CommandPaletteProps) {
                         }}
                     </For>
                 </Show>
+                </Motion.div>
                 
                 {/* Footer with keyboard shortcuts */}
-                <div class="border-t border-[#323132] mt-1 pt-2 px-3 pb-2">
+                <Motion.div 
+                    class="border-t border-[#323132] px-4 py-3"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: 0.3 }}
+                >
                     <div class="flex items-center justify-between text-xs text-gray-500">
                         <div class="flex items-center gap-4">
                             <span class="flex items-center gap-1">
-                                <kbd class="px-1 py-0.5 bg-gray-700 rounded text-xs">↑↓</kbd>
+                                <kbd class="px-1.5 py-0.5 bg-gray-700 rounded text-xs">↑↓</kbd>
                                 Navigate
                             </span>
                             <span class="flex items-center gap-1">
-                                <kbd class="px-1 py-0.5 bg-gray-700 rounded text-xs">Enter</kbd>
+                                <kbd class="px-1.5 py-0.5 bg-gray-700 rounded text-xs">Enter</kbd>
                                 Select
                             </span>
                             <span class="flex items-center gap-1">
-                                <kbd class="px-1 py-0.5 bg-gray-700 rounded text-xs">Esc</kbd>
+                                <kbd class="px-1.5 py-0.5 bg-gray-700 rounded text-xs">Esc</kbd>
                                 Close
                             </span>
                         </div>
@@ -308,8 +641,8 @@ function CommandPalette(props: CommandPaletteProps) {
                             <span>Command Palette</span>
                         </div>
                     </div>
-                </div>
-            </div>
+                </Motion.div>
+            </Motion.div>
         </Show>
     );
 }

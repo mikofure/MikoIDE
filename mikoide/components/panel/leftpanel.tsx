@@ -1,14 +1,14 @@
 import { createSignal, onCleanup } from "solid-js";
 import { Folder, Settings, Search, Blocks, Database, Pyramid, FlaskConical } from "lucide-solid";
-import GitSrcControl from "../assets/images/tools/gitcontrol.svg";
-import CmakeIcon from "../assets/images/tools/cmake.svg";
-import chromeIPC from "../data/chromeipc";
+import GitSrcControl from "../../assets/images/tools/gitcontrol.svg";
+import CmakeIcon from "../../assets/images/tools/cmake.svg";
+import chromeIPC from "../../data/chromeipc";
 
 // Import sidebar pages
-import Explorer from "./sidebar/explorer";
-import SearchPage from "./sidebar/search";
-import GitPage from "./sidebar/git";
-import ExtensionsPage from "./sidebar/extensions";
+import Explorer from "../sidebar/explorer";
+import SearchPage from "../sidebar/search";
+import GitPage from "../sidebar/git";
+import ExtensionsPage from "../sidebar/extensions";
 
 interface SideBarProps {
     width: number;

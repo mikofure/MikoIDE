@@ -1,7 +1,7 @@
 import { createSignal, onMount, onCleanup } from "solid-js";
 import MenuBar from "./menubar"; // 👈 import
 import CommandPalette from "./cmdpalette";
-import { Search, PanelLeft, PanelBottom, PanelRight, LayoutGrid, Aperture, ChevronDown, Settings, User,  LogOut, Github } from "lucide-solid";
+import { Search, PanelLeft, PanelBottom, PanelRight, LayoutGrid, Aperture, ChevronDown, Settings, User, LogOut, Github, Monitor } from "lucide-solid";
 import chromeIPC from "../data/chromeipc";
 import microsoftIcon from "../assets/images/brand/microsoft.svg";
 import googleIcon from "../assets/images/brand/google.svg";
@@ -9,96 +9,99 @@ import googleIcon from "../assets/images/brand/google.svg";
 import "../styles/titlebar.css";
 
 interface TitleBarProps {
-  onCaptureClick?: () => void;
-  editorInstance?: any; // Monaco editor instance
+    onCaptureClick?: () => void;
+    editorInstance?: any; // Monaco editor instance
+    panelStates?: {
+        left: boolean;
+        right: boolean;
+        bottom: boolean;
+        grid: boolean;
+    };
+    onPanelStateChange?: (panel: 'left' | 'right' | 'bottom' | 'grid', isOpen: boolean) => void;
 }
 
 function TitleBar(props: TitleBarProps) {
     const [searchQuery, setSearchQuery] = createSignal("");
-    const [isSearchFocused, setIsSearchFocused] = createSignal(false);
+    // const [isSearchFocused, setIsSearchFocused] = createSignal(false);
     const [isAccountMenuOpen, setIsAccountMenuOpen] = createSignal(false);
     const [isLoggedIn, setIsLoggedIn] = createSignal(false);
     const [isCommandPaletteOpen, setIsCommandPaletteOpen] = createSignal(false);
-    
+    const [panelStates, setPanelStates] = createSignal({
+        left: props.panelStates?.left ?? true,
+        right: props.panelStates?.right ?? false,
+        bottom: props.panelStates?.bottom ?? false,
+        grid: props.panelStates?.grid ?? false
+    });
+
     // Close dropdown when clicking outside
     const handleClickOutside = (e: MouseEvent) => {
         const target = e.target as HTMLElement;
         if (!target.closest('.account-menu-container')) {
             setIsAccountMenuOpen(false);
         }
-        if (!target.closest('.search-container')) {
-            setIsCommandPaletteOpen(false);
-        }
+        // Don't close command palette here - it has its own backdrop handler
     };
-    
+
     onMount(() => {
         document.addEventListener('click', handleClickOutside);
     });
-    
+
     onCleanup(() => {
         document.removeEventListener('click', handleClickOutside);
     });
-    
+
     // Handle search functionality
-    const handleSearch = async (query: string) => {
-        if (query.trim()) {
-            try {
-                await chromeIPC.searchFiles(query);
-            } catch (error) {
-                console.error('Search failed:', error);
-            }
-        }
-    };
-    
-    // Handle search input
-    const handleSearchInput = (e: Event) => {
-        const target = e.target as HTMLInputElement;
-        setSearchQuery(target.value);
-        // Show command palette when typing
-        if (target.value.trim()) {
-            setIsCommandPaletteOpen(true);
-        }
-    };
-    
-    // Handle search submit and keyboard events
-    const handleSearchKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Enter' && !isCommandPaletteOpen()) {
-            handleSearch(searchQuery());
-        } else if (e.key === 'Escape') {
-            setIsCommandPaletteOpen(false);
-            setSearchQuery("");
-        }
-    };
-    
-    // Handle search focus
-    const handleSearchFocus = () => {
-        setIsSearchFocused(true);
-        if (searchQuery().trim()) {
-            setIsCommandPaletteOpen(true);
-        }
-    };
-    
+    // const handleSearch = async (query: string) => {
+    //     if (query.trim()) {
+    //         try {
+    //             await chromeIPC.searchFiles(query);
+    //         } catch (error) {
+    //             console.error('Search failed:', error);
+    //         }
+    //     }
+    // };
+
+
     // Handle command palette close
     const handleCommandPaletteClose = () => {
         setIsCommandPaletteOpen(false);
     };
-    
+
     // Handle command execution
     const handleCommandExecute = (command: string) => {
         console.log('Executing command:', command);
         setIsCommandPaletteOpen(false);
         setSearchQuery("");
     };
-    
+
     // Panel toggle handlers
     const handlePanelToggle = async (panel: 'left' | 'bottom' | 'right' | 'grid') => {
         try {
+            const newState = !panelStates()[panel];
+            setPanelStates(prev => ({ ...prev, [panel]: newState }));
+            
+            // Notify parent component about panel state change
+            if (props.onPanelStateChange) {
+                props.onPanelStateChange(panel, newState);
+            }
+            
             await chromeIPC.togglePanel(panel);
         } catch (error) {
             console.error(`Failed to toggle ${panel} panel:`, error);
+            // Revert state on error
+            setPanelStates(prev => ({ ...prev, [panel]: !prev[panel] }));
         }
     };
-    
+
+    // New window handler
+    const handleNewWindow = async () => {
+        try {
+            await chromeIPC.spawnNewWindow();
+        } catch (error) {
+            console.error('Failed to spawn new window:', error);
+        }
+    };
+
     // Capture handler
     const handleCapture = async () => {
         try {
@@ -118,75 +121,103 @@ function TitleBar(props: TitleBarProps) {
                 <MenuBar />
             </div>
 
-            {/* กลาง (search กลางเป๊ะ) */}
-            <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 search-container" style={{ "-webkit-app-region": "no-drag" }}>
-                <div class={`flex items-center gap-2 border rounded-full bg-neutral-900 px-3 py-1 transition-colors duration-200 relative ${
-                    isSearchFocused() || isCommandPaletteOpen() ? 'border-blue-500/60' : 'border-white/20 hover:border-white/40'
-                }`}>
-                    <Search class="w-4 h-4 text-gray-400" />
-                    <input
-                        type="text"
-                        placeholder="Search files or commands..."
-                        value={searchQuery()}
-                        onInput={handleSearchInput}
-                        onKeyDown={handleSearchKeyDown}
-                        onFocus={handleSearchFocus}
-                        onBlur={() => setIsSearchFocused(false)}
-                        class="bg-transparent text-xs placeholder:text-gray-500 outline-none w-40 focus:w-60 transition-all duration-300 ease-in-out"
-                    />
-                    
-                    {/* Command Palette */}
-                     <CommandPalette 
-                         isOpen={isCommandPaletteOpen()}
-                         searchQuery={searchQuery()}
-                         onClose={handleCommandPaletteClose}
-                         onExecute={handleCommandExecute}
-                         editorInstance={props.editorInstance}
-                     />
-                </div>
+            {/* กลาง (search button) */}
+            <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex" style={{ "-webkit-app-region": "no-drag" }}>
+                <p class="text-white text-xs font-semibold">MikoIDE</p>
+                <p class="text-xs opacity-55">/welcome</p>
             </div>
+
+            {/* Command Palette - Centered on screen */}
+            <CommandPalette
+                isOpen={isCommandPaletteOpen()}
+                searchQuery={searchQuery()}
+                onClose={handleCommandPaletteClose}
+                onExecute={handleCommandExecute}
+                onSearchChange={setSearchQuery}
+                editorInstance={props.editorInstance}
+            />
 
             {/* ขวา */}
             <div class="flex gap-1 ml-auto h-full">
+                {/* cmdpalette */}
+                <button
+                    class={`flex items-center px-3 py-1 transition-colors duration-200 cursor-pointer hover:bg-neutral-800 ${
+                        isCommandPaletteOpen() ? 'border-blue-500/60 bg-neutral-800' : 'border-white/20 hover:border-white/40'
+                    }`}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setIsCommandPaletteOpen(true);
+                    }}
+                    title="Open Command Palette (Ctrl+Shift+P)"
+                >
+                    <Search class="w-4 h-4 text-white" />
+                </button>
                 {/* capture button */}
-                <button 
+                <button
                     class="p-2 w-8 h-full hover:bg-white/10 transition-colors rounded"
                     onClick={handleCapture}
                     title="Capture Code Editor (Ctrl+Alt+F)"
                 >
                     <Aperture class="w-4 h-4" />
                 </button>
-                <button 
-                    class="p-2 w-8 h-full hover:bg-white/10 transition-colors rounded"
+                
+                {/* Panel toggle buttons with active states */}
+                <button
+                    class={`p-2 w-8 h-full transition-colors rounded ${
+                        panelStates().left 
+                            ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/30' 
+                            : 'hover:bg-white/10'
+                    }`}
                     onClick={() => handlePanelToggle('left')}
-                    title="Toggle Left Panel"
+                    title="Toggle Left Panel (Explorer, Search, Git)"
                 >
                     <PanelLeft class="w-4 h-4" />
                 </button>
-                <button 
-                    class="p-2 w-8 h-full hover:bg-white/10 transition-colors rounded"
+                <button
+                    class={`p-2 w-8 h-full transition-colors rounded ${
+                        panelStates().bottom 
+                            ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/30' 
+                            : 'hover:bg-white/10'
+                    }`}
                     onClick={() => handlePanelToggle('bottom')}
-                    title="Toggle Bottom Panel"
+                    title="Toggle Bottom Panel (Terminal, Problems, Output)"
                 >
                     <PanelBottom class="w-4 h-4" />
                 </button>
-                <button 
-                    class="p-2 w-8 h-full hover:bg-white/10 transition-colors rounded"
+                <button
+                    class={`p-2 w-8 h-full transition-colors rounded ${
+                        panelStates().right 
+                            ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/30' 
+                            : 'hover:bg-white/10'
+                    }`}
                     onClick={() => handlePanelToggle('right')}
-                    title="Toggle Right Panel"
+                    title="Toggle Right Panel (Terminal, Debug, Performance)"
                 >
                     <PanelRight class="w-4 h-4" />
                 </button>
-                <button 
-                    class="p-2 w-8 h-full hover:bg-white/10 transition-colors rounded"
+                <button
+                    class={`p-2 w-8 h-full transition-colors rounded ${
+                        panelStates().grid 
+                            ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/30' 
+                            : 'hover:bg-white/10'
+                    }`}
                     onClick={() => handlePanelToggle('grid')}
                     title="Toggle Grid Layout"
                 >
                     <LayoutGrid class="w-4 h-4" />
                 </button>
+                
+                {/* New window button */}
+                <button
+                    class="p-2 w-8 h-full hover:bg-white/10 transition-colors rounded"
+                    onClick={handleNewWindow}
+                    title="Open New Window (Ctrl+Shift+N)"
+                >
+                    <Monitor class="w-4 h-4" />
+                </button>
                 <div class="p-2 h-full flex items-center relative account-menu-container">
                     {/* account menu */}
-                    <button 
+                    <button
                         class="bg-[#171717] rounded-full flex items-center space-x-1 p-1 hover:bg-[#252525] transition-colors"
                         onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen())}
                     >
@@ -200,7 +231,7 @@ function TitleBar(props: TitleBarProps) {
                         {isLoggedIn() && <p class="text-xs pr-1 opacity-60">Ariz Kamizuki</p>}
                         <ChevronDown class="w-3 h-3 opacity-60" />
                     </button>
-                    
+
                     {/* Dropdown Menu */}
                     {isAccountMenuOpen() && (
                         <div class="absolute -left-34 top-full mt-2 bg-[#1a1a1a98] backdrop-blur-lg border border-[#323132] shadow-lg rounded-md min-w-48 z-[999] py-1">
@@ -219,7 +250,7 @@ function TitleBar(props: TitleBarProps) {
                                         IDE Settings
                                     </button>
                                     <div class="border-t border-[#323132] mt-1 pt-1">
-                                        <button 
+                                        <button
                                             class="w-full px-3 py-2 text-left text-xs hover:bg-white/10 transition-colors flex items-center gap-2 text-red-400"
                                             onClick={() => setIsLoggedIn(false)}
                                         >
@@ -234,7 +265,7 @@ function TitleBar(props: TitleBarProps) {
                                         <p class="text-xs font-medium">Sign in to MikoIDE</p>
                                         <p class="text-xs opacity-60">Access your projects and settings</p>
                                     </div>
-                                    <button 
+                                    <button
                                         class="w-full px-3 py-2 text-left text-xs hover:bg-white/10 transition-colors flex items-center gap-2"
                                         onClick={() => setIsLoggedIn(true)}
                                     >

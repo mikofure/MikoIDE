@@ -1,0 +1,218 @@
+# MikoIDE Default Theme Configuration
+# YAML-based theme system for centralized color management
+
+name: "MikoIDE Default Dark"
+version: "1.0.0"
+description: "Default dark theme for MikoIDE with modern color palette"
+author: "MikoIDE Team"
+
+# Color Palette Definition
+colors:
+  # Background Colors
+  background:
+    primary: "#0e0e0e"        # Main application background
+    secondary: "#1a1a1a"      # Secondary panels and cards
+    tertiary: "#2a2d2e"       # Hover states and overlays
+    card: "#1a1a1a"          # Card containers
+    hover: "#2a2d2e"         # Interactive hover states
+    button: "#2d2d30"        # Button backgrounds
+    buttonHover: "#3e3e42"   # Button hover states
+    modal: "#1e1e1e"         # Modal backgrounds
+    sidebar: "#181818"       # Sidebar background
+    panel: "#1c1c1c"         # Panel backgrounds
+    
+  # Text Colors
+  text:
+    primary: "#cccccc"        # Primary text color
+    secondary: "#8c8c8c"      # Secondary text color
+    muted: "#6c6c6c"         # Muted/disabled text
+    white: "#ffffff"         # Pure white text
+    inverse: "#000000"       # Inverse text for light backgrounds
+    placeholder: "#666666"   # Placeholder text
+    
+  # Accent Colors
+  accent:
+    primary: "#4fc3f7"        # Primary accent (cyan)
+    primaryHover: "#29b6f6"   # Primary accent hover
+    secondary: "#81c784"      # Secondary accent (green)
+    tertiary: "#ffb74d"       # Tertiary accent (orange)
+    blue: "#0078d4"          # Blue accent
+    purple: "#9c27b0"        # Purple accent
+    red: "#f44336"           # Red accent (errors)
+    orange: "#ff9800"        # Orange accent (warnings)
+    green: "#4caf50"         # Green accent (success)
+    
+  # Border Colors
+  border:
+    primary: "#2d2d30"        # Primary borders
+    secondary: "#464647"      # Secondary borders
+    accent: "#4fc3f7"         # Accent borders
+    subtle: "#333333"        # Subtle borders
+    focus: "#4fc3f7"         # Focus indicators
+    
+  # Status Colors
+  status:
+    success: "#4caf50"       # Success states
+    warning: "#ff9800"       # Warning states
+    error: "#f44336"         # Error states
+    info: "#2196f3"          # Information states
+    
+  # Syntax Highlighting (for code editor)
+  syntax:
+    keyword: "#569cd6"       # Keywords
+    string: "#ce9178"        # Strings
+    comment: "#6a9955"       # Comments
+    number: "#b5cea8"        # Numbers
+    operator: "#d4d4d4"      # Operators
+    function: "#dcdcaa"      # Functions
+    variable: "#9cdcfe"      # Variables
+    type: "#4ec9b0"          # Types
+    
+# Component-specific color mappings
+components:
+  # Welcome Page
+  welcome:
+    background: "background.primary"
+    cardBackground: "background.card"
+    titleText: "text.primary"
+    subtitleText: "text.secondary"
+    accentColor: "accent.primary"
+    hoverColor: "accent.primaryHover"
+    buttonBackground: "background.button"
+    buttonHover: "background.buttonHover"
+    borderColor: "border.primary"
+    badgeBackground: "accent.blue"
+    
+  # Editor
+  editor:
+    background: "background.primary"
+    lineNumbers: "text.muted"
+    selection: "accent.primary"
+    cursor: "accent.primary"
+    
+  # Sidebar
+  sidebar:
+    background: "background.sidebar"
+    text: "text.primary"
+    hover: "background.hover"
+    active: "accent.primary"
+    
+  # Panels
+  panels:
+    background: "background.panel"
+    border: "border.primary"
+    text: "text.primary"
+    
+  # Buttons
+  buttons:
+    primary:
+      background: "background.button"
+      hover: "background.buttonHover"
+      text: "text.primary"
+      border: "border.secondary"
+    secondary:
+      background: "transparent"
+      hover: "background.hover"
+      text: "accent.primary"
+      border: "border.accent"
+      
+# CSS Variable Mappings
+cssVariables:
+  # Background variables
+  "--bg-primary": "colors.background.primary"
+  "--bg-secondary": "colors.background.secondary"
+  "--bg-tertiary": "colors.background.tertiary"
+  "--bg-card": "colors.background.card"
+  "--bg-hover": "colors.background.hover"
+  "--bg-button": "colors.background.button"
+  "--bg-button-hover": "colors.background.buttonHover"
+  "--bg-modal": "colors.background.modal"
+  "--bg-sidebar": "colors.background.sidebar"
+  "--bg-panel": "colors.background.panel"
+  
+  # Text variables
+  "--text-primary": "colors.text.primary"
+  "--text-secondary": "colors.text.secondary"
+  "--text-muted": "colors.text.muted"
+  "--text-white": "colors.text.white"
+  "--text-inverse": "colors.text.inverse"
+  "--text-placeholder": "colors.text.placeholder"
+  
+  # Accent variables
+  "--accent-primary": "colors.accent.primary"
+  "--accent-primary-hover": "colors.accent.primaryHover"
+  "--accent-secondary": "colors.accent.secondary"
+  "--accent-blue": "colors.accent.blue"
+  "--accent-green": "colors.accent.green"
+  "--accent-red": "colors.accent.red"
+  "--accent-orange": "colors.accent.orange"
+  
+  # Border variables
+  "--border-primary": "colors.border.primary"
+  "--border-secondary": "colors.border.secondary"
+  "--border-accent": "colors.border.accent"
+  "--border-subtle": "colors.border.subtle"
+  "--border-focus": "colors.border.focus"
+  
+  # Status variables
+  "--status-success": "colors.status.success"
+  "--status-warning": "colors.status.warning"
+  "--status-error": "colors.status.error"
+  "--status-info": "colors.status.info"
+
+# Tailwind CSS Custom Classes
+tailwindClasses:
+  # Background classes
+  "bg-primary": "var(--bg-primary)"
+  "bg-secondary": "var(--bg-secondary)"
+  "bg-tertiary": "var(--bg-tertiary)"
+  "bg-card": "var(--bg-card)"
+  "bg-hover": "var(--bg-hover)"
+  "bg-button": "var(--bg-button)"
+  "bg-button-hover": "var(--bg-button-hover)"
+  
+  # Text classes
+  "text-primary": "var(--text-primary)"
+  "text-secondary": "var(--text-secondary)"
+  "text-muted": "var(--text-muted)"
+  "text-white": "var(--text-white)"
+  
+  # Accent classes
+  "text-accent": "var(--accent-primary)"
+  "text-accent-hover": "var(--accent-primary-hover)"
+  "bg-accent-blue": "var(--accent-blue)"
+  
+  # Border classes
+  "border-primary": "var(--border-primary)"
+  "border-secondary": "var(--border-secondary)"
+  "border-accent": "var(--border-accent)"
+  
+  # Status classes
+  "text-success": "var(--status-success)"
+  "text-warning": "var(--status-warning)"
+  "text-error": "var(--status-error)"
+  "text-info": "var(--status-info)"
+
+# Theme class presets for common UI patterns
+presets:
+  card:
+    base: "bg-card border border-primary hover:border-secondary transition-colors rounded-lg"
+    interactive: "bg-card border border-primary hover:border-secondary hover:bg-hover transition-colors rounded-lg cursor-pointer"
+    
+  button:
+    primary: "bg-button hover:bg-button-hover text-primary border border-secondary transition-colors rounded-lg px-4 py-2"
+    secondary: "text-accent hover:text-accent-hover hover:bg-hover transition-colors rounded-lg px-4 py-2"
+    ghost: "text-primary hover:bg-hover transition-colors rounded-lg px-4 py-2"
+    
+  text:
+    heading: "text-primary font-semibold"
+    subheading: "text-secondary font-medium"
+    body: "text-primary"
+    muted: "text-muted"
+    accent: "text-accent"
+    
+  layout:
+    container: "bg-primary text-primary min-h-screen"
+    panel: "bg-panel border border-primary"
+    sidebar: "bg-sidebar border-r border-primary"
+    modal: "bg-modal border border-primary rounded-lg shadow-lg"
