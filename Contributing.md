@@ -20,7 +20,7 @@ MikoIDE is a modern, cross-platform IDE built with:
 
 - **Frontend**: SolidJS + TypeScript + TailwindCSS + Monaco Editor
 - **Native Shell**: CEF (Chromium Embedded Framework) + C++
-- **Build System**: CMake + Python automation + Vite
+- **Build System**: CMake + Typescript automation + Vite
 - **Package Manager**: Bun (preferred) or npm, pnpm
 
 ## 🚀 Development Setup
@@ -28,7 +28,7 @@ MikoIDE is a modern, cross-platform IDE built with:
 ### Prerequisites
 
 - **Node.js** 18+ or **Bun** 1.2.19+ (recommended)
-- **Python** 3.8+ with pip
+- **Typescript** 3.8+ with pip
 - **CMake** 3.13+
 - **C++ Compiler**:
   - Windows: MSVC (Visual Studio 2019+)
@@ -44,7 +44,7 @@ MikoIDE is a modern, cross-platform IDE built with:
    cd mikoide
    ```
 
-2. **Install Python dependencies**:
+2. **Install Typescript dependencies**:
    ```bash
    pip install -r script/requirements.txt
    ```
@@ -62,7 +62,7 @@ MikoIDE is a modern, cross-platform IDE built with:
    bun run build
    
    # Build native application
-   python script/make.py build
+   bun run script/make.ts build
    ```
 
 ## 🏗️ Project Architecture
@@ -87,7 +87,7 @@ mikolite/
 │   ├── assets/           # Static assets (fonts, images)
 │   ├── core/             # Core application logic
 │   └── root/             # Root application component
-├── modules/               # Python build system
+├── modules/               # Typescript build system
 │   └── tasks/            # Build task implementations
 ├── script/                # Build and automation scripts
 ├── docker/                # Docker configurations for ARM builds
@@ -109,7 +109,7 @@ mikolite/
 - **Resource Management**: Platform-specific resource handling
 
 #### Build System (modules/ & script/)
-- **Python Automation**: Task-based build system
+- **Typescript Automation**: Task-based build system
 - **CMake**: Native application building
 - **Vite**: Frontend bundling and development server
 
@@ -120,7 +120,7 @@ mikolite/
 1. **Start development server**:
    ```bash
    bun run dev
-   # This starts Vite with hot reload at http://localhost:5173
+   # This starts Vite with hot reload at http://localhost:8080
    ```
 
 2. **Build for production**:
@@ -132,39 +132,39 @@ mikolite/
 
 1. **Debug build**:
    ```bash
-   python script/make.py build --debug
+   bun run script/make.ts build --debug
    ```
 
 2. **Release build**:
    ```bash
-   python script/make.py build
+   bun run script/make.ts build
    ```
 
 3. **Run the application**:
    ```bash
-   python script/make.py run
+   bun run script/make.ts run
    ```
 
 ### Available Build Tasks
 
 ```bash
 # Frontend tasks
-python script/make.py webapp-build    # Build web assets
-python script/make.py webapp-serve    # Serve web app
-python script/make.py webapp-install  # Install dependencies
+bun run script/make.ts webapp-build    # Build web assets
+bun run script/make.ts webapp-serve    # Serve web app
+bun run script/make.ts webapp-install  # Install dependencies
 
 # Native build tasks
-python script/make.py build          # Default build
-python script/make.py build-ninja    # Build with Ninja
-python script/make.py build-xcode    # Xcode project (macOS)
-python script/make.py build-linux-arm    # ARM Linux (Docker)
-python script/make.py build-linux-arm64  # ARM64 Linux (Docker)
+bun run script/make.ts build          # Default build
+bun run script/make.ts build-ninja    # Build with Ninja
+bun run script/make.ts build-xcode    # Xcode project (macOS)
+bun run script/make.ts build-linux-arm    # ARM Linux (Docker)
+bun run script/make.ts build-linux-arm64  # ARM64 Linux (Docker)
 
 # Utility tasks
-python script/make.py format         # Format code
-python script/make.py clean          # Clean build artifacts
-python script/make.py dmg            # Create macOS DMG
-python script/make.py run            # Run application
+bun run script/make.ts format         # Format code
+bun run script/make.ts clean          # Clean build artifacts
+bun run script/make.ts dmg            # Create macOS DMG
+bun run script/make.ts run           # Run application
 ```
 
 ## 📝 Code Style Guidelines
@@ -180,7 +180,7 @@ python script/make.py run            # Run application
 - Follow the existing code style
 - Use clang-format for formatting:
   ```bash
-  python script/make.py format
+  bun run script/make.ts format
   ```
 - Use RAII principles
 - Prefer smart pointers over raw pointers
@@ -191,12 +191,6 @@ python script/make.py run            # Run application
 - Create custom components in `components/`
 - Follow the existing dark theme patterns
 - Use CSS custom properties for theming
-
-### Python
-- Follow PEP 8
-- Use black for formatting (included in requirements.txt)
-- Write docstrings for functions and classes
-- Use type hints where appropriate
 
 ## 🧪 Testing
 
@@ -224,14 +218,14 @@ python script/make.py run            # Run application
 
 1. **Format your code**:
    ```bash
-   python script/make.py format
+   bun run script/make.ts format
    ```
 
 2. **Build and test**:
    ```bash
    bun run build
-   python script/make.py build
-   python script/make.py run
+   bun run script/make.ts build
+   bun run script/make.ts run
    ```
 
 3. **Check for issues**:
@@ -271,12 +265,12 @@ Use conventional commits:
 
 ## 🔧 Build System Details
 
-### Python Build System
-The project uses a custom Python-based build system located in `modules/`:
+### Typescript Build System
+The project uses a custom Typescript-based build system located in `modules/`:
 
-- **modules/config.py**: Build configuration
+- **modules/config.ts**: Build configuration
 - **modules/tasks/**: Individual build tasks
-- **script/make.py**: Main build script entry point
+- **script/make.ts**: Main build script entry point
 
 ### CMake Configuration
 - **CMakeLists.txt**: Root CMake configuration
@@ -306,9 +300,9 @@ The project uses a custom Python-based build system located in `modules/`:
    - Check CMake version (3.13+ required)
    - Verify C++ compiler setup
 
-4. **Python Script Errors**:
+4. **Typescript Script Errors**:
    - Install requirements: `pip install -r script/requirements.txt`
-   - Check Python version (3.8+ required)
+   - Check Typescript version (3.8+ required)
 
 ### Getting Help
 
