@@ -227,7 +227,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - **CEF** - For the ultimate performance Chromium Embedded Framework
-- **CEF Template** - CEF with VueJS Template by [@paulocoutinhox]([https://github.com/paulocoutinhox/cef-sample])
+- **CEF Template** - CEF with VueJS Template by [paulocoutinhox]([https://github.com/paulocoutinhox/cef-sample])
 - **Monaco Editor** - For the powerful code editor
 - **SolidJS** - For the reactive UI framework
 - **Vite** - For the fast build tool
