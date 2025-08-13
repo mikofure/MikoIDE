@@ -1,6 +1,7 @@
 #include "shared/Entrypoint.hpp"
 
 #include <windows.h>
+#include <shlobj.h>
 
 #include "include/cef_sandbox_win.h"
 
@@ -70,9 +71,18 @@ int APIENTRY wWinMain(HINSTANCE hInstance)
     settings.no_sandbox = true;
 #endif
 
-    // Set cache directories to app directory
-    CefString(&settings.root_cache_path).FromWString(L".");
-    CefString(&settings.cache_path).FromWString(L".");
+    // Set cache directories to application data folder
+    wchar_t appDataPath[MAX_PATH];
+    if (SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, appDataPath) == S_OK) {
+        std::wstring cacheRoot = std::wstring(appDataPath) + L"\\MikoIDE";
+        std::wstring cachePath = cacheRoot + L"\\cache";
+        CefString(&settings.root_cache_path).FromWString(cacheRoot.c_str());
+        CefString(&settings.cache_path).FromWString(cachePath.c_str());
+    } else {
+        // Fallback to relative cache directory
+        CefString(&settings.root_cache_path).FromWString(L"cache");
+        CefString(&settings.cache_path).FromWString(L"cache");
+    }
 
     // Initialize CEF for the browser process.
     // The first browser instance will be created in CefBrowserProcessHandler::OnContextInitialized() after CEF has been initialized.

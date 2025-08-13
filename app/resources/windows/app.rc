@@ -39,8 +39,9 @@ IDI_SMALL               ICON                    "app.ico"
 // HTML
 //
 
-IDR_INDEX_HTML          HTML                    "..\\..\\..\\dist\\index.html"
-
+IDR_INDEX_HTML          HTML                    "..\\..\\..\\dist\\mikoide\\mikoide\\index.html"
+IDR_TOOLCHAINMGR_HTML   HTML                    "..\\..\\..\\dist\\toolchainmgr\\mikoshell\\toolchainmgr\\index.html"
+IDR_TASKMGR_HTML        HTML                    "..\\..\\..\\dist\\taskmgr\\mikoshell\\taskmgr\\index.html"
 
 /////////////////////////////////////////////////////////////////////////////
 //

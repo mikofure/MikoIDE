@@ -12,6 +12,15 @@ elseif(OS_WINDOWS)
   # Manifest files used for executables
   set(SHARED_EXE_MANIFEST ../../resources/windows/app.exe.manifest)
   set(SHARED_COMPATIBILITY_MANIFEST ../../resources/windows/compatibility.manifest)
+  
+  # Fix runtime library conflicts by using static runtime
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  
+  # Set compiler flags to use static runtime
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+  set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MTd")
+  set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT")
 endif()
 
 #

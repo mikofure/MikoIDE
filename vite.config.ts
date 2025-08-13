@@ -17,7 +17,6 @@ export default defineConfig({
         // Mikoshell tools
         toolchainmgr: resolve(__dirname, 'mikoshell/toolchainmgr/index.html'),
         taskmgr: resolve(__dirname, 'mikoshell/taskmgr/index.html'),
-        floating: resolve(__dirname, 'mikoshell/floating/index.html'),
       },
       output: {
         // Customize output file names
@@ -25,7 +24,6 @@ export default defineConfig({
           const facadeModuleId = chunkInfo.facadeModuleId;
           if (facadeModuleId?.includes('toolchainmgr')) return 'toolchainmgr/[name]-[hash].js';
           if (facadeModuleId?.includes('taskmgr')) return 'taskmgr/[name]-[hash].js';
-          if (facadeModuleId?.includes('floating')) return 'floating/[name]-[hash].js';
           return '[name]-[hash].js';
         },
         chunkFileNames: '[name]-[hash].js',
