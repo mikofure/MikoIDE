@@ -19,7 +19,11 @@ interface IPCResponse {
 // Menu action types that can be sent to backend
 type MenuActionType = 
     | 'file.new' | 'file.open' | 'file.open_folder' | 'file.save' | 'file.saveAs' | 'file.exit'
-    | 'edit.undo' | 'edit.redo' | 'edit.cut' | 'edit.copy' | 'edit.paste'
+    | 'edit.undo' | 'edit.redo' | 'edit.cut' | 'edit.copy' | 'edit.paste' | 'edit.selectAll'
+    | 'edit.find' | 'edit.replace' | 'edit.findNext' | 'edit.findPrevious' | 'edit.goToLine'
+    | 'edit.formatDocument' | 'edit.commentLine' | 'edit.blockComment' | 'edit.duplicateLine'
+    | 'edit.moveLinesUp' | 'edit.moveLinesDown' | 'edit.deleteLines' | 'edit.indentLines'
+    | 'edit.outdentLines' | 'edit.toggleWordWrap' | 'edit.foldAll' | 'edit.unfoldAll'
     | 'view.explorer' | 'view.fullScreen' | 'view.zoomIn' | 'view.zoomOut'
     | 'window.minimize' | 'window.maximize' | 'window.close' | 'window.restore' | 'window.new'
     | 'tools.terminal' | 'tools.settings' | 'help.about'
@@ -164,6 +168,136 @@ class ChromeIPC {
 
     // Menu actions
     async executeMenuAction(action: MenuActionType, params?: any): Promise<IPCResponse> {
+        // Check if this is an editor-specific action
+        const editorActions = [
+            'edit.undo', 'edit.redo', 'edit.cut', 'edit.copy', 'edit.paste', 'edit.selectAll',
+            'edit.find', 'edit.replace', 'edit.findNext', 'edit.findPrevious', 'edit.goToLine',
+            'edit.formatDocument', 'edit.commentLine', 'edit.blockComment', 'edit.duplicateLine',
+            'edit.moveLinesUp', 'edit.moveLinesDown', 'edit.deleteLines', 'edit.indentLines',
+            'edit.outdentLines', 'edit.toggleWordWrap', 'edit.foldAll', 'edit.unfoldAll'
+        ];
+
+        // Check if this is a basic file operation that works in both web and CEF
+        const basicFileActions = ['file.new', 'file.open', 'file.save', 'file.saveAs'];
+        
+        // Check if this is a CEF-only file operation
+        const cefOnlyFileActions = ['file.open_folder'];
+
+        if (editorActions.includes(action)) {
+            // Handle editor actions locally
+            try {
+                if (typeof window !== 'undefined' && (window as any).handleEditorMenuAction) {
+                    (window as any).handleEditorMenuAction(action);
+                    return {
+                        id: this.generateMessageId(),
+                        success: true,
+                        data: { action, handled: 'locally' },
+                        timestamp: Date.now()
+                    };
+                } else {
+                    console.warn('Editor action handler not available:', action);
+                    return {
+                        id: this.generateMessageId(),
+                        success: false,
+                        error: 'Editor action handler not available',
+                        timestamp: Date.now()
+                    };
+                }
+            } catch (error) {
+                console.error('Failed to execute editor action:', action, error);
+                return {
+                    id: this.generateMessageId(),
+                    success: false,
+                    error: `Failed to execute editor action: ${error}`,
+                    timestamp: Date.now()
+                };
+            }
+        }
+
+        if (basicFileActions.includes(action)) {
+            // Handle basic file operations for both web and CEF
+            try {
+                switch (action) {
+                    case 'file.new':
+                        // In web mode, create a new tab with empty content
+                        if (!this.isAvailable()) {
+                            if (typeof window !== 'undefined' && (window as any).handleNewTab) {
+                                (window as any).handleNewTab();
+                                return {
+                                    id: this.generateMessageId(),
+                                    success: true,
+                                    data: { action, handled: 'web' },
+                                    timestamp: Date.now()
+                                };
+                            }
+                        }
+                        break;
+                    case 'file.open':
+                        // In web mode, use file input dialog
+                        if (!this.isAvailable()) {
+                            const input = document.createElement('input');
+                            input.type = 'file';
+                            input.accept = '.txt,.js,.ts,.jsx,.tsx,.html,.css,.json,.md,.py,.java,.cpp,.c,.h,.xml,.yaml,.yml';
+                            input.onchange = (e) => {
+                                const file = (e.target as HTMLInputElement).files?.[0];
+                                if (file) {
+                                    const reader = new FileReader();
+                                    reader.onload = (event) => {
+                                        const content = event.target?.result as string;
+                                        if (typeof window !== 'undefined' && (window as any).handleOpenFile) {
+                                            (window as any).handleOpenFile(file.name, content);
+                                        }
+                                    };
+                                    reader.readAsText(file);
+                                }
+                            };
+                            input.click();
+                            return {
+                                id: this.generateMessageId(),
+                                success: true,
+                                data: { action, handled: 'web' },
+                                timestamp: Date.now()
+                            };
+                        }
+                        break;
+                    case 'file.save':
+                    case 'file.saveAs':
+                        // In web mode, download the file
+                        if (!this.isAvailable()) {
+                            if (typeof window !== 'undefined' && (window as any).handleSaveFile) {
+                                (window as any).handleSaveFile(action === 'file.saveAs');
+                                return {
+                                    id: this.generateMessageId(),
+                                    success: true,
+                                    data: { action, handled: 'web' },
+                                    timestamp: Date.now()
+                                };
+                            }
+                        }
+                        break;
+                }
+            } catch (error) {
+                console.error('Failed to execute file action:', action, error);
+                return {
+                    id: this.generateMessageId(),
+                    success: false,
+                    error: `Failed to execute file action: ${error}`,
+                    timestamp: Date.now()
+                };
+            }
+        }
+
+        if (cefOnlyFileActions.includes(action) && !this.isAvailable()) {
+            // CEF-only actions in web environment
+            return {
+                id: this.generateMessageId(),
+                success: false,
+                error: `Action '${action}' is only available in desktop mode`,
+                timestamp: Date.now()
+            };
+        }
+
+        // For other actions or CEF environment, send to backend
         return this.sendMessage('menu_action', { action, params });
     }
 

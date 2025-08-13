@@ -1,6 +1,7 @@
 import { createSignal, For } from "solid-js";
-import { ChevronRight, ChevronDown, File, Folder, FolderOpen } from "lucide-solid";
+import { ChevronRight, ChevronDown, File, Folder, FolderOpen, AlertCircle } from "lucide-solid";
 import chromeIPC from "../../data/chromeipc";
+import { useI18n } from "../../i18n";
 
 interface FileItem {
     name: string;
@@ -11,45 +12,63 @@ interface FileItem {
 }
 
 function Explorer() {
+    const { t } = useI18n();
     const [files, setFiles] = createSignal<FileItem[]>([]);
     const [hasProject, setHasProject] = createSignal(false);
+    const [isLoading, setIsLoading] = createSignal(false);
+    const [error, setError] = createSignal<string | null>(null);
 
-    // Mock function to load project files
-    const loadProject = () => {
-        setFiles([
-            {
-                name: "src",
-                type: "folder",
-                path: "/src",
-                expanded: true,
-                children: [
-                    {
-                        name: "components",
-                        type: "folder",
-                        path: "/src/components",
-                        expanded: false,
-                        children: [
-                            { name: "Button.tsx", type: "file", path: "/src/components/Button.tsx" },
-                            { name: "Input.tsx", type: "file", path: "/src/components/Input.tsx" }
-                        ]
-                    },
-                    { name: "App.tsx", type: "file", path: "/src/App.tsx" },
-                    { name: "index.tsx", type: "file", path: "/src/index.tsx" }
-                ]
-            },
-            { name: "package.json", type: "file", path: "/package.json" },
-            { name: "README.md", type: "file", path: "/README.md" }
-        ]);
-        setHasProject(true);
+    // Load actual project files from the opened folder
+    const loadProjectFiles = async (folderPath: string) => {
+        try {
+            setIsLoading(true);
+            setError(null);
+            
+            const response = await chromeIPC.listDirectory(folderPath);
+            if (response.success && response.data) {
+                // Convert the directory listing to FileItem format
+                const items: FileItem[] = response.data.map((item: any) => ({
+                    name: item.name,
+                    type: item.type,
+                    path: item.path,
+                    expanded: false,
+                    children: item.type === 'folder' ? [] : undefined
+                }));
+                
+                setFiles(items);
+                setHasProject(true);
+            } else {
+                throw new Error(response.error || t('ui.explorer.failedToLoadDirectory'));
+            }
+        } catch (error) {
+            console.error('Failed to load project files:', error);
+            setError(error instanceof Error ? error.message : t('ui.explorer.failedToLoadFolder'));
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleOpenFolder = async () => {
+        // Check if CEF is available
+        if (!chromeIPC.isAvailable()) {
+            setError(t('ui.explorer.folderNotSupportedBrowser'));
+            return;
+        }
+
         try {
-            await chromeIPC.executeMenuAction('file.open_folder');
-            // In a real implementation, this would load the actual folder structure
-            loadProject();
+            setError(null);
+            const response = await chromeIPC.executeMenuAction('file.open_folder');
+            
+            if (response.success && response.data?.folderPath) {
+                // Load the actual folder structure
+                await loadProjectFiles(response.data.folderPath);
+            } else if (response.data?.folderPath) {
+                // Fallback: try to load even if response doesn't indicate success
+                await loadProjectFiles(response.data.folderPath);
+            }
         } catch (error) {
             console.error('Failed to open folder:', error);
+            setError(t('ui.explorer.failedToOpenFolder'));
         }
     };
 
@@ -117,7 +136,7 @@ function Explorer() {
     return (
         <div class="h-full w-full flex flex-col">
             <div class="p-2 border-b border-neutral-800">
-                <h3 class="text-xs font-medium text-gray-300 uppercase tracking-wide">Explorer</h3>
+                <h3 class="text-xs font-medium text-gray-300 uppercase tracking-wide">{t('ui.explorer.title')}</h3>
             </div>
             <div class="flex-1 overflow-y-auto  items-center w-full">
                 {hasProject() ? (
@@ -126,14 +145,42 @@ function Explorer() {
                     </For>
                 ) : (
                     <div class="text-center py-8">
-                        <Folder class="w-12 h-12 text-gray-500 mx-auto mb-4" />
-                        <p class="text-gray-400 mb-4 text-xs">No folder opened</p>
-                        <button
-                            onClick={handleOpenFolder}
-                            class="px-3 py-1.5 bg-white text-black hover:bg-gray-400 text-xs rounded transition-colors"
-                        >
-                            Open Folder
-                        </button>
+                        {error() ? (
+                            <>
+                                <AlertCircle class="w-12 h-12 text-red-500 mx-auto mb-4" />
+                                <p class="text-red-400 mb-4 text-xs">{error()}</p>
+                                {chromeIPC.isAvailable() && (
+                                    <button
+                                        onClick={handleOpenFolder}
+                                        class="px-3 py-1.5 bg-white text-black hover:bg-gray-400 text-xs rounded transition-colors"
+                                    >
+                                        {t('ui.explorer.tryAgain')}
+                                    </button>
+                                )}
+                            </>
+                        ) : isLoading() ? (
+                            <>
+                                <div class="w-12 h-12 mx-auto mb-4 animate-spin">
+                                    <Folder class="w-full h-full text-gray-500" />
+                                </div>
+                                <p class="text-gray-400 mb-4 text-xs">{t('ui.explorer.loadingFolder')}</p>
+                            </>
+                        ) : (
+                            <>
+                                <Folder class="w-12 h-12 text-gray-500 mx-auto mb-4" />
+                                <p class="text-gray-400 mb-4 text-xs">{t('ui.explorer.noFolderOpened')}</p>
+                                {chromeIPC.isAvailable() ? (
+                                    <button
+                                        onClick={handleOpenFolder}
+                                        class="px-3 py-1.5 bg-white text-black hover:bg-gray-400 text-xs rounded transition-colors"
+                                    >
+                                        {t('ui.explorer.openFolder')}
+                                    </button>
+                                ) : (
+                                    <p class="text-gray-500 text-xs">{t('ui.explorer.folderNotSupported')}</p>
+                                )}
+                            </>
+                        )}
                     </div>
                 )}
             </div>

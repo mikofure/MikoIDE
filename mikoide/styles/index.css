@@ -10,6 +10,14 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
+  /* Font families using fontsource packages */
+  --font-sans: "Inter Variable", "Inter", "Sarabun", "Leelawadee UI", sans-serif;
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", "Consolas", monospace;
+  --font-thai: "Sarabun", "Leelawadee UI", sans-serif;
+
+  /* Set default font family */
+  font-family: var(--font-sans);
+
   /* MikoIDE Theme Variables - Loaded dynamically from YAML */
   /* Fallback values - will be overridden by theme parser */
   --bg-primary: #0e0e0e;

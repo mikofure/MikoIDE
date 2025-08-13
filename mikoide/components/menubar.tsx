@@ -1,11 +1,18 @@
 // src/components/MenuBar.tsx
-import { For, Show, createSignal, onMount, onCleanup } from "solid-js";
-import { editorMenu, matchKeyboardEvent, type MenuItem } from "../data/menu";
+import { For, Show, createSignal, createMemo, onMount, onCleanup } from "solid-js";
+import { getEnvironmentSpecificLocalizedMenu, matchKeyboardEvent, type MenuItem } from "../data/menu";
 import chromeIPC, { type MenuActionType } from "../data/chromeipc";
+import { useI18n } from "../i18n";
 import { ChevronRight } from "lucide-solid";
 
 function MenuBar() {
+  const { t } = useI18n();
   const [activeMenu, setActiveMenu] = createSignal<string | null>(null);
+  
+  // Get localized menu data
+  const localizedMenu = createMemo(() => {
+    return getEnvironmentSpecificLocalizedMenu((key: string) => t(key as any));
+  });
 
   // Handle global keyboard shortcuts
   const handleKeyDown = async (event: KeyboardEvent) => {
@@ -67,7 +74,7 @@ function MenuBar() {
 
   return (
     <div class="flex items-center text-xs text-white bg-transparent">
-      <For each={editorMenu}>
+      <For each={localizedMenu()}>
         {(section) => (
           <div class="relative">
             <button 
@@ -101,16 +108,17 @@ function MenuItemComponent(props: { item: MenuItem; onItemClick: (item: MenuItem
     }
   };
   
+  // Handle separator items
+  if (item.separator) {
+    return <div class="border-t border-[#323132] my-1 mx-2"></div>;
+  }
+
   return (
     <div 
       class="relative group w-64"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <Show when={item.separator}>
-        <div class="border-t border-[#323132] my-1 mx-2"></div>
-      </Show>
-
       <div 
         class="flex justify-between items-center px-2 py-1 mx-1 rounded hover:bg-[#323132] cursor-pointer transition-colors duration-150"
         onClick={handleClick}

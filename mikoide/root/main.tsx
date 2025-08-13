@@ -6,10 +6,16 @@ import BottomPanel from "../components/panel/bottompanel";
 import CodeEditor from "../components/editor/editor";
 import StatusBar from "../components/statusbar";
 import TabBar, { type Tab } from "../components/interface/tabbar";
-import { loadFontsWithFallback } from "../assets/fonts/index";
 import Capture from "../components/interface/capture";
-import Welcome from "../components/interface/welcome";
+import Welcome from "../components/interface/pages/welcome";
 import chromeIPC from "../data/chromeipc";
+import * as monaco from "monaco-editor";
+import { I18nProvider } from "../i18n";
+
+// Import fontsource packages
+import "@fontsource-variable/inter/standard.css";
+import "@fontsource-variable/jetbrains-mono/index.css";
+import "@fontsource/sarabun/400.css";
 
 function App() {
   const [sidebarWidth, setSidebarWidth] = createSignal(300);
@@ -19,8 +25,12 @@ function App() {
   const [chars, setChars] = createSignal(0);
   const [line, setLine] = createSignal(1);
   const [col, setCol] = createSignal(1);
-  const [fontsLoaded, setFontsLoaded] = createSignal(false);
+  //@ts-expect-error
+  const [fontsLoaded, setFontsLoaded] = createSignal(true); // Fonts are loaded via fontsource
   const [showCapture, setShowCapture] = createSignal(false);
+  
+  // Editor instance for linking with menu actions
+  const [editorInstance, setEditorInstance] = createSignal<monaco.editor.IStandaloneCodeEditor | null>(null);
 
   // Panel visibility states
   const [panelStates, setPanelStates] = createSignal({
@@ -105,9 +115,9 @@ function App() {
         const newId = Date.now().toString();
         const newTab: Tab = {
           id: newId,
-          name: "untitled.ts",
-          content: "// New file\n",
-          language: "typescript",
+          name: "untitled",
+          content: "",
+          language: "plaintext",
           isDirty: false
         };
 
@@ -122,9 +132,9 @@ function App() {
       const newId = Date.now().toString();
       const newTab: Tab = {
         id: newId,
-        name: "untitled.ts",
-        content: "// New file\n",
-        language: "typescript",
+        name: "untitled",
+        content: "",
+        language: "plaintext",
         isDirty: false
       };
 
@@ -180,6 +190,163 @@ function App() {
       console.error('Failed to save file:', error);
     }
   };
+
+  // Editor action handlers for menu integration
+  const executeEditorAction = (actionId: string) => {
+    const editor = editorInstance();
+    if (!editor) {
+      console.warn('Editor instance not available for action:', actionId);
+      return;
+    }
+
+    try {
+      const action = editor.getAction(actionId);
+      if (action) {
+        action.run();
+      } else {
+        console.warn('Editor action not found:', actionId);
+      }
+    } catch (error) {
+      console.error('Failed to execute editor action:', actionId, error);
+    }
+  };
+
+  // Handle editor-specific menu actions
+  const handleEditorMenuAction = (actionId: string) => {
+    switch (actionId) {
+      case 'edit.undo':
+        executeEditorAction('undo');
+        break;
+      case 'edit.redo':
+        executeEditorAction('redo');
+        break;
+      case 'edit.cut':
+        executeEditorAction('editor.action.clipboardCutAction');
+        break;
+      case 'edit.copy':
+        executeEditorAction('editor.action.clipboardCopyAction');
+        break;
+      case 'edit.paste':
+        executeEditorAction('editor.action.clipboardPasteAction');
+        break;
+      case 'edit.selectAll':
+        executeEditorAction('editor.action.selectAll');
+        break;
+      case 'edit.find':
+        executeEditorAction('editor.action.find');
+        break;
+      case 'edit.replace':
+        executeEditorAction('editor.action.startFindReplaceAction');
+        break;
+      case 'edit.findNext':
+        executeEditorAction('editor.action.nextMatchFindAction');
+        break;
+      case 'edit.findPrevious':
+        executeEditorAction('editor.action.previousMatchFindAction');
+        break;
+      case 'edit.goToLine':
+        executeEditorAction('editor.action.gotoLine');
+        break;
+      case 'edit.formatDocument':
+        executeEditorAction('editor.action.formatDocument');
+        break;
+      case 'edit.commentLine':
+        executeEditorAction('editor.action.commentLine');
+        break;
+      case 'edit.blockComment':
+        executeEditorAction('editor.action.blockComment');
+        break;
+      case 'edit.duplicateLine':
+        executeEditorAction('editor.action.copyLinesDownAction');
+        break;
+      case 'edit.moveLinesUp':
+        executeEditorAction('editor.action.moveLinesUpAction');
+        break;
+      case 'edit.moveLinesDown':
+        executeEditorAction('editor.action.moveLinesDownAction');
+        break;
+      case 'edit.deleteLines':
+        executeEditorAction('editor.action.deleteLines');
+        break;
+      case 'edit.indentLines':
+        executeEditorAction('editor.action.indentLines');
+        break;
+      case 'edit.outdentLines':
+        executeEditorAction('editor.action.outdentLines');
+        break;
+      case 'edit.toggleWordWrap':
+        executeEditorAction('editor.action.toggleWordWrap');
+        break;
+      case 'edit.foldAll':
+        executeEditorAction('editor.foldAll');
+        break;
+      case 'edit.unfoldAll':
+        executeEditorAction('editor.unfoldAll');
+        break;
+      default:
+        console.warn('Unhandled editor menu action:', actionId);
+    }
+  };
+
+  // File operation handlers for web environment
+  const handleOpenFile = (fileName: string, content: string) => {
+    const newTab = {
+      id: Date.now().toString(),
+      name: fileName,
+      content: content,
+      language: "plaintext",
+      isDirty: false
+    };
+    
+    // Remove welcome tab if it exists
+    if (tabs().some(tab => tab.id === 'welcome')) {
+      setTabs(tabs().filter(tab => tab.id !== 'welcome'));
+    }
+    
+    setTabs([...tabs(), newTab]);
+    setActiveTabId(newTab.id);
+  };
+
+  const handleSaveFileWeb = (saveAs: boolean = false) => {
+    const currentTab = activeTab();
+    if (!currentTab) return;
+
+    const fileName = saveAs ? prompt('Save as filename:', currentTab.name) || currentTab.name : currentTab.name;
+    const content = currentTab.content;
+    
+    // Create and trigger download
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    // Mark as not dirty after save
+    setTabs(tabs().map(tab => 
+      tab.id === activeTabId() ? { ...tab, isDirty: false } : tab
+    ));
+  };
+
+  // Expose editor action handler globally for menu system
+  onMount(() => {
+    // Make editor action handler available globally
+    (window as any).handleEditorMenuAction = handleEditorMenuAction;
+    (window as any).handleNewTab = handleNewTab;
+    (window as any).handleOpenFile = handleOpenFile;
+    (window as any).handleSaveFile = handleSaveFileWeb;
+    
+    // Cleanup on unmount
+    return () => {
+      delete (window as any).handleEditorMenuAction;
+      delete (window as any).handleNewTab;
+      delete (window as any).handleOpenFile;
+      delete (window as any).handleSaveFile;
+    };
+  });
 
   const handleCaptureClick = () => {
     setShowCapture(true);
@@ -240,15 +407,8 @@ function App() {
     // Make the handler available globally for chromeIPC fallback
     (window as any).handleMenuAction = handleMenuAction;
 
-    try {
-      console.log("🔄 Loading fonts...");
-      await loadFontsWithFallback();
-      setFontsLoaded(true);
-      console.log("✅ Fonts ready!");
-    } catch (error) {
-      console.warn("❌ Font loading failed completely:", error);
-      setFontsLoaded(true);
-    }
+    // Fonts are now loaded via fontsource packages
+    console.log("✅ Fonts loaded via fontsource packages");
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Only handle shortcuts that are NOT in the menubar keymap
@@ -353,6 +513,9 @@ function App() {
                         setLine(l);
                         setCol(c);
                       }}
+                      onEditorReady={(editor) => {
+                        setEditorInstance(editor);
+                      }}
                     />
                   )}
                 </div>
@@ -399,4 +562,13 @@ function App() {
   );
 }
 
-export default App;
+// Wrap App with I18nProvider
+function AppWithI18n() {
+  return (
+    <I18nProvider>
+      <App />
+    </I18nProvider>
+  );
+}
+
+export default AppWithI18n;

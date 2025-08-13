@@ -1,8 +1,30 @@
 import { onMount, onCleanup, createEffect } from "solid-js";
 import * as monaco from "monaco-editor";
 import "../../styles/monaco.css";
-import { ChevronRight } from "lucide-solid";
-import TypescriptIcon from "../../assets/images/typescript/ts-logo-128.svg";
+import { ChevronRight, FileText } from "lucide-solid";
+// Dynamic language icons using devicon
+const getLanguageIcon = (language?: string, fileName?: string) => {
+    const effectiveLanguage = getEffectiveLanguage(language, fileName);
+    
+    // Map Monaco language IDs to devicon class names
+    const iconMap: Record<string, string> = {
+        'typescript': 'devicon-typescript-plain',
+        'javascript': 'devicon-javascript-plain',
+        'json': 'devicon-json-plain',
+        'css': 'devicon-css3-plain',
+        'html': 'devicon-html5-plain',
+        'markdown': 'devicon-markdown-original',
+        'python': 'devicon-python-plain',
+        'cpp': 'devicon-cplusplus-plain',
+        'c': 'devicon-c-plain',
+        'java': 'devicon-java-plain',
+        'xml': 'devicon-xml-plain',
+        'yaml': 'devicon-yaml-plain',
+        'plaintext': 'devicon-plain-wordmark' // fallback for plain text
+    };
+    
+    return iconMap[effectiveLanguage] || 'devicon-plain-wordmark';
+};
 
 interface CodeEditorProps {
     initialContent?: string;
@@ -13,6 +35,49 @@ interface CodeEditorProps {
     onCursorPositionChange?: (line: number, col: number) => void;
     onEditorReady?: (editor: monaco.editor.IStandaloneCodeEditor) => void;
 }
+
+// Determine the effective language for Monaco editor
+const getEffectiveLanguage = (language?: string, fileName?: string) => {
+    if (language === 'plaintext') {
+        return 'plaintext';
+    }
+    if (language === 'auto' || !language) {
+        // Auto-detect based on file extension
+        if (fileName && fileName.includes('.')) {
+            const ext = fileName.split('.').pop()?.toLowerCase();
+            switch (ext) {
+                case 'ts': case 'tsx':
+                    return 'typescript';
+                case 'js': case 'jsx':
+                    return 'javascript';
+                case 'json':
+                    return 'json';
+                case 'css':
+                    return 'css';
+                case 'html':
+                    return 'html';
+                case 'md':
+                    return 'markdown';
+                case 'py':
+                    return 'python';
+                case 'cpp': case 'cc': case 'cxx':
+                    return 'cpp';
+                case 'c':
+                    return 'c';
+                case 'java':
+                    return 'java';
+                case 'xml':
+                    return 'xml';
+                case 'yaml': case 'yml':
+                    return 'yaml';
+                default:
+                    return 'plaintext';
+            }
+        }
+        return 'plaintext';
+    }
+    return language;
+};
 
 export default function CodeEditor(props: CodeEditorProps) {
     let editorContainer: HTMLDivElement | undefined;
@@ -42,15 +107,17 @@ export default function CodeEditor(props: CodeEditorProps) {
             },
         });
 
+        const effectiveLanguage = getEffectiveLanguage(props.language, props.fileName);
+
         // editor
         editor = monaco.editor.create(editorContainer, {
             value: props.initialContent || "",
-            language: props.language || "typescript",
+            language: effectiveLanguage,
             theme: "xcode-dark",
             automaticLayout: true,
             minimap: { enabled: false },
             fontSize,
-            fontFamily: "JetBrains Mono, monospace",
+            fontFamily: "var(--font-mono)",
             useShadowDOM: false,
             // Disable Monaco's built-in command palette
             quickSuggestions: false,
@@ -143,10 +210,11 @@ export default function CodeEditor(props: CodeEditorProps) {
 
     // Update language when props change
     createEffect(() => {
-        if (editor && props.language) {
+        if (editor) {
             const model = editor.getModel();
             if (model) {
-                monaco.editor.setModelLanguage(model, props.language);
+                const effectiveLanguage = getEffectiveLanguage(props.language, props.fileName);
+                monaco.editor.setModelLanguage(model, effectiveLanguage);
             }
         }
     });
@@ -159,10 +227,14 @@ export default function CodeEditor(props: CodeEditorProps) {
                     <p>src</p>
                     <ChevronRight class="w-4 h-4 opacity-50" />
                     <div class="flex space-x-1 items-center">
-                        <div
-                            class="w-3 h-3 bg-contain bg-center"
-                            style={{ "background-image": `url(${TypescriptIcon})` }}
-                        />
+                        {(() => {
+                            const effectiveLanguage = getEffectiveLanguage(props.language, props.fileName);
+                            if (effectiveLanguage === 'plaintext') {
+                                return <FileText class="w-3 h-3" />;
+                            } else {
+                                return <i class={`${getLanguageIcon(props.language, props.fileName)} w-3 h-3 text-xs`} />;
+                            }
+                        })()}
                         <span>{props.fileName || "untitled"}</span>
                     </div>
                 </div>
