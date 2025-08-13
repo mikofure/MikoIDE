@@ -1,5 +1,5 @@
 # MikoIDE
-
+![Status](https://img.shields.io/badge/Status-In%20Development-yellow?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=for-the-badge)
 ![Chromium Version](https://img.shields.io/badge/Chromium-120.0.6099.234-brightgreen?style=for-the-badge)
@@ -9,7 +9,6 @@
 ![Monaco Editor](https://img.shields.io/badge/Monaco%20Editor-0.52.2-red?style=for-the-badge)
 ![Vite](https://img.shields.io/badge/Vite-7.0.6-purple?style=for-the-badge)
 ![Build System](https://img.shields.io/badge/Build-CMake%20%7C%20Vite-orange?style=for-the-badge)
-
 
 A modern, cross-platform Integrated Development Environment (IDE) built with cutting-edge web technologies and native performance.
 

@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "license": "MIT",
+  "author": "MikoIDE Team",
+  "description": "A modern, cross-platform Integrated Development Environment (IDE) built with cutting-edge web technologies and native performance.",
   "scripts": {
     "dev": "vite",
     "dev:win": "concurrently \"vite\" \"cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug && cmake --build build --config Debug && build/Debug/MikoIDE.exe\"",
