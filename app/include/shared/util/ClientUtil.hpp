@@ -17,9 +17,6 @@ public:
     static bool doClose(CefRefPtr<CefBrowser> browser);
     static void onBeforeClose(CefRefPtr<CefBrowser> browser);
     static void platformTitleChange(CefRefPtr<CefBrowser> browser, const CefString &title);
-#if defined(OS_WIN)
-    static void enableDarkTitlebar(CefRefPtr<CefBrowser> browser);
-#endif
 };
 
 } // namespace util

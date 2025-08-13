@@ -2,7 +2,7 @@
 
 #include <string>
 
-const std::string APP_NAME = "MikoIDE";
+const std::string APP_NAME = "My App";
 const std::string ASSETS_PATH = "assets";
 
 // use this config when develop and test webapp locally (cd webapp && npm run serve)
@@ -10,6 +10,6 @@ const std::string ASSETS_PATH = "assets";
 // const std::string APP_ORIGIN = "http://localhost:8080";
 // const bool USE_LOCAL_RESOURCES = false;
 
-const std::string APP_CONFIG_START_URL = "https://miko.local/index.html";
-const std::string APP_ORIGIN = "https://miko.local/";
+const std::string APP_CONFIG_START_URL = "http://miko.local/index.html";
+const std::string APP_ORIGIN = "http://miko.local/";
 const bool USE_LOCAL_RESOURCES = false;

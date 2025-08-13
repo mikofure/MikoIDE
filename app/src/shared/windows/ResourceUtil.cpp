@@ -1,7 +1,6 @@
 #include "shared/util/ResourceUtil.hpp"
 #include "shared/AppConfig.hpp"
 #include "shared/util/BinaryResourceProvider.hpp"
-#include "../../../resources/windows/resource.h"
 
 #include "include/base/cef_logging.h"
 #include "include/wrapper/cef_byte_read_handler.h"
@@ -12,6 +11,11 @@
 #include <atlstr.h>
 
 #include <cstring>
+
+// Include Windows resource definitions
+#ifdef _WIN32
+#include "../../../resources/windows/resource.h"
+#endif
 
 namespace shared
 {
@@ -49,8 +53,9 @@ int ResourceUtil::getResourceId(const std::string &resourcePath)
         const char *name;
         int id;
     } resourceMap[] = {
-        {"index.html", IDR_INDEX_HTML},
-        {}
+        {"index.html", IDR_INDEX_HTML},                    // https://miko.local/index.html
+        {"toolchainmgr/index.html", IDR_TOOLCHAINMGR_HTML}, // miko://toolchainmgr
+        {"taskmgr/index.html", IDR_TASKMGR_HTML}            // miko://taskmgr
     };
 
     for (size_t i = 0; i < sizeof(resourceMap) / sizeof(ResourceMap); ++i)
@@ -67,7 +72,7 @@ int ResourceUtil::getResourceId(const std::string &resourcePath)
 bool ResourceUtil::loadBinaryResource(int binaryId, DWORD &dwSize, LPBYTE &pBytes)
 {
     HINSTANCE hInst = GetModuleHandle(nullptr);
-    HRSRC hRes = FindResource(hInst, MAKEINTRESOURCE(binaryId), RT_HTML);
+    HRSRC hRes = FindResource(hInst, MAKEINTRESOURCE(binaryId), MAKEINTRESOURCE(256));
 
     if (hRes)
     {

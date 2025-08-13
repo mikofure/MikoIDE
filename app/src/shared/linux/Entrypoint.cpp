@@ -72,10 +72,6 @@ int main(int argc, char *argv[])
     // specify CEF global settings here
     CefSettings settings;
 
-    // Set cache directories to app directory
-    CefString(&settings.user_data_path).FromASCII(".");
-    CefString(&settings.cache_path).FromASCII(".");
-
     // Initialize CEF for the browser process.
     // The first browser instance will be created in CefBrowserProcessHandler::OnContextInitialized() after CEF has been initialized.
     CefInitialize(mainArgs, settings, app, nullptr);

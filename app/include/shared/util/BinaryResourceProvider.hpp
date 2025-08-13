@@ -1,6 +1,6 @@
 #pragma once
 
-#include "include/wrapper/cef_byte_read_handler.h"
+#include "../MikoApplication.hpp"
 #include "include/wrapper/cef_resource_manager.h"
 #include "include/wrapper/cef_stream_resource_handler.h"
 
@@ -16,6 +16,8 @@ public:
     explicit BinaryResourceProvider(const std::string &rootURL) : rootURL(rootURL)
     {
         DCHECK(!rootURL.empty());
+        // Initialize binary resources when provider is created
+        miko::initializeBinaryResources();
     }
 
     bool OnRequest(scoped_refptr<CefResourceManager::Request> request) override;

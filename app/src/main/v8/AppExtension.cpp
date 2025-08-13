@@ -1,5 +1,4 @@
 #include "main/v8/AppExtension.hpp"
-#include "main/v8/ipc/TaskManager.hpp"
 
 #include <chrono>
 #include <ctime>
@@ -36,17 +35,17 @@ void AppExtension::init()
     // register a V8 extension with the below JavaScript code that calls native methods implemented in the handler
     std::string code =
         ""
-        "var MikoIDE;"
-        "if (!MikoIDE) {"
-        "  MikoIDE = {};"
+        "var MyApp;"
+        "if (!MyApp) {"
+        "  MyApp = {};"
         "}"
         ""
         "(function() {"
-        "  MikoIDE.getStuffMessage = function() {"
+        "  MyApp.getStuffMessage = function() {"
         "    native function getStuffMessage();"
         "    return getStuffMessage();"
         "  };"
-        "  MikoIDE.getCurrentTime = function() {"
+        "  MyApp.getCurrentTime = function() {"
         "    native function getCurrentTime();"
         "    return getCurrentTime();"
         "  };"
@@ -54,9 +53,6 @@ void AppExtension::init()
         "})();";
 
     CefRegisterExtension("v8/app", code, new app::v8::AppExtension());
-    
-    // Initialize TaskManager extension
-    app::v8::ipc::TaskManager::init();
 }
 
 } // namespace v8

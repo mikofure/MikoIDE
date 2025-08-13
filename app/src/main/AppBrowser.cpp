@@ -40,12 +40,7 @@ void BrowserApp::OnContextInitialized()
 {
     // create the browser window
     clientInstance = new AppClient();
-    
-    // configure browser settings
-    CefBrowserSettings browserSettings;
-    browserSettings.background_color = CefColorSetARGB(255, 14, 14, 14); // #0e0e0e
-    
-    shared::util::BrowserUtil::create(getAppClient(), APP_CONFIG_START_URL, browserSettings);
+    shared::util::BrowserUtil::create(getAppClient(), APP_CONFIG_START_URL, CefBrowserSettings());
 }
 
 CefRefPtr<AppClient> BrowserApp::getAppClient()
