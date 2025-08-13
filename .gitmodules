@@ -3,4 +3,4 @@
 	url = https://github.com/mikofure/mikoinstaller
 [submodule "crashpad"]
 	path = crashpad
-	url = https://github.com/chromium/crashpad.git
+	url = https://github.com/backtrace-labs/crashpad.git
