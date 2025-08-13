@@ -53,7 +53,6 @@ int ResourceUtil::getResourceId(const std::string &resourcePath)
         const char *name;
         int id;
     } resourceMap[] = {
-        {"index.html", IDR_INDEX_HTML},                    // https://miko.local/index.html
         {"toolchainmgr/index.html", IDR_TOOLCHAINMGR_HTML}, // miko://toolchainmgr
         {"taskmgr/index.html", IDR_TASKMGR_HTML}            // miko://taskmgr
     };
