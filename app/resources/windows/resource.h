@@ -5,7 +5,7 @@
 
 #define IDI_BIG 100
 #define IDI_SMALL 101
-#define IDR_INDEX_HTML 102 // https://miko.local/index.html
+// #define IDR_INDEX_HTML 102 // https://miko.local/index.html
 
 #define IDR_TOOLCHAINMGR_HTML 103 // miko://toolchainmgr
 #define IDR_TASKMGR_HTML 104 // miko://taskmgr
