@@ -59,21 +59,7 @@ find_package(CEF REQUIRED)
 # Include FetchContent module for downloading dependencies
 include(FetchContent)
 
-# nlohmann/json library
-FetchContent_Declare(
-  nlohmann_json
-  GIT_REPOSITORY https://github.com/nlohmann/json.git
-  GIT_TAG v3.11.3  # Use a stable version
-)
-FetchContent_MakeAvailable(nlohmann_json)
 
-# yaml-cpp library
-FetchContent_Declare(
-  yaml-cpp
-  GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
-  GIT_TAG 0.8.0  # Use a stable version
-  CMAKE_ARGS -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-)
 # Set minimum CMake version for yaml-cpp to avoid compatibility issues
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
