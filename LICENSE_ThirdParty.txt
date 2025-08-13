@@ -1,0 +1,103 @@
+============================================================
+This project includes the following third-party components:
+============================================================
+
+1. CEF Simple with VueJS - Copyright (c) 2021-2025, Paulo Coutinho
+   Licensed under MIT License
+   See https://github.com/paulocoutinhox/cef-sample/blob/master/LICENSE.md
+
+2. Crashpad - Copyright (c) Backtrace Labs
+   Licensed under Apache License 2.0
+   See https://github.com/backtrace-labs/crashpad/blob/backtrace/LICENSE
+
+3. @fontsource-variable/inter - Copyright (c) Google Inc.
+   Licensed under SIL Open Font License 1.1
+   See https://fonts.google.com/specimen/Inter/license
+
+4. @fontsource-variable/jetbrains-mono - Copyright (c) 2020 The JetBrains Mono Project Authors
+   Licensed under SIL Open Font License 1.1
+   See https://github.com/JetBrains/JetBrainsMono/blob/master/OFL.txt
+
+5. @motionone/solid - Copyright (c) Motion One contributors
+   Licensed under MIT License
+   See https://github.com/motiondivision/motionone
+
+6. @tailwindcss/vite - Copyright (c) Tailwind Labs, Inc.
+   Licensed under MIT License
+   See https://github.com/tailwindlabs/tailwindcss
+
+7. commander - Copyright (c) TJ Holowaychuk
+   Licensed under MIT License
+   See https://github.com/tj/commander.js
+
+8. file-saver - Copyright (c) Eli Grey
+   Licensed under MIT License
+   See https://github.com/eligrey/FileSaver.js
+
+9. lucide-solid - Copyright (c) Lucide Contributors
+   Licensed under ISC License
+   See https://github.com/lucide-icons/lucide
+
+10. makensis - Copyright (c) NSIS contributors
+    Licensed under zlib/libpng License
+    See https://nsis.sourceforge.io/License
+
+11. monaco-editor - Copyright (c) Microsoft Corporation
+    Licensed under MIT License
+    See https://github.com/microsoft/monaco-editor
+
+12. sass - Copyright (c) Google Inc.
+    Licensed under MIT License
+    See https://github.com/sass/dart-sass
+
+13. simple-icons - Copyright (c) Simple Icons contributors
+    Licensed under CC0 1.0 Universal
+    See https://github.com/simple-icons/simple-icons
+
+14. solid-js - Copyright (c) Ryan Carniato
+    Licensed under MIT License
+    See https://github.com/solidjs/solid
+
+15. tailwindcss - Copyright (c) Tailwind Labs, Inc.
+    Licensed under MIT License
+    See https://github.com/tailwindlabs/tailwindcss
+
+16. yaml - Copyright (c) Eemeli Aro
+    Licensed under ISC License
+    See https://github.com/eemeli/yaml
+
+17. vite - Copyright (c) 2019-present, VoidZero Inc. and Vite contributors
+    Licensed under MIT License
+    See https://github.com/vitejs/vite/blob/main/LICENSE
+
+18. typescript - Copyright (c) Microsoft Corporation
+    Licensed under Apache License 2.0
+    See https://github.com/microsoft/TypeScript
+
+19. @types/file-saver - Copyright (c) Microsoft Corporation
+    Licensed under MIT License
+    See https://github.com/DefinitelyTyped/DefinitelyTyped
+
+20. @types/node - Copyright (c) Microsoft Corporation
+    Licensed under MIT License
+    See https://github.com/DefinitelyTyped/DefinitelyTyped
+
+21. concurrently - Copyright (c) Kimmo Brunfeldt
+    Licensed under MIT License
+    See https://github.com/open-cli-tools/concurrently
+
+22. html-to-image - Copyright (c) bubkoo
+    Licensed under MIT License
+    See https://github.com/bubkoo/html-to-image
+
+23. vite-plugin-singlefile - Copyright (c) Richard Schloss
+    Licensed under MIT License
+    See https://github.com/richardtallent/vite-plugin-singlefile
+
+24. vite-plugin-solid - Copyright (c) Solid contributors
+    Licensed under MIT License
+    See https://github.com/solidjs/vite-plugin-solid
+
+============================================================
+Please refer to each component's LICENSE file for full details.
+============================================================
