@@ -24,8 +24,6 @@ set(SHARED_SRCS
   ../../include/shared/Entrypoint.hpp
   ../../src/shared/util/ResourceUtil.cpp
   ../../include/shared/util/ResourceUtil.hpp
-  ../../src/shared/util/JsonYamlUtil.cpp
-  ../../include/shared/util/JsonYamlUtil.hpp
    ../../resources/shared/MikoApplication.cpp
   )
 
@@ -93,7 +91,7 @@ if(OS_LINUX)
   add_library(${SHARED_TARGET} STATIC ${SHARED_SRCS})
   set_app_library_target_properties(${SHARED_TARGET})
   add_dependencies(${SHARED_TARGET} libcef_dll_wrapper)
-  target_link_libraries(${SHARED_TARGET} libcef_lib libcef_dll_wrapper ${CEF_STANDARD_LIBS} nlohmann_json::nlohmann_json yaml-cpp::yaml-cpp)
+  target_link_libraries(${SHARED_TARGET} libcef_lib libcef_dll_wrapper ${CEF_STANDARD_LIBS})
 
   # Copy binary and resource files to the target output directory
   copy_files("${SHARED_TARGET}" "${CEF_BINARY_FILES}" "${CEF_BINARY_DIR}" "${APP_TARGET_OUT_DIR}")
@@ -129,7 +127,7 @@ if(OS_MAC)
   add_library(${SHARED_TARGET} STATIC ${SHARED_SRCS})
   set_app_library_target_properties(${SHARED_TARGET})
   add_dependencies(${SHARED_TARGET} libcef_dll_wrapper "${SHARED_HELPER_TARGET}")
-  target_link_libraries(${SHARED_TARGET} libcef_dll_wrapper ${CEF_STANDARD_LIBS} nlohmann_json::nlohmann_json yaml-cpp::yaml-cpp)
+  target_link_libraries(${SHARED_TARGET} libcef_dll_wrapper ${CEF_STANDARD_LIBS})
 endif()
 
 
@@ -145,7 +143,7 @@ if(OS_WINDOWS)
   add_library(${SHARED_TARGET} STATIC ${SHARED_SRCS})
   set_app_library_target_properties(${SHARED_TARGET})
   add_dependencies(${SHARED_TARGET} libcef_dll_wrapper)
-  target_link_libraries(${SHARED_TARGET} libcef_lib libcef_dll_wrapper ${CEF_STANDARD_LIBS} nlohmann_json::nlohmann_json yaml-cpp::yaml-cpp)
+  target_link_libraries(${SHARED_TARGET} libcef_lib libcef_dll_wrapper ${CEF_STANDARD_LIBS})
   
   # Force consistent runtime library usage
   target_compile_options(${SHARED_TARGET} PRIVATE $<$<CONFIG:Debug>:/MTd> $<$<CONFIG:Release>:/MT>)
