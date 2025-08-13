@@ -1,0 +1,68 @@
+name: Build MikoIDE Cross-Platform
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-windows:
+    name: Build on Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Setup MSVC
+      - name: Setup MSVC
+        uses: microsoft/setup-msbuild@v2
+
+      # Install NSIS via Scoop (for Windows installer)
+      - name: Install NSIS
+        shell: powershell
+        run: |
+          iwr -useb get.scoop.sh -outfile 'install.ps1'
+          .\install.ps1 -RunAsAdmin
+          scoop update
+          scoop bucket add extras
+          scoop install nsis
+
+      # Setup Bun
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+
+      # Install dependencies
+      - name: Install JS dependencies
+        run: bun install
+
+      # Build Release
+      - name: Build MikoIDE (Release Windows)
+        run: bun run build:release:win
+
+  build-linux:
+    name: Build on Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Install dependencies for Linux C++ build
+      - name: Install build tools
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential cmake python3 curl unzip
+
+      # Setup Bun
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+
+      # Install JS dependencies
+      - name: Install JS dependencies
+        run: bun install
+
+      # Build Release
+      - name: Build MikoIDE (Release Linux)
+        run: bun run build:release:linux
+
+      # Optionally package Linux tarball
+      - name: Package Linux tarball
+        run: bun run package:linux
