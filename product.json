@@ -1,0 +1,163 @@
+{
+  "name": "MikoIDE",
+  "version": "0.1.0",
+  "description": "A modern, cross-platform Integrated Development Environment (IDE) built with cutting-edge web technologies and native performance",
+  "type": "desktop-application",
+  "license": "MIT",
+  "platforms": [
+    "Windows",
+    "macOS",
+    "Linux"
+  ],
+  "architecture": {
+    "frontend": {
+      "framework": "SolidJS",
+      "version": "1.9.7",
+      "language": "TypeScript",
+      "typescript_version": "5.9.2",
+      "build_tool": "Vite",
+      "vite_version": "7.0.6",
+      "styling": "TailwindCSS",
+      "tailwind_version": "4.1.11"
+    },
+    "backend": {
+      "framework": "CEF",
+      "cef_version": "120.2.7",
+      "language": "C++",
+      "build_system": "CMake",
+      "v8_integration": true
+    },
+    "editor": {
+      "engine": "Monaco Editor",
+      "version": "0.52.2",
+      "features": [
+        "syntax_highlighting",
+        "intellisense",
+        "code_completion",
+        "multi_language_support"
+      ]
+    }
+  },
+  "features": {
+    "core": [
+      "cross_platform_support",
+      "modern_ui_interface",
+      "powerful_code_editor",
+      "native_performance",
+      "customizable_themes",
+      "real_time_statistics",
+      "resizable_panels",
+      "code_capture_screenshots"
+    ],
+    "system_integration": [
+      "task_manager",
+      "process_monitoring",
+      "system_stats",
+      "toolchain_management"
+    ],
+    "development": [
+      "v8_javascript_bindings",
+      "native_cpp_integration",
+      "ipc_communication",
+      "shell_applications",
+      "floating_windows"
+    ],
+    "ui_components": [
+      "command_palette",
+      "sidebar_navigation",
+      "status_bar",
+      "title_bar",
+      "menu_bar",
+      "panel_system"
+    ]
+  },
+  "components": {
+    "main_application": {
+      "path": "app/src/main",
+      "entry_point": "main.cpp",
+      "description": "Native CEF application with C++ backend"
+    },
+    "frontend_ide": {
+      "path": "mikoide",
+      "entry_point": "index.tsx",
+      "description": "SolidJS-based IDE interface"
+    },
+    "shell_applications": {
+      "task_manager": {
+        "path": "mikoshell/taskmgr",
+        "description": "System process monitoring and management"
+      },
+      "toolchain_manager": {
+        "path": "mikoshell/toolchainmgr",
+        "description": "Development toolchain management"
+      },
+      "floating_windows": {
+        "path": "mikoshell/floating",
+        "description": "Modular floating window utilities"
+      }
+    },
+    "shared_libraries": {
+      "path": "app/src/shared",
+      "description": "Cross-platform shared C++ components"
+    },
+    "v8_extensions": {
+      "path": "app/src/main/v8",
+      "description": "JavaScript-C++ bindings and IPC"
+    }
+  },
+  "build_system": {
+    "frontend": {
+      "package_manager": "bun",
+      "build_command": "build:frontend",
+      "dev_command": "dev"
+    },
+    "native": {
+      "build_system": "CMake",
+      "minimum_version": "3.13",
+      "compilers": {
+        "windows": "MSVC",
+        "macos": "Clang",
+        "linux": "GCC"
+      }
+    },
+    "scripts": {
+      "path": "script",
+      "language": "TypeScript",
+      "build_script": "make.ts"
+    }
+  },
+  "dependencies": {
+    "runtime": {
+      "node_minimum": "18.0.0",
+      "bun_recommended": "1.2.19",
+      "cmake_minimum": "3.13.0"
+    },
+    "frontend_packages": {
+      "solid-js": "^1.9.7",
+      "monaco-editor": "^0.52.2",
+      "tailwindcss": "^4.1.11",
+      "lucide-solid": "^0.536.0",
+      "@motionone/solid": "^10.16.4"
+    },
+    "build_tools": {
+      "typescript": "5.9.2",
+      "vite": "^7.0.6",
+      "concurrently": "^9.2.0"
+    }
+  },
+  "target_audience": [
+    "software_developers",
+    "web_developers",
+    "system_administrators",
+    "students",
+    "open_source_contributors"
+  ],
+  "development_status": "alpha",
+  "repository": {
+    "type": "git",
+    "submodules": true,
+    "submodule_dependencies": [
+      "crashpad"
+    ]
+  }
+}
