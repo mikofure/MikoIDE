@@ -59,27 +59,6 @@ find_package(CEF REQUIRED)
 # Include FetchContent module for downloading dependencies
 include(FetchContent)
 
-
-# Set minimum CMake version for yaml-cpp to avoid compatibility issues
-set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
-set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(yaml-cpp)
-
-# Ensure third-party libraries use the same runtime library on Windows
-if(WIN32)
-  set_property(TARGET nlohmann_json PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-  set_property(TARGET yaml-cpp PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-  
-  # Force yaml-cpp to use static runtime with additional compiler flags
-  target_compile_options(yaml-cpp PRIVATE 
-    $<$<CONFIG:Debug>:/MTd>
-    $<$<CONFIG:Release>:/MT>
-    $<$<CONFIG:Debug>:/D_ITERATOR_DEBUG_LEVEL=0>
-  )
-endif()
-
 #
 # Target configuration
 #
