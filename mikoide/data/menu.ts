@@ -1,4 +1,7 @@
 // TypeScript interfaces and data for editor menu structure
+import { localizeMenu, editorMenuI18n } from './menu-i18n';
+// @ts-ignore
+import type { FlatDictionary } from '../i18n';
 
 interface MenuItem {
     label: string;
@@ -7,6 +10,10 @@ interface MenuItem {
     submenu?: MenuItem[];
     separator?: boolean;
     toggle?: boolean;
+    // Environment restrictions
+    cefOnly?: boolean;     // Only available in CEF environment
+    webOnly?: boolean;     // Only available in web browser
+    disabled?: boolean;    // Disabled state
 }
 
 interface KeymapEntry {
@@ -29,22 +36,24 @@ const editorMenu: MenuSection[] = [
         title: "File",
         items: [
             { label: "New File", action: "file.new", shortcut: "Ctrl+N" },
-            { label: "New Window", action: "file.newWindow", shortcut: "Ctrl+Shift+N" },
+            { label: "New Window", action: "file.newWindow", shortcut: "Ctrl+Shift+N", cefOnly: true },
             { label: "Open File...", action: "file.open", shortcut: "Ctrl+O" },
-            { label: "Open Folder...", action: "file.openFolder", shortcut: "Ctrl+K Ctrl+O" },
-            { label: "Open Recent", action: "file.openRecent", shortcut: "Ctrl+R" },
-
+            { label: "Open Folder...", action: "file.openFolder", shortcut: "Ctrl+K Ctrl+O", cefOnly: true },
+            { label: "Open Recent", action: "file.openRecent", shortcut: "Ctrl+R", cefOnly: true },
+            //@ts-expect-error
+            { separator: true },
             { label: "Save", action: "file.save", shortcut: "Ctrl+S" },
             { label: "Save As...", action: "file.saveAs", shortcut: "Ctrl+Shift+S" },
-            { label: "Save All", action: "file.saveAll", shortcut: "Ctrl+K S" },
-            { label: "Auto Save", action: "file.autoSave", toggle: true },
+            { label: "Save All", action: "file.saveAll", shortcut: "Ctrl+K S", cefOnly: true },
+            { label: "Auto Save", action: "file.autoSave", toggle: true, cefOnly: true },
+            { label: "Download as Text", action: "file.downloadText", webOnly: true },
 
             { label: "Close", action: "file.close", shortcut: "Ctrl+W" },
             { label: "Close All", action: "file.closeAll", shortcut: "Ctrl+K Ctrl+W" },
-            { label: "Revert File", action: "file.revert" },
+            { label: "Revert File", action: "file.revert", cefOnly: true },
 
             { label: "Preferences", action: "file.preferences", shortcut: "Ctrl+," },
-            { label: "Exit / Quit", action: "file.exit", shortcut: "Ctrl+Q" }
+            { label: "Exit / Quit", action: "file.exit", shortcut: "Ctrl+Q", cefOnly: true }
         ]
     },
     {
@@ -67,14 +76,26 @@ const editorMenu: MenuSection[] = [
             { label: "Find Previous", action: "edit.findPrevious", shortcut: "Shift+F3" },
             { label: "Replace", action: "edit.replace", shortcut: "Ctrl+H" },
             { label: "Replace All", action: "edit.replaceAll", shortcut: "Ctrl+Alt+Enter" },
-            { label: "Find in Files", action: "edit.findInFiles", shortcut: "Ctrl+Shift+F" },
-            { label: "Replace in Files", action: "edit.replaceInFiles", shortcut: "Ctrl+Shift+H" },
+            { label: "Find in Files", action: "edit.findInFiles", shortcut: "Ctrl+Shift+F", cefOnly: true },
+            { label: "Replace in Files", action: "edit.replaceInFiles", shortcut: "Ctrl+Shift+H", cefOnly: true },
 
             { label: "Go To Line...", action: "edit.goToLine", shortcut: "Ctrl+G" },
             { label: "Go To Symbol...", action: "edit.goToSymbol", shortcut: "Ctrl+Shift+O" },
 
             { label: "Toggle Line Comment", action: "edit.toggleLineComment", shortcut: "Ctrl+/" },
             { label: "Toggle Block Comment", action: "edit.toggleBlockComment", shortcut: "Shift+Alt+A" },
+
+            { label: "Duplicate Line", action: "edit.duplicateLine", shortcut: "Shift+Alt+Down" },
+            { label: "Move Line Up", action: "edit.moveLinesUp", shortcut: "Alt+Up" },
+            { label: "Move Line Down", action: "edit.moveLinesDown", shortcut: "Alt+Down" },
+            { label: "Delete Line", action: "edit.deleteLines", shortcut: "Ctrl+Shift+K" },
+
+            { label: "Indent Lines", action: "edit.indentLines", shortcut: "Ctrl+]" },
+            { label: "Outdent Lines", action: "edit.outdentLines", shortcut: "Ctrl+[" },
+            { label: "Toggle Word Wrap", action: "edit.toggleWordWrap", shortcut: "Alt+Z" },
+
+            { label: "Fold All", action: "edit.foldAll", shortcut: "Ctrl+K Ctrl+0" },
+            { label: "Unfold All", action: "edit.unfoldAll", shortcut: "Ctrl+K Ctrl+J" },
 
             { label: "Format Document", action: "edit.formatDocument", shortcut: "Shift+Alt+F" },
             { label: "Format Selection", action: "edit.formatSelection", shortcut: "Ctrl+K Ctrl+F" },
@@ -145,8 +166,9 @@ const editorMenu: MenuSection[] = [
     {
         title: "Tools",
         items: [
-            { label: "Build / Compile", action: "tools.build" },
-            { label: "Run", action: "tools.run" },
+            { label: "Build / Compile", action: "tools.build", cefOnly: true },
+            { label: "Run", action: "tools.run", cefOnly: true },
+            { label: "Web Demo Mode", action: "tools.webDemo", webOnly: true },
             {
                 label: "Debug",
                 submenu: [
@@ -159,8 +181,9 @@ const editorMenu: MenuSection[] = [
                 ]
             },
 
-            { label: "Terminal", action: "tools.terminal", toggle: true },
-            { label: "Extensions / Plugins", action: "tools.extensions" },
+            { label: "Terminal", action: "tools.terminal", toggle: true, cefOnly: true },
+            { label: "Extensions / Plugins", action: "tools.extensions", cefOnly: true },
+            { label: "Browser Console", action: "tools.browserConsole", webOnly: true },
 
             { label: "Settings / Preferences", action: "tools.settings" },
             { label: "Keyboard Shortcuts", action: "tools.shortcuts" },
@@ -180,25 +203,26 @@ const editorMenu: MenuSection[] = [
                     { label: "View Diff", action: "git.diff" }
                 ]
             },
-            { label: "Database Viewer", action: "tools.databaseViewer" },
-            { label: "Toolchain Manager", action: "tools.toolchainManager" },
-            { label: "API Tester", action: "tools.apiTester" },
-            { label: "Environment Manager", action: "tools.envManager" },
-            { label: "System Inspector", action: "tools.systemInspector" },
-            { label: "Task Manager", action: "tools.taskManager" },
-            { label: "Memory Profiler", action: "tools.memoryProfiler" },
-            { label: "CEF Debugger", action: "tools.cefDebugger" },
-            { label: "RPC Monitor", action: "tools.rpcMonitor" },
-            { label: "MessageBox Tester", action: "tools.messageBoxTester" },
-            { label: "Windowed Mode Debugger", action: "tools.windowedDebugger" },
+            { label: "Database Viewer", action: "tools.databaseViewer", cefOnly: true },
+            { label: "Toolchain Manager", action: "tools.toolchainManager", cefOnly: true },
+            { label: "API Tester", action: "tools.apiTester", cefOnly: true },
+            { label: "Environment Manager", action: "tools.envManager", cefOnly: true },
+            { label: "System Inspector", action: "tools.systemInspector", cefOnly: true },
+            { label: "Task Manager", action: "tools.taskManager", cefOnly: true },
+            { label: "Memory Profiler", action: "tools.memoryProfiler", cefOnly: true },
+            { label: "CEF Debugger", action: "tools.cefDebugger", cefOnly: true },
+            { label: "RPC Monitor", action: "tools.rpcMonitor", cefOnly: true },
+            { label: "MessageBox Tester", action: "tools.messageBoxTester", cefOnly: true },
+            { label: "Windowed Mode Debugger", action: "tools.windowedDebugger", cefOnly: true },
             {
                 label: "Advanced Options",
                 submenu: [
-                    { label: "Open Dev Config", action: "tools.advanced.devConfig" },
+                    { label: "Open Dev Config", action: "tools.advanced.devConfig", cefOnly: true },
                     { label: "Reload Window", action: "tools.advanced.reloadWindow" },
                     { label: "Reload UI", action: "tools.advanced.reloadUI" },
-                    { label: "Restart Application", action: "tools.advanced.restartApp" },
-                    { label: "Open Logs Folder", action: "tools.advanced.logsFolder" }
+                    { label: "Clear Browser Cache", action: "tools.advanced.clearCache", webOnly: true },
+                    { label: "Restart Application", action: "tools.advanced.restartApp", cefOnly: true },
+                    { label: "Open Logs Folder", action: "tools.advanced.logsFolder", cefOnly: true }
                 ]
             }
         ]
@@ -206,9 +230,9 @@ const editorMenu: MenuSection[] = [
     {
         title: "Window",
         items: [
-            { label: "New Window", action: "window.new" },
-            { label: "Close Window", action: "window.close" },
-            { label: "Switch Workspace", action: "window.switchWorkspace" },
+            { label: "New Window", action: "window.new", cefOnly: true },
+            { label: "Close Window", action: "window.close", cefOnly: true },
+            { label: "Switch Workspace", action: "window.switchWorkspace", cefOnly: true },
             { label: "Zoom In", action: "window.zoomIn" },
             { label: "Zoom Out", action: "window.zoomOut" },
             { label: "Reset Zoom", action: "window.resetZoom" },
@@ -231,9 +255,96 @@ const editorMenu: MenuSection[] = [
     }
 ];
 
+// Environment types
+type Environment = 'cef' | 'web';
+
 // Helper types for working with the menu structure
 type MenuAction = string;
 type MenuPath = string[];
+
+// Environment detection and menu filtering
+function isEnvironmentAvailable(): Environment {
+    return (typeof window !== 'undefined' && (window as any).chrome?.webview) ? 'cef' : 'web';
+}
+
+function filterMenuForEnvironment(menu: MenuSection[], environment: Environment): MenuSection[] {
+    return menu.map(section => ({
+        ...section,
+        items: filterMenuItemsForEnvironment(section.items, environment)
+    })).filter(section => section.items.length > 0);
+}
+
+function filterMenuItemsForEnvironment(items: MenuItem[], environment: Environment): MenuItem[] {
+    return items.filter(item => {
+        // Filter based on environment restrictions
+        if (item.cefOnly && environment !== 'cef') return false;
+        if (item.webOnly && environment !== 'web') return false;
+        
+        // Recursively filter submenu items
+        if (item.submenu) {
+            const filteredSubmenu = filterMenuItemsForEnvironment(item.submenu, environment);
+            return filteredSubmenu.length > 0;
+        }
+        
+        return true;
+    }).map(item => {
+        if (item.submenu) {
+            return {
+                ...item,
+                submenu: filterMenuItemsForEnvironment(item.submenu, environment)
+            };
+        }
+        return item;
+    });
+}
+
+function getEnvironmentSpecificMenu(): MenuSection[] {
+    const currentEnvironment = isEnvironmentAvailable();
+    return filterMenuForEnvironment(editorMenu, currentEnvironment);
+}
+
+function isActionAvailable(action: string, environment?: Environment): boolean {
+    const env = environment || isEnvironmentAvailable();
+    const menuItem = findMenuItemByAction(editorMenu, action);
+    
+    if (!menuItem) return false;
+    
+    if (menuItem.cefOnly && env !== 'cef') return false;
+    if (menuItem.webOnly && env !== 'web') return false;
+    if (menuItem.disabled) return false;
+    
+    return true;
+}
+
+function findMenuItemByAction(menu: MenuSection[], action: string): MenuItem | null {
+    for (const section of menu) {
+        const item = findMenuItemByActionInSection(section.items, action);
+        if (item) return item;
+    }
+    return null;
+}
+
+function findMenuItemByActionInSection(items: MenuItem[], action: string): MenuItem | null {
+    for (const item of items) {
+        if (item.action === action) return item;
+        if (item.submenu) {
+            const subItem = findMenuItemByActionInSection(item.submenu, action);
+            if (subItem) return subItem;
+        }
+    }
+    return null;
+}
+
+function getEnvironmentLimitationMessage(environment: Environment): string {
+    switch (environment) {
+        case 'web':
+            return 'Some features are limited in web browser mode. For full functionality, use the desktop application.';
+        case 'cef':
+            return 'Full desktop functionality available.';
+        default:
+            return 'Environment not detected.';
+    }
+}
 
 // Utility functions
 function findMenuItem(menu: MenuSection[], path: MenuPath): MenuItem | null {
@@ -317,15 +428,37 @@ function matchKeyboardEvent(event: KeyboardEvent): string | null {
     return null;
 }
 
+// Function to get localized menu
+export function getLocalizedEditorMenu(t: (key: string) => string): MenuSection[] {
+    return localizeMenu(editorMenuI18n, t);
+}
+
+// Export function to get environment-specific localized menu
+export function getEnvironmentSpecificLocalizedMenu(t: (key: string) => string): MenuSection[] {
+    const localizedMenu = getLocalizedEditorMenu(t);
+    const currentEnvironment = isEnvironmentAvailable();
+    return filterMenuForEnvironment(localizedMenu, currentEnvironment);
+}
+
 // Export the main menu structure and keymap utilities
 export { 
     editorMenu, 
     keymap, 
     matchKeyboardEvent,
+    isEnvironmentAvailable,
+    filterMenuForEnvironment,
+    getEnvironmentSpecificMenu,
+    isActionAvailable,
+    findMenuItemByAction,
+    getEnvironmentLimitationMessage,
+    findMenuItem,
+    findMenuItemInSection,
+    filterMenuItemsForEnvironment,
+    findMenuItemByActionInSection,
     type MenuItem, 
     type MenuSection, 
     type MenuAction, 
     type MenuPath, 
     type KeymapEntry,
-    findMenuItem 
+    type Environment
 };

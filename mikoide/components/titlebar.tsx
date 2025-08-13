@@ -1,6 +1,7 @@
 import { createSignal, onMount, onCleanup } from "solid-js";
 import MenuBar from "./menubar"; // 👈 import
 import CommandPalette from "./cmdpalette";
+import LanguageSwitcher from "./interface/languageswitcher";
 import { Search, PanelLeft, PanelBottom, PanelRight, LayoutGrid, Aperture, ChevronDown, Settings, User, LogOut, Github, Monitor } from "lucide-solid";
 import chromeIPC from "../data/chromeipc";
 import microsoftIcon from "../assets/images/brand/microsoft.svg";
@@ -215,6 +216,12 @@ function TitleBar(props: TitleBarProps) {
                 >
                     <Monitor class="w-4 h-4" />
                 </button>
+                
+                {/* Language Switcher */}
+                <div class="flex items-center h-full">
+                    <LanguageSwitcher />
+                </div>
+                
                 <div class="p-2 h-full flex items-center relative account-menu-container">
                     {/* account menu */}
                     <button

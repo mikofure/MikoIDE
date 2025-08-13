@@ -1,4 +1,5 @@
 import { GitBranch, Zap, Bug, AlertCircle, CheckCircle, GitCommit, Wifi, WifiOff, Activity } from "lucide-solid";
+import { useI18n } from "../i18n";
 
 interface StatusBarProps {
   line: number;
@@ -24,6 +25,8 @@ interface StatusBarProps {
 }
 
 function StatusBar(props: StatusBarProps) {
+  const { t } = useI18n();
+  
   const getGitStatusColor = () => {
     if (!props.gitStatus) return "text-green-400";
     if (props.gitStatus.hasChanges || props.gitStatus.unstaged > 0) return "text-orange-400";
@@ -44,9 +47,9 @@ function StatusBar(props: StatusBarProps) {
     <div class="h-6 text-[11px] text-gray-300 flex justify-between items-center px-3 select-none">
       {/* Left side */}
       <div class="flex items-center gap-4">
-        <span>Ln {props.line}, Col {props.col}</span>
+        <span>{t('ui.statusBar.line')} {props.line}, {t('ui.statusBar.column')} {props.col}</span>
         <span>{props.language}</span>
-        <span>{props.wordCount} words, {props.charCount} chars</span>
+        <span>{props.wordCount} {t('ui.statusBar.words')}, {props.charCount} {t('ui.statusBar.chars')}</span>
         
         {/* Encoding and EOL */}
         {props.encoding && <span class="text-gray-400">{props.encoding}</span>}
@@ -73,7 +76,7 @@ function StatusBar(props: StatusBarProps) {
         {props.debugMode && (
           <div class="flex items-center gap-1 text-red-400">
             <Bug size={14} />
-            <span>Debug</span>
+            <span>{t('ui.statusBar.debug')}</span>
           </div>
         )}
         
@@ -81,7 +84,7 @@ function StatusBar(props: StatusBarProps) {
         {props.lspStatus && (
           <div class="flex items-center gap-1">
             {getLspStatusIcon()}
-            <span class="text-xs">LSP</span>
+            <span class="text-xs">{t('ui.statusBar.lsp')}</span>
           </div>
         )}
         
@@ -97,7 +100,7 @@ function StatusBar(props: StatusBarProps) {
         {/* Prettier */}
         <div class="flex items-center gap-1">
           <Zap size={14} class="text-yellow-400" />
-          <span>Prettier</span>
+          <span>{t('ui.statusBar.prettier')}</span>
         </div>
         
         {/* Git status with enhanced information */}

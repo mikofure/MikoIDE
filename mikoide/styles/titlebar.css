@@ -48,5 +48,5 @@ button.titlebar {
 }
 
 ::placeholder {
-  font-family: Inter, monospace;
+  font-family: var(--font-sans);
 }
