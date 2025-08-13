@@ -26,6 +26,7 @@ set(SHARED_SRCS
   ../../include/shared/util/ResourceUtil.hpp
   ../../src/shared/util/JsonYamlUtil.cpp
   ../../include/shared/util/JsonYamlUtil.hpp
+   ../../resources/shared/MikoApplication.cpp
   )
 
 set(SHARED_SRCS_LINUX
@@ -48,6 +49,8 @@ set(SHARED_SRCS_WINDOWS
   ../../src/shared/windows/ResourceUtil.cpp
   ../../src/shared/windows/BinaryResourceProvider.cpp
   ../../include/shared/util/BinaryResourceProvider.hpp
+  ../../src/shared/MikoApplication_impl.cpp
+  ../../include/shared/MikoApplication.hpp
   )
 
 append_platform_sources(SHARED_SRCS)
@@ -79,6 +82,7 @@ if(OS_LINUX OR OS_WINDOWS)
 endif()
 
 include_directories(../../include)
+include_directories(../../resources)
 
 #
 # Linux configuration

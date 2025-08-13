@@ -1,14 +1,8 @@
 #include "shared/util/BinaryResourceProvider.hpp"
 #include "shared/AppConfig.hpp"
-#include "shared/util/ResourceUtil.hpp"
-
+#include "shared/MikoApplication.hpp"
 #include "include/base/cef_logging.h"
-
-#include <atlbase.h>
-#include <atlconv.h>
-#include <atlstr.h>
-
-#include <cstring>
+#include "include/wrapper/cef_helpers.h"
 
 namespace shared
 {
@@ -29,21 +23,25 @@ bool BinaryResourceProvider::OnRequest(scoped_refptr<CefResourceManager::Request
     }
 
     CefRefPtr<CefResourceHandler> handler;
-
     const std::string &relativePath = url.substr(rootURL.length());
 
     if (!relativePath.empty())
     {
-        CefRefPtr<CefStreamReader> stream = shared::util::ResourceUtil::getResourceReader(relativePath.data());
-
-        if (stream.get())
+        auto& manager = miko::BinaryResourceManager::getInstance();
+        
+        if (manager.hasResource(relativePath))
         {
-            handler = new CefStreamResourceHandler(request->mime_type_resolver().Run(url), stream);
+            CefRefPtr<CefStreamReader> stream = manager.getResourceReader(relativePath);
+            
+            if (stream.get())
+            {
+                std::string mimeType = manager.getResourceMimeType(relativePath);
+                handler = new CefStreamResourceHandler(mimeType, stream);
+            }
         }
     }
 
     request->Continue(handler);
-
     return true;
 }
 
