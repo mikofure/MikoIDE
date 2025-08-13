@@ -1,10 +1,14 @@
-import { readFileSync, writeFileSync } from "fs";
+
+import { readFileSync, writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import hexy from "hexy";
 
-// Paths relative to this script
+// Paths
 const inputFile = join(__dirname, "../../dist/mikoide/mikoide/index.html");
 const outputFile = join(__dirname, "../../app/resources/shared/MikoApplication.cpp");
+
+// สร้างโฟลเดอร์ถ้ายังไม่มี
+mkdirSync(join(__dirname, "../../app/resources/shared"), { recursive: true });
 
 // Read binary file
 const buffer = readFileSync(inputFile);
@@ -17,7 +21,7 @@ console.log(hexy.hexy(buffer.slice(0, 256), { width: 16 }));
 const arrayLines: string[] = [];
 for (let i = 0; i < buffer.length; i++) {
     const byte = buffer[i];
-    arrayLines.push(`0x${byte.toString(16).padStart(2, "0")}`);
+    arrayLines.push(`0x${buffer[i].toString(16).padStart(2, "0")}`);
 }
 const arrayString = arrayLines.join(", ");
 
