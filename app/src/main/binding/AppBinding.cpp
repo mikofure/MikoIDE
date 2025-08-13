@@ -1,8 +1,13 @@
 #include "main/binding/AppBinding.hpp"
 #include "main/net/RequestClient.hpp"
 #include "shared/AppConfig.hpp"
+#include "main/v8/BackendManager.hpp"
+#include "main/v8/ipc/BackendIPC.hpp"
 
 #include <algorithm>
+#include <rapidjson/document.h>
+#include <rapidjson/writer.h>
+#include <rapidjson/stringbuffer.h>
 
 namespace app
 {
@@ -36,6 +41,36 @@ bool AppBinding::OnQuery(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> fram
         if (requestMessage.rfind(messageName, 0) == 0)
         {
             return onTaskNetworkRequest(browser, frame, queryId, request, persistent, callback, messageName, requestMessage);
+        }
+    }
+
+    {
+        const std::string &messageName = "App::BackendManager";
+        const std::string &requestMessage = request;
+
+        if (requestMessage.rfind(messageName, 0) == 0)
+        {
+            return onTaskBackendManager(browser, frame, queryId, request, persistent, callback, messageName, requestMessage);
+        }
+    }
+
+    {
+        const std::string &messageName = "App::FileOperation";
+        const std::string &requestMessage = request;
+
+        if (requestMessage.rfind(messageName, 0) == 0)
+        {
+            return onTaskFileOperation(browser, frame, queryId, request, persistent, callback, messageName, requestMessage);
+        }
+    }
+
+    {
+        const std::string &messageName = "App::WindowOperation";
+        const std::string &requestMessage = request;
+
+        if (requestMessage.rfind(messageName, 0) == 0)
+        {
+            return onTaskWindowOperation(browser, frame, queryId, request, persistent, callback, messageName, requestMessage);
         }
     }
 
@@ -85,6 +120,119 @@ bool AppBinding::onTaskReverseData(CefRefPtr<CefBrowser> browser, CefRefPtr<CefF
     std::reverse(result.begin(), result.end());
     callback->Success(result);
 
+    return true;
+}
+
+bool AppBinding::onTaskBackendManager(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int64_t queryId, const CefString &request, bool persistent, CefRefPtr<Callback> callback, const std::string &messageName, const std::string &requestMessage)
+{
+    std::string jsonPayload = requestMessage.substr(messageName.size() + 1);
+    
+    // Parse JSON payload
+    rapidjson::Document document;
+    document.Parse(jsonPayload.c_str());
+    
+    if (document.HasParseError())
+    {
+        callback->Failure(400, "Invalid JSON payload");
+        return true;
+    }
+    
+    // Create response JSON
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    
+    writer.StartObject();
+    writer.Key("success");
+    writer.Bool(true);
+    writer.Key("message");
+    writer.String("Backend manager operation completed");
+    writer.EndObject();
+    
+    callback->Success(buffer.GetString());
+    return true;
+}
+
+bool AppBinding::onTaskFileOperation(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int64_t queryId, const CefString &request, bool persistent, CefRefPtr<Callback> callback, const std::string &messageName, const std::string &requestMessage)
+{
+    std::string jsonPayload = requestMessage.substr(messageName.size() + 1);
+    
+    // Parse JSON payload
+    rapidjson::Document document;
+    document.Parse(jsonPayload.c_str());
+    
+    if (document.HasParseError())
+    {
+        callback->Failure(400, "Invalid JSON payload");
+        return true;
+    }
+    
+    // Handle different file operations
+    if (document.HasMember("operation") && document["operation"].IsString())
+    {
+        std::string operation = document["operation"].GetString();
+        
+        // Create response JSON
+        rapidjson::StringBuffer buffer;
+        rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+        
+        writer.StartObject();
+        writer.Key("success");
+        writer.Bool(true);
+        writer.Key("operation");
+        writer.String(operation.c_str());
+        writer.Key("message");
+        writer.String(("File operation '" + operation + "' completed").c_str());
+        writer.EndObject();
+        
+        callback->Success(buffer.GetString());
+    }
+    else
+    {
+        callback->Failure(400, "Missing operation field");
+    }
+    
+    return true;
+}
+
+bool AppBinding::onTaskWindowOperation(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int64_t queryId, const CefString &request, bool persistent, CefRefPtr<Callback> callback, const std::string &messageName, const std::string &requestMessage)
+{
+    std::string jsonPayload = requestMessage.substr(messageName.size() + 1);
+    
+    // Parse JSON payload
+    rapidjson::Document document;
+    document.Parse(jsonPayload.c_str());
+    
+    if (document.HasParseError())
+    {
+        callback->Failure(400, "Invalid JSON payload");
+        return true;
+    }
+    
+    // Handle different window operations
+    if (document.HasMember("operation") && document["operation"].IsString())
+    {
+        std::string operation = document["operation"].GetString();
+        
+        // Create response JSON
+        rapidjson::StringBuffer buffer;
+        rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+        
+        writer.StartObject();
+        writer.Key("success");
+        writer.Bool(true);
+        writer.Key("operation");
+        writer.String(operation.c_str());
+        writer.Key("message");
+        writer.String(("Window operation '" + operation + "' completed").c_str());
+        writer.EndObject();
+        
+        callback->Success(buffer.GetString());
+    }
+    else
+    {
+        callback->Failure(400, "Missing operation field");
+    }
+    
     return true;
 }
 

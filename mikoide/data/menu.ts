@@ -264,7 +264,7 @@ type MenuPath = string[];
 
 // Environment detection and menu filtering
 function isEnvironmentAvailable(): Environment {
-    return (typeof window !== 'undefined' && (window as any).chrome?.webview) ? 'cef' : 'web';
+    return (typeof window !== 'undefined' && (window as any).cefQuery) ? 'cef' : 'web';
 }
 
 function filterMenuForEnvironment(menu: MenuSection[], environment: Environment): MenuSection[] {

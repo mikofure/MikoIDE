@@ -166,7 +166,7 @@ function TitleBar(props: TitleBarProps) {
                 <button
                     class={`p-2 w-8 h-full transition-colors rounded ${
                         panelStates().left 
-                            ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/30' 
+                            ? ' text-blue-400 hover:text-blue-600/30' 
                             : 'hover:bg-white/10'
                     }`}
                     onClick={() => handlePanelToggle('left')}
@@ -177,7 +177,7 @@ function TitleBar(props: TitleBarProps) {
                 <button
                     class={`p-2 w-8 h-full transition-colors rounded ${
                         panelStates().bottom 
-                            ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/30' 
+                            ? ' text-blue-400 hover:text-blue-600/30' 
                             : 'hover:bg-white/10'
                     }`}
                     onClick={() => handlePanelToggle('bottom')}
@@ -188,7 +188,7 @@ function TitleBar(props: TitleBarProps) {
                 <button
                     class={`p-2 w-8 h-full transition-colors rounded ${
                         panelStates().right 
-                            ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/30' 
+                            ? ' text-blue-400 hover:text-blue-600/30' 
                             : 'hover:bg-white/10'
                     }`}
                     onClick={() => handlePanelToggle('right')}
@@ -199,7 +199,7 @@ function TitleBar(props: TitleBarProps) {
                 <button
                     class={`p-2 w-8 h-full transition-colors rounded ${
                         panelStates().grid 
-                            ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/30' 
+                            ? '  hover:text-blue-600/30' 
                             : 'hover:bg-white/10'
                     }`}
                     onClick={() => handlePanelToggle('grid')}

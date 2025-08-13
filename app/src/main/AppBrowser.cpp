@@ -28,6 +28,10 @@ void BrowserApp::OnBeforeCommandLineProcessing(const CefString &processType, Cef
     // ProcessType is empty for the browser process.
     if (processType.empty())
     {
+        // Fast startup and renderer preloading switches (reduced for window visibility)
+        // commandLine->AppendSwitch("disable-extensions");
+        // commandLine->AppendSwitch("disable-pdf-extension");
+        
 #if defined(OS_MACOSX)
         // Disable the macOS keychain prompt.
         // Cookies will not be encrypted.
@@ -40,7 +44,15 @@ void BrowserApp::OnContextInitialized()
 {
     // create the browser window
     clientInstance = new AppClient();
-    shared::util::BrowserUtil::create(getAppClient(), APP_CONFIG_START_URL, CefBrowserSettings());
+    
+    // Configure browser settings for fast startup and background color
+    CefBrowserSettings browserSettings;
+    browserSettings.background_color = 0xFF0e0e0e; // #0e0e0e background color
+    browserSettings.javascript_close_windows = STATE_DISABLED;
+    browserSettings.javascript_access_clipboard = STATE_DISABLED;
+    browserSettings.javascript_dom_paste = STATE_DISABLED;
+    
+    shared::util::BrowserUtil::create(getAppClient(), APP_CONFIG_START_URL, browserSettings);
 }
 
 CefRefPtr<AppClient> BrowserApp::getAppClient()

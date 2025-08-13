@@ -145,6 +145,14 @@ if(OS_WINDOWS)
   add_dependencies(${SHARED_TARGET} libcef_dll_wrapper)
   target_link_libraries(${SHARED_TARGET} libcef_lib libcef_dll_wrapper ${CEF_STANDARD_LIBS})
   
+  # Add external library include directories
+  target_include_directories(${SHARED_TARGET} PRIVATE 
+    "${CMAKE_SOURCE_DIR}/external/rapidjson/include"
+    "${CMAKE_SOURCE_DIR}/external/rapidyaml/src"
+    "${CMAKE_SOURCE_DIR}/external/libgit2/include"
+    "${CMAKE_SOURCE_DIR}/external/libuv/include"
+  )
+  
   # Force consistent runtime library usage
   target_compile_options(${SHARED_TARGET} PRIVATE $<$<CONFIG:Debug>:/MTd> $<$<CONFIG:Release>:/MT>)
   set_property(TARGET ${SHARED_TARGET} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
