@@ -78,8 +78,9 @@ export const dict: Dictionary = {
       folderNotSupported: "ウェブブラウザではフォルダを開くことができません",
       failedToLoadDirectory: "ディレクトリの読み込みに失敗しました",
       failedToLoadFolder: "フォルダの読み込みに失敗しました",
-      folderNotSupportedBrowser: "ウェブブラウザモードではフォルダを開くことはサポートされていません",
-      failedToOpenFolder: "フォルダを開くのに失敗しました"
+      folderNotSupportedBrowser: "ウェブブラウザモードではフォルダを開くことができません",
+      failedToOpenFolder: "フォルダを開くことができませんでした",
+      folderNotTrusted: "フォルダアクセスが信頼されませんでした"
     },
     //@ts-expect-error
     welcome: {

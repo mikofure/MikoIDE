@@ -1,4 +1,6 @@
 #include "main/v8/AppExtension.hpp"
+#include "main/v8/BackendManager.hpp"
+#include "main/v8/ipc/BackendIPC.hpp"
 
 #include <chrono>
 #include <ctime>
@@ -49,10 +51,14 @@ void AppExtension::init()
         "    native function getCurrentTime();"
         "    return getCurrentTime();"
         "  };"
-        ""
-        "})();";
+        "})();"
+        "";
 
-    CefRegisterExtension("v8/app", code, new app::v8::AppExtension());
+    CefRegisterExtension("v8/app_extension", code, new AppExtension());
+    
+    // Initialize backend management components
+    app::v8::BackendManager::init();
+    app::v8::ipc::BackendIPC::init();
 }
 
 } // namespace v8

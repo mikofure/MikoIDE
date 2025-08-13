@@ -2,6 +2,7 @@ import { createSignal, For } from "solid-js";
 import { ChevronRight, ChevronDown, File, Folder, FolderOpen, AlertCircle } from "lucide-solid";
 import chromeIPC from "../../data/chromeipc";
 import { useI18n } from "../../i18n";
+import { showTrustDialog } from "../dialog";
 
 interface FileItem {
     name: string;
@@ -60,11 +61,24 @@ function Explorer() {
             const response = await chromeIPC.executeMenuAction('file.open_folder');
             
             if (response.success && response.data?.folderPath) {
-                // Load the actual folder structure
-                await loadProjectFiles(response.data.folderPath);
+                // Show trust dialog for CEF folder opening
+                const trusted = await showTrustDialog(response.data.folderPath);
+                
+                if (trusted) {
+                    // Load the actual folder structure
+                    await loadProjectFiles(response.data.folderPath);
+                } else {
+                    setError(t('ui.explorer.folderNotTrusted'));
+                }
             } else if (response.data?.folderPath) {
                 // Fallback: try to load even if response doesn't indicate success
-                await loadProjectFiles(response.data.folderPath);
+                const trusted = await showTrustDialog(response.data.folderPath);
+                
+                if (trusted) {
+                    await loadProjectFiles(response.data.folderPath);
+                } else {
+                    setError(t('ui.explorer.folderNotTrusted'));
+                }
             }
         } catch (error) {
             console.error('Failed to open folder:', error);

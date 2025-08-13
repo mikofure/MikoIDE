@@ -102,7 +102,8 @@ export const dict: Dictionary = {
       failedToLoadDirectory: "ไม่สามารถโหลดไดเรกทอรีได้",
       failedToLoadFolder: "ไม่สามารถโหลดโฟลเดอร์ได้",
       folderNotSupportedBrowser: "ไม่รองรับการเปิดโฟลเดอร์ในโหมดเว็บเบราว์เซอร์",
-      failedToOpenFolder: "ไม่สามารถเปิดโฟลเดอร์ได้"
+      failedToOpenFolder: "ไม่สามารถเปิดโฟลเดอร์ได้",
+      folderNotTrusted: "การเข้าถึงโฟลเดอร์ไม่ได้รับความไว้วางใจ"
     },
     tabs: {
       untitled: "ไม่มีชื่อ",

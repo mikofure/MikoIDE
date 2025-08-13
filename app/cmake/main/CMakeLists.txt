@@ -20,7 +20,9 @@ set(APP_SRCS
   ../../src/main/net/RequestClient.cpp
   ../../include/main/net/RequestClient.hpp
   ../../src/main/main.cpp
+  ../../src/main/v8/BackendManager.cpp
   ../../src/main/v8/ipc/TaskManager.cpp
+  ../../src/main/v8/ipc/BackendIPC.cpp
 
   )
 
@@ -208,6 +210,14 @@ if(OS_WINDOWS)
   set_app_executable_target_properties(${APP_TARGET})
   add_dependencies(${APP_TARGET} shared)
   target_link_libraries(${APP_TARGET} shared)
+  
+  # Add external library include directories
+  target_include_directories(${APP_TARGET} PRIVATE 
+    "${CMAKE_SOURCE_DIR}/external/rapidjson/include"
+    "${CMAKE_SOURCE_DIR}/external/rapidyaml/src"
+    "${CMAKE_SOURCE_DIR}/external/libgit2/include"
+    "${CMAKE_SOURCE_DIR}/external/libuv/include"
+  )
   
   # Force consistent runtime library usage
   target_compile_options(${APP_TARGET} PRIVATE $<$<CONFIG:Debug>:/MTd> $<$<CONFIG:Release>:/MT>)

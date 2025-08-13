@@ -100,7 +100,8 @@ export const dict = {
       failedToLoadDirectory: "Failed to load directory",
       failedToLoadFolder: "Failed to load folder",
       folderNotSupportedBrowser: "Folder opening is not supported in web browser mode",
-      failedToOpenFolder: "Failed to open folder"
+      failedToOpenFolder: "Failed to open folder",
+      folderNotTrusted: "Folder access was not trusted"
     },
     tabs: {
       untitled: "Untitled",

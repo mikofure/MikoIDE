@@ -3,6 +3,8 @@ import { createSignal, For, Show } from "solid-js";
 import { Motion } from "@motionone/solid";
 import { Search, File, Folder, Settings, Command, Code, Edit, Copy, Scissors, RotateCcw, RotateCw, GitBranch, Terminal, Download, Upload, Database, Globe, Package, Zap, RefreshCw } from "lucide-solid";
 import * as monaco from "monaco-editor";
+import { showDialog } from "./dialog";
+import chromeIPC from "../data/chromeipc";
 
 interface CommandPaletteProps {
     isOpen: boolean;
@@ -157,66 +159,7 @@ function CommandPalette(props: CommandPaletteProps) {
             return [];
         }
     };
-    
-    // Dialog helper function
-    const showDialog = (title: string, message: string, inputPlaceholder?: string) => {
-        return new Promise<string | null>((resolve) => {
-            const dialog = document.createElement('div');
-            dialog.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]';
-            
-            const content = `
-                <div class="bg-[#1a1a1a] border border-[#323132] rounded-lg p-6 min-w-96 max-w-md">
-                    <h3 class="text-white text-lg font-semibold mb-4">${title}</h3>
-                    <p class="text-gray-300 text-sm mb-4">${message}</p>
-                    ${inputPlaceholder ? `<input type="text" placeholder="${inputPlaceholder}" class="w-full bg-[#2d2d30] border border-[#464647] rounded px-3 py-2 text-white text-sm mb-4 focus:outline-none focus:border-[#4fc3f7]" />` : ''}
-                    <div class="flex gap-2 justify-end">
-                        <button class="px-4 py-2 bg-[#2d2d30] hover:bg-[#3e3e42] text-gray-300 rounded text-sm transition-colors" data-action="cancel">Cancel</button>
-                        <button class="px-4 py-2 bg-[#4fc3f7] hover:bg-[#29b6f6] text-white rounded text-sm transition-colors" data-action="confirm">${inputPlaceholder ? 'Execute' : 'OK'}</button>
-                    </div>
-                </div>
-            `;
-            
-            dialog.innerHTML = content;
-            document.body.appendChild(dialog);
-            
-            const input = dialog.querySelector('input') as HTMLInputElement;
-            const cancelBtn = dialog.querySelector('[data-action="cancel"]') as HTMLButtonElement;
-            const confirmBtn = dialog.querySelector('[data-action="confirm"]') as HTMLButtonElement;
-            
-            if (input) input.focus();
-            
-            const cleanup = () => {
-                document.body.removeChild(dialog);
-            };
-            
-            cancelBtn.onclick = () => {
-                cleanup();
-                resolve(null);
-            };
-            
-            confirmBtn.onclick = () => {
-                const value = input ? input.value : 'confirmed';
-                cleanup();
-                resolve(value);
-            };
-            
-            if (input) {
-                input.onkeydown = (e) => {
-                    if (e.key === 'Enter') {
-                        confirmBtn.click();
-                    } else if (e.key === 'Escape') {
-                        cancelBtn.click();
-                    }
-                };
-            }
-            
-            dialog.onclick = (e) => {
-                if (e.target === dialog) {
-                    cancelBtn.click();
-                }
-            };
-        });
-    };
+
 
     // Sample commands - can be expanded
     const generalCommands: CommandItem[] = [
@@ -242,7 +185,13 @@ function CommandPalette(props: CommandPaletteProps) {
             description: "Open a folder in workspace",
             icon: Folder,
             category: "File",
-            action: () => console.log("Open folder")
+            action: async () => {
+                try {
+                    await chromeIPC.executeMenuAction('file.open_folder');
+                } catch (error) {
+                    console.error('Failed to open folder:', error);
+                }
+            }
         },
         {
             id: "view.settings",

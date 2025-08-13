@@ -14,6 +14,7 @@
     "build:cli:win": "bun run script/postprocessing/buildcli.ts",
     "build:cli:linux": "bun run script/postprocessing/buildcli.ts",
     "build:debug:win": "bun run build:frontend && bun run script/setupshell/genbinary.ts && bun run script/make.ts build --debug && bun run build:cli:win && bun run script/postprocessing/buildinstall.ts",
+    "build:standalone:win": "bun run build:frontend && bun run script/setupshell/genbinary.ts && bun run script/make.ts build",
     "build:release:win": "bun run build:frontend && bun run script/setupshell/genbinary.ts && bun run script/make.ts build && bun run build:cli:win && bun run script/postprocessing/buildinstall.ts",
     "build:release:linux": "bun run build:frontend && bun run script/setupshell/genbinary.ts && bun run ./script/make.ts build"
   },

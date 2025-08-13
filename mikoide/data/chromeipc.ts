@@ -49,8 +49,9 @@ class ChromeIPC {
 
     constructor() {
         // Listen for responses from backend
-        if (typeof window !== 'undefined' && (window as any).chrome?.webview) {
-            (window as any).chrome.webview.addEventListener('message', this.handleBackendMessage.bind(this));
+        if (typeof window !== 'undefined' && (window as any).cefQuery) {
+            // CEF environment detected - no need for message listener as we use cefQuery
+            console.log('CEF environment detected');
         }
     }
 
@@ -73,97 +74,113 @@ class ChromeIPC {
 
     private sendMessage(type: string, payload?: any): Promise<IPCResponse> {
         return new Promise((resolve, reject) => {
-            const id = this.generateMessageId();
+            const messageId = this.generateMessageId();
+            //@ts-expect-error
             const message: IPCMessage = {
-                id,
+                id: messageId,
                 type,
                 payload,
                 timestamp: Date.now()
             };
 
-            // Store callback for response
-            this.messageQueue.set(id, resolve);
+            // Store the resolve function for this message
+            this.messageQueue.set(messageId, resolve);
 
-            // Send message to backend
-            if (typeof window !== 'undefined' && (window as any).chrome?.webview) {
-                (window as any).chrome.webview.postMessage(JSON.stringify(message));
-            } else {
-                // Fallback for development/testing
-                console.log('IPC Message (dev mode):', message);
-                
-                // Handle menu actions in development mode
-                if (type === 'menu_action' && payload?.action) {
-                    const action = payload.action;
-                    
-                    // Handle window.new action specially in dev mode
-                    if (action === 'window.new') {
-                        // In dev mode, open a new tab/window
-                        window.open(window.location.href, '_blank');
-                        setTimeout(() => {
-                            resolve({
-                                id,
-                                success: true,
-                                data: { message: 'New window opened in dev mode' },
-                                timestamp: Date.now()
-                            });
-                        }, 10);
-                        return;
-                    }
-                    
-                    // Try to call the global menu action handler if available
-                    if (typeof window !== 'undefined' && (window as any).handleMenuAction) {
-                        try {
-                            (window as any).handleMenuAction(action);
-                            setTimeout(() => {
-                                resolve({
-                                    id,
-                                    success: true,
-                                    data: { message: `Menu action '${action}' executed in dev mode` },
-                                    timestamp: Date.now()
-                                });
-                            }, 10);
-                            return;
-                        } catch (error) {
-                            console.error(`Failed to execute menu action '${action}':`, error);
-                        }
-                    }
-                }
-                
-                // Handle window operations in development mode
-                if (type === 'App::WindowOperation' && payload?.operation === 'spawn_new') {
-                    // In dev mode, open a new tab/window
-                    const url = payload.url || window.location.href;
-                    window.open(url, '_blank');
-                    setTimeout(() => {
-                        resolve({
-                            id,
-                            success: true,
-                            data: { message: 'New window spawned in dev mode' },
-                            timestamp: Date.now()
-                        });
-                    }, 10);
-                    return;
-                }
-                
-                // Default fallback response
-                setTimeout(() => {
-                    resolve({
-                        id,
-                        success: true,
-                        data: { message: 'Development mode response' },
-                        timestamp: Date.now()
-                    });
-                }, 100);
-            }
-
-            // Timeout after 5 seconds
+            // Set timeout for message
             setTimeout(() => {
-                if (this.messageQueue.has(id)) {
-                    this.messageQueue.delete(id);
-                    reject(new Error('IPC message timeout'));
+                if (this.messageQueue.has(messageId)) {
+                    this.messageQueue.delete(messageId);
+                    reject(new Error(`IPC message timeout: ${type}`));
                 }
-            }, 5000);
+            }, 10000); // 10 second timeout
+
+            try {
+                // Check if we're in CEF environment
+                if (typeof window !== 'undefined' && (window as any).cefQuery) {
+                    // Use CEF's cefQuery for communication
+                    (window as any).cefQuery({
+                        request: `${type}:${JSON.stringify(payload || {})}`,
+                        onSuccess: (response: string) => {
+                            try {
+                                const parsedResponse = JSON.parse(response);
+                                const ipcResponse: IPCResponse = {
+                                    id: messageId,
+                                    success: true,
+                                    data: parsedResponse,
+                                    timestamp: Date.now()
+                                };
+                                if (this.messageQueue.has(messageId)) {
+                                    this.messageQueue.get(messageId)!(ipcResponse);
+                                    this.messageQueue.delete(messageId);
+                                }
+                            } catch (error) {
+                                const ipcResponse: IPCResponse = {
+                                    id: messageId,
+                                    success: false,
+                                    error: `Failed to parse response: ${error}`,
+                                    timestamp: Date.now()
+                                };
+                                if (this.messageQueue.has(messageId)) {
+                                    this.messageQueue.get(messageId)!(ipcResponse);
+                                    this.messageQueue.delete(messageId);
+                                }
+                            }
+                        },
+                        onFailure: (errorCode: number, errorMessage: string) => {
+                            const ipcResponse: IPCResponse = {
+                                id: messageId,
+                                success: false,
+                                error: `CEF Error ${errorCode}: ${errorMessage}`,
+                                timestamp: Date.now()
+                            };
+                            if (this.messageQueue.has(messageId)) {
+                                this.messageQueue.get(messageId)!(ipcResponse);
+                                this.messageQueue.delete(messageId);
+                            }
+                        }
+                    });
+                } else {
+                    // Fallback for non-CEF environments (development)
+                    console.warn(`IPC not available, simulating response for: ${type}`);
+                    const mockResponse: IPCResponse = {
+                        id: messageId,
+                        success: true,
+                        data: { message: `Mock response for ${type}`, payload },
+                        timestamp: Date.now()
+                    };
+                    setTimeout(() => {
+                        if (this.messageQueue.has(messageId)) {
+                            this.messageQueue.get(messageId)!(mockResponse);
+                            this.messageQueue.delete(messageId);
+                        }
+                    }, 100);
+                }
+            } catch (error) {
+                const ipcResponse: IPCResponse = {
+                    id: messageId,
+                    success: false,
+                    error: `Failed to send message: ${error}`,
+                    timestamp: Date.now()
+                };
+                if (this.messageQueue.has(messageId)) {
+                    this.messageQueue.get(messageId)!(ipcResponse);
+                    this.messageQueue.delete(messageId);
+                }
+            }
         });
+    }
+
+    // Backend Management Methods
+    async sendBackendMessage(operation: string, params?: any): Promise<IPCResponse> {
+        return this.sendMessage('App::BackendManager', { operation, params });
+    }
+
+    async sendFileOperation(operation: FileOperationType, params?: any): Promise<IPCResponse> {
+        return this.sendMessage('App::FileOperation', { operation, params });
+    }
+
+    async sendWindowOperation(operation: WindowOperationType, params?: any): Promise<IPCResponse> {
+        return this.sendMessage('App::WindowOperation', { operation, params });
     }
 
     // Menu actions
@@ -325,40 +342,40 @@ class ChromeIPC {
 
     // File operations
     async openFile(filePath?: string): Promise<IPCResponse> {
-        return this.sendMessage('file_operation', { action: 'open', filePath });
+        return this.sendFileOperation('open_file_dialog', { filePath });
     }
 
     async saveFile(filePath?: string, content?: string): Promise<IPCResponse> {
-        return this.sendMessage('file_operation', { action: 'save', filePath, content });
+        return this.sendFileOperation('save_file_dialog', { filePath, content });
     }
 
     async newFile(): Promise<IPCResponse> {
-        return this.sendMessage('file_operation', { action: 'new' });
+        return this.executeMenuAction('file.new');
     }
 
     // Enhanced file operations
     async readFile(filePath: string): Promise<IPCResponse> {
-        return this.sendMessage('App::FileOperation', { operation: 'read_file', path: filePath });
+        return this.sendFileOperation('read_file', { path: filePath });
     }
 
     async writeFile(filePath: string, content: string): Promise<IPCResponse> {
-        return this.sendMessage('App::FileOperation', { operation: 'write_file', path: filePath, content });
+        return this.sendFileOperation('write_file', { path: filePath, content });
     }
 
     async fileExists(filePath: string): Promise<IPCResponse> {
-        return this.sendMessage('App::FileOperation', { operation: 'file_exists', path: filePath });
+        return this.sendFileOperation('file_exists', { path: filePath });
     }
 
     async listDirectory(dirPath: string): Promise<IPCResponse> {
-        return this.sendMessage('App::FileOperation', { operation: 'list_directory', path: dirPath });
+        return this.sendFileOperation('list_directory', { path: dirPath });
     }
 
     async openFileDialog(): Promise<IPCResponse> {
-        return this.sendMessage('App::FileOperation', { operation: 'open_file_dialog' });
+        return this.sendFileOperation('open_file_dialog');
     }
 
     async saveFileDialog(): Promise<IPCResponse> {
-        return this.sendMessage('App::FileOperation', { operation: 'save_file_dialog' });
+        return this.sendFileOperation('save_file_dialog');
     }
 
     async openFolderDialog(): Promise<IPCResponse> {
@@ -367,7 +384,7 @@ class ChromeIPC {
 
     // Window operations
     async spawnNewWindow(url?: string): Promise<IPCResponse> {
-        return this.sendMessage('App::WindowOperation', { operation: 'spawn_new', url });
+        return this.sendWindowOperation('spawn_new', { url });
     }
 
     // Check if already running and spawn new window
@@ -428,7 +445,7 @@ class ChromeIPC {
 
     // Utility method to check if IPC is available
     isAvailable(): boolean {
-        return typeof window !== 'undefined' && !!(window as any).chrome?.webview;
+        return typeof window !== 'undefined' && !!(window as any).cefQuery;
     }
 }
 

@@ -11,6 +11,7 @@ import Welcome from "../components/interface/pages/welcome";
 import chromeIPC from "../data/chromeipc";
 import * as monaco from "monaco-editor";
 import { I18nProvider } from "../i18n";
+import { DialogProvider } from "../components/dialog";
 
 // Import fontsource packages
 import "@fontsource-variable/inter/standard.css";
@@ -35,7 +36,7 @@ function App() {
   // Panel visibility states
   const [panelStates, setPanelStates] = createSignal({
     left: true,
-    right: true,
+    right: false,
     bottom: false,
     grid: false
   });
@@ -567,6 +568,7 @@ function AppWithI18n() {
   return (
     <I18nProvider>
       <App />
+      <DialogProvider />
     </I18nProvider>
   );
 }

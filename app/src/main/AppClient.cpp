@@ -6,6 +6,7 @@
 #include "shared/util/ResourceUtil.hpp"
 
 #include <sstream>
+#include <map>
 
 #include "include/wrapper/cef_helpers.h"
 #include "include/wrapper/cef_message_router.h"
@@ -77,6 +78,14 @@ bool AppClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPt
 {
     return messageRouter->OnProcessMessageReceived(browser, frame, source_process, message);
 }
+
+
+
+
+
+
+
+
 
 void AppClient::setupResourceManager(CefRefPtr<CefResourceManager> resourceManager)
 {
