@@ -12,7 +12,8 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-
+        with:
+          submodules: recursive
       # Setup MSVC
       - name: Setup MSVC
         uses: microsoft/setup-msbuild@v2
