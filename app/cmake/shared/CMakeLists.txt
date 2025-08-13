@@ -24,6 +24,8 @@ set(SHARED_SRCS
   ../../include/shared/Entrypoint.hpp
   ../../src/shared/util/ResourceUtil.cpp
   ../../include/shared/util/ResourceUtil.hpp
+  ../../src/shared/util/JsonYamlUtil.cpp
+  ../../include/shared/util/JsonYamlUtil.hpp
   )
 
 set(SHARED_SRCS_LINUX
@@ -140,6 +142,10 @@ if(OS_WINDOWS)
   set_app_library_target_properties(${SHARED_TARGET})
   add_dependencies(${SHARED_TARGET} libcef_dll_wrapper)
   target_link_libraries(${SHARED_TARGET} libcef_lib libcef_dll_wrapper ${CEF_STANDARD_LIBS} nlohmann_json::nlohmann_json yaml-cpp::yaml-cpp)
+  
+  # Force consistent runtime library usage
+  target_compile_options(${SHARED_TARGET} PRIVATE $<$<CONFIG:Debug>:/MTd> $<$<CONFIG:Release>:/MT>)
+  set_property(TARGET ${SHARED_TARGET} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
   if(USE_SANDBOX)
     # Logical target used to link the cef_sandbox library

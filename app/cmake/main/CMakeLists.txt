@@ -208,6 +208,13 @@ if(OS_WINDOWS)
   set_app_executable_target_properties(${APP_TARGET})
   add_dependencies(${APP_TARGET} shared)
   target_link_libraries(${APP_TARGET} shared)
+  
+  # Force consistent runtime library usage
+  target_compile_options(${APP_TARGET} PRIVATE $<$<CONFIG:Debug>:/MTd> $<$<CONFIG:Release>:/MT>)
+  set_property(TARGET ${APP_TARGET} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  
+  # Force linker to accept multiple definitions from runtime library conflicts
+  target_link_options(${APP_TARGET} PRIVATE /FORCE:MULTIPLE)
 
   # Manually copy assets directory
   # add_custom_command(

@@ -25,14 +25,26 @@ namespace util
 
 void ClientUtil::platformTitleChange(CefRefPtr<CefBrowser> browser, const CefString &title)
 {
+    // Ensure we have a valid browser and host before proceeding
+    if (!browser || !browser->GetHost()) {
+        return;
+    }
+    
     CefWindowHandle hwnd = browser->GetHost()->GetWindowHandle();
-    SetWindowText(hwnd, std::wstring(title).c_str());
+    if (hwnd && IsWindow(hwnd)) {
+        SetWindowText(hwnd, std::wstring(title).c_str());
+    }
 }
 
 void ClientUtil::enableDarkTitlebar(CefRefPtr<CefBrowser> browser)
 {
+    // Ensure we have a valid browser and host before proceeding
+    if (!browser || !browser->GetHost()) {
+        return;
+    }
+    
     CefWindowHandle hwnd = browser->GetHost()->GetWindowHandle();
-    if (hwnd) {
+    if (hwnd && IsWindow(hwnd)) {
         BOOL darkMode = TRUE;
         
         // Try Windows 11/10 version 1903+ first

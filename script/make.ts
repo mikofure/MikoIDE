@@ -47,6 +47,7 @@ function showUsage(): void {
   console.log('Options:');
   console.log('  -d, --debug     Enable debug mode');
   console.log('  -r, --release   Enable release mode (default)');
+  console.log('  -f, --force     Enable force mode for aggressive operations');
   console.log('  -h, --help      Show this help message');
   console.log('');
   console.log('Tasks:');
@@ -106,6 +107,7 @@ function main(): void {
     .version('1.0.0')
     .option('-d, --debug', 'Enable debug mode')
     .option('-r, --release', 'Enable release mode (default)')
+    .option('-f, --force', 'Enable force mode for aggressive operations')
     .argument('[task]', 'Task to run')
     .action((task: string | undefined, options: any) => {
       // Set build type based on options
@@ -117,6 +119,12 @@ function main(): void {
         config.setBuildType('Release');
         config.setMakeDebug(false);
         log.info('Release mode enabled');
+      }
+      
+      // Set force flag if specified
+      if (options.force) {
+        config.setForceFlag(true);
+        log.info('Force mode enabled');
       }
       
       // Show usage if no task provided

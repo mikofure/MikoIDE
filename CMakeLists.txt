@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.13)
 set(CMAKE_CONFIGURATION_TYPES Debug Release)
 
+# Fix Windows runtime library conflicts by using static runtime to match CEF
+if(WIN32)
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
 #
 # Project configuration
 #
@@ -67,8 +72,27 @@ FetchContent_Declare(
   yaml-cpp
   GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
   GIT_TAG 0.8.0  # Use a stable version
+  CMAKE_ARGS -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 )
+# Set minimum CMake version for yaml-cpp to avoid compatibility issues
+set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(yaml-cpp)
+
+# Ensure third-party libraries use the same runtime library on Windows
+if(WIN32)
+  set_property(TARGET nlohmann_json PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  set_property(TARGET yaml-cpp PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  
+  # Force yaml-cpp to use static runtime with additional compiler flags
+  target_compile_options(yaml-cpp PRIVATE 
+    $<$<CONFIG:Debug>:/MTd>
+    $<$<CONFIG:Release>:/MT>
+    $<$<CONFIG:Debug>:/D_ITERATOR_DEBUG_LEVEL=0>
+  )
+endif()
 
 #
 # Target configuration

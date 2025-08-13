@@ -5,6 +5,7 @@ export interface Config {
   makeTask: string;
   buildType: string;
   appName: string;
+  forceFlag: boolean;
 }
 
 // Global configuration object
@@ -12,7 +13,8 @@ export const config: Config = {
   makeDebug: false,
   makeTask: "",
   buildType: "Release",
-  appName: "MikoIDE"
+  appName: "MikoIDE",
+  forceFlag: false
 };
 
 // Export individual properties for backward compatibility
@@ -20,6 +22,7 @@ export let makeDebug = config.makeDebug;
 export let makeTask = config.makeTask;
 export let buildType = config.buildType;
 export let appName = config.appName;
+export let forceFlag = config.forceFlag;
 
 // Setters for updating configuration
 export function setMakeDebug(value: boolean): void {
@@ -40,4 +43,9 @@ export function setBuildType(value: string): void {
 export function setAppName(value: string): void {
   config.appName = value;
   appName = value;
+}
+
+export function setForceFlag(value: boolean): void {
+  config.forceFlag = value;
+  forceFlag = value;
 }
