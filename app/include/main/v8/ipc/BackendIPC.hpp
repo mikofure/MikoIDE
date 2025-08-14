@@ -2,8 +2,10 @@
 
 #include "include/cef_v8.h"
 #include "include/cef_client.h"
+#include "shared/gitcontrol/GitIPCHandler.hpp"
 #include <rapidjson/document.h>
 #include <string>
+#include <memory>
 
 namespace app
 {
@@ -37,6 +39,7 @@ private:
     bool handleFileOperationIPC(const rapidjson::Document &document, CefRefPtr<CefV8Value> &retval, CefString &exception);
     bool handleWindowControlIPC(const rapidjson::Document &document, CefRefPtr<CefV8Value> &retval, CefString &exception);
     bool handleAppStateIPC(const rapidjson::Document &document, CefRefPtr<CefV8Value> &retval, CefString &exception);
+    bool handleGitOperationIPC(const rapidjson::Document &document, CefRefPtr<CefV8Value> &retval, CefString &exception);
 
     // Dialog handlers
     bool handleOpenFolderDialog(const CefV8ValueList &arguments, CefRefPtr<CefV8Value> &retval, CefString &exception);
@@ -62,9 +65,16 @@ private:
     bool handleListDirectoryIPC(const rapidjson::Value &payload, CefRefPtr<CefV8Value> &retval, CefString &exception);
     bool handleFileExistsIPC(const rapidjson::Value &payload, CefRefPtr<CefV8Value> &retval, CefString &exception);
 
+    // Git operation helpers
+    CefRefPtr<CefV8Value> convertGitResponseToV8(const miko::gitcontrol::GitIPCResponse &response);
+    std::map<std::string, std::any> convertV8ToParamsMap(const rapidjson::Value &payload);
+    
     // Response helpers
     CefRefPtr<CefV8Value> createSuccessResponse(const std::string &message);
     CefRefPtr<CefV8Value> createErrorResponse(const std::string &error);
+    
+    // Git IPC handler
+    std::unique_ptr<miko::gitcontrol::GitIPCHandler> gitHandler;
 
     IMPLEMENT_REFCOUNTING(BackendIPC);
 };

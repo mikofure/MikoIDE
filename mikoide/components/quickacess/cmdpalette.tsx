@@ -1,10 +1,34 @@
-import { createSignal, For, Show } from "solid-js";
-//@ts-expect-error
-import { Motion } from "@motionone/solid";
-import { Search, File, Folder, Settings, Command, Code, Edit, Copy, Scissors, RotateCcw, RotateCw, GitBranch, Terminal, Download, Upload, Database, Globe, Package, Zap, RefreshCw } from "lucide-solid";
-import * as monaco from "monaco-editor";
-import { showDialog } from "./dialog";
-import chromeIPC from "../data/chromeipc";
+import { createSignal, createMemo, createEffect, onMount, For, Show } from 'solid-js';
+// @ts-ignore
+import { Motion } from '@motionone/solid';
+import { 
+  Search, 
+  Command, 
+  ArrowUp, 
+  ArrowDown, 
+  Settings,
+  GitBranch,
+  Terminal,
+  Package,
+  Hammer,
+  Database,
+  Download,
+  Upload,
+  Folder,
+  Code,
+  FileText,
+  RotateCcw,
+  RotateCw,
+  RefreshCw,
+  Edit,
+  Copy,
+  Scissors
+} from 'lucide-solid';
+import { CommandPaletteHandler } from '../../core/cmdpalettehandler';
+import type { QuickAccessItem } from '../../core/cmdpalettehandler';
+import { chromeIPC } from '../../core/chromeipc';
+import { gitOperations } from '../../core/git/operations';
+import * as monaco from 'monaco-editor';
 
 interface CommandPaletteProps {
     isOpen: boolean;
@@ -15,21 +39,33 @@ interface CommandPaletteProps {
     editorInstance?: monaco.editor.IStandaloneCodeEditor;
 }
 
-interface CommandItem {
-    id: string;
-    title: string;
-    description?: string;
-    icon: any;
-    category: string;
-    action: () => void;
-}
-
 function CommandPalette(props: CommandPaletteProps) {
     const [selectedIndex, setSelectedIndex] = createSignal(0);
     const [localSearchQuery, setLocalSearchQuery] = createSignal("");
+    const [allCommands, setAllCommands] = createSignal<QuickAccessItem[]>([]);
+    // @ts-expect-error
+    const [isLoading, setIsLoading] = createSignal(false);
+    // Load commands from providers
+    const loadCommands = async (query: string = "") => {
+        setIsLoading(true);
+        try {
+            const commands = await CommandPaletteHandler.getAllItems(query);
+            setAllCommands(commands);
+        } catch (error) {
+            console.error('Failed to load commands:', error);
+            setAllCommands([]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Initialize commands on mount
+    onMount(() => {
+        loadCommands();
+    });
     
     // Get all Monaco editor commands dynamically
-    const getMonacoCommands = (): CommandItem[] => {
+    const getMonacoCommands = (): QuickAccessItem[] => {
         if (!props.editorInstance) return [];
         
         try {
@@ -44,7 +80,7 @@ function CommandPalette(props: CommandPaletteProps) {
                 'editor.action.copyLinesUpAction': { title: 'Copy Line Up', description: 'Copy line up', icon: Copy },
                 'editor.action.deleteLines': { title: 'Delete Line', description: 'Delete current line', icon: Scissors },
                 'undo': { title: 'Undo', description: 'Undo last action', icon: RotateCcw },
-                'redo': { title: 'Redo', description: 'Redo last action', icon: RotateCw },
+                'redo': { title: 'Redo', description: 'Redo last action', icon: RotateCcw },
                 'editor.action.selectAll': { title: 'Select All', description: 'Select all text', icon: Edit },
                 'editor.action.gotoLine': { title: 'Go to Line', description: 'Go to specific line number', icon: Search },
                 'editor.action.quickOutline': { title: 'Go to Symbol', description: 'Go to symbol in editor', icon: Search },
@@ -145,7 +181,9 @@ function CommandPalette(props: CommandPaletteProps) {
                         description: customInfo?.description || `Execute ${action.label || action.id}`,
                         icon: customInfo?.icon || Code,
                         category: "Editor",
-                        action: () => {
+                        keywords: [action.label?.toLowerCase() || action.id.toLowerCase()],
+                        priority: 5,
+                        action: async () => {
                             try {
                                 props.editorInstance?.getAction(action.id)?.run();
                             } catch (error) {
@@ -161,15 +199,17 @@ function CommandPalette(props: CommandPaletteProps) {
     };
 
 
-    // Sample commands - can be expanded
-    const generalCommands: CommandItem[] = [
+    // Legacy general commands (now handled by providers)
+    const legacyGeneralCommands: QuickAccessItem[] = [
         {
             id: "file.new",
             title: "New File",
             description: "Create a new file",
-            icon: File,
+            icon: FileText,
             category: "File",
-            action: () => console.log("New file")
+            keywords: ["new", "file", "create"],
+            priority: 8,
+            action: async () => console.log("New file")
         },
         {
             id: "file.open",
@@ -177,7 +217,9 @@ function CommandPalette(props: CommandPaletteProps) {
             description: "Open an existing file",
             icon: Folder,
             category: "File",
-            action: () => console.log("Open file")
+            keywords: ["open", "file"],
+            priority: 8,
+            action: async () => console.log("Open file")
         },
         {
             id: "file.openFolder",
@@ -185,6 +227,8 @@ function CommandPalette(props: CommandPaletteProps) {
             description: "Open a folder in workspace",
             icon: Folder,
             category: "File",
+            keywords: ["open", "folder", "workspace"],
+            priority: 8,
             action: async () => {
                 try {
                     await chromeIPC.executeMenuAction('file.open_folder');
@@ -199,7 +243,9 @@ function CommandPalette(props: CommandPaletteProps) {
             description: "Open IDE settings",
             icon: Settings,
             category: "View",
-            action: () => console.log("Open settings")
+            keywords: ["settings", "preferences", "config"],
+            priority: 7,
+            action: async () => console.log("Open settings")
         },
         {
             id: "search.files",
@@ -207,57 +253,128 @@ function CommandPalette(props: CommandPaletteProps) {
             description: "Search for files in workspace",
             icon: Search,
             category: "Search",
-            action: () => console.log("Search files")
+            keywords: ["search", "find", "files"],
+            priority: 7,
+            action: async () => console.log("Search files")
         },
         // Git Commands
-        {
-            id: "git.clone",
-            title: "Git: Clone Repository",
-            description: "Clone a git repository",
-            icon: GitBranch,
-            category: "Git",
-            action: async () => {
-                const url = await showDialog(
-                    "Clone Repository",
-                    "Enter the repository URL to clone:",
-                    "https://github.com/user/repo.git"
-                );
-                if (url) {
-                    console.log(`Cloning repository: ${url}`);
-                    // Here you would integrate with actual git clone functionality
-                }
-            }
-        },
+        // Git Clone is now handled via special syntax: clone: <url>
         {
             id: "git.init",
             title: "Git: Initialize Repository",
             description: "Initialize a new git repository",
             icon: GitBranch,
             category: "Git",
+            keywords: ["git", "init", "initialize", "repository"],
+            priority: 6,
             action: async () => {
-                const confirm = await showDialog(
-                    "Initialize Repository",
-                    "Initialize a new Git repository in the current workspace?"
-                );
-                if (confirm) {
-                    console.log("Initializing git repository");
+                const result = await gitOperations.initRepository();
+                if (result.success) {
+                    console.log(result.message);
+                } else {
+                    console.error(result.message);
                 }
             }
         },
         {
-            id: "git.addRemote",
-            title: "Git: Add Remote",
-            description: "Add a remote repository",
-            icon: Globe,
+            id: "git.openFolder",
+            title: "Git: Open Folder",
+            description: "Open a folder and check for Git repository",
+            icon: Folder,
             category: "Git",
+            keywords: ["git", "open", "folder"],
+            priority: 6,
             action: async () => {
-                const url = await showDialog(
-                    "Add Remote",
-                    "Enter the remote repository URL:",
-                    "https://github.com/user/repo.git"
-                );
-                if (url) {
-                    console.log(`Adding remote: ${url}`);
+                const result = await gitOperations.openFolder();
+                if (result.success) {
+                    console.log(result.message);
+                } else {
+                    console.error(result.message);
+                }
+            }
+        },
+        {
+            id: "git.fetch",
+            title: "Git: Fetch",
+            description: "Fetch changes from remote repository",
+            icon: Download,
+            category: "Git",
+            keywords: ["git", "fetch", "remote"],
+            priority: 6,
+            action: async () => {
+                const result = await gitOperations.fetchRepository();
+                if (result.success) {
+                    console.log(result.message);
+                } else {
+                    console.error(result.message);
+                }
+            }
+        },
+        {
+            id: "git.pull",
+            title: "Git: Pull",
+            description: "Pull changes from remote repository",
+            icon: ArrowDown,
+            category: "Git",
+            keywords: ["git", "pull", "remote"],
+            priority: 6,
+            action: async () => {
+                const result = await gitOperations.pullRepository();
+                if (result.success) {
+                    console.log(result.message);
+                } else {
+                    console.error(result.message);
+                }
+            }
+        },
+        {
+            id: "git.push",
+            title: "Git: Push",
+            description: "Push changes to remote repository",
+            icon: ArrowUp,
+            category: "Git",
+            keywords: ["git", "push", "remote"],
+            priority: 6,
+            action: async () => {
+                const result = await gitOperations.pushRepository();
+                if (result.success) {
+                    console.log(result.message);
+                } else {
+                    console.error(result.message);
+                }
+            }
+        },
+        {
+            id: "git.status",
+            title: "Git: Status",
+            description: "Show repository status",
+            icon: GitBranch,
+            category: "Git",
+            keywords: ["git", "status", "repository"],
+            priority: 7,
+            action: async () => {
+                const result = await gitOperations.getGitStatus();
+                if (result.success) {
+                    console.log(result.message, result.data);
+                } else {
+                    console.error(result.message);
+                }
+            }
+        },
+        {
+            id: "git.refresh",
+            title: "Git: Refresh",
+            description: "Refresh Git status",
+            icon: RefreshCw,
+            category: "Git",
+            keywords: ["git", "refresh", "status"],
+            priority: 6,
+            action: async () => {
+                const result = await gitOperations.refreshGitStatus();
+                if (result.success) {
+                    console.log(result.message);
+                } else {
+                    console.error(result.message);
                 }
             }
         },
@@ -268,7 +385,9 @@ function CommandPalette(props: CommandPaletteProps) {
             description: "Open a new terminal instance",
             icon: Terminal,
             category: "Terminal",
-            action: () => console.log("Opening new terminal")
+            keywords: ["terminal", "new", "console"],
+            priority: 7,
+            action: async () => console.log("Opening new terminal")
         },
         {
             id: "terminal.runCommand",
@@ -276,15 +395,10 @@ function CommandPalette(props: CommandPaletteProps) {
             description: "Run a custom command in terminal",
             icon: Terminal,
             category: "Terminal",
+            keywords: ["terminal", "run", "command", "execute"],
+            priority: 6,
             action: async () => {
-                const command = await showDialog(
-                    "Run Command",
-                    "Enter the command to execute:",
-                    "npm install"
-                );
-                if (command) {
-                    console.log(`Running command: ${command}`);
-                }
+                console.log('Usage: Type "run: <command>" in the command palette');
             }
         },
         // Package Management
@@ -294,15 +408,10 @@ function CommandPalette(props: CommandPaletteProps) {
             description: "Install an npm package",
             icon: Package,
             category: "Package",
+            keywords: ["npm", "install", "package"],
+            priority: 6,
             action: async () => {
-                const packageName = await showDialog(
-                    "Install Package",
-                    "Enter the package name to install:",
-                    "package-name"
-                );
-                if (packageName) {
-                    console.log(`Installing package: ${packageName}`);
-                }
+                console.log('Usage: Type "install: <package-name>" in the command palette');
             }
         },
         {
@@ -311,15 +420,10 @@ function CommandPalette(props: CommandPaletteProps) {
             description: "Uninstall an npm package",
             icon: Package,
             category: "Package",
+            keywords: ["npm", "uninstall", "remove", "package"],
+            priority: 5,
             action: async () => {
-                const packageName = await showDialog(
-                    "Uninstall Package",
-                    "Enter the package name to uninstall:",
-                    "package-name"
-                );
-                if (packageName) {
-                    console.log(`Uninstalling package: ${packageName}`);
-                }
+                console.log('Usage: Type "uninstall: <package-name>" in the command palette');
             }
         },
         // Project Commands
@@ -327,9 +431,11 @@ function CommandPalette(props: CommandPaletteProps) {
             id: "project.build",
             title: "Project: Build",
             description: "Build the current project",
-            icon: Zap,
+            icon: Hammer,
             category: "Project",
-            action: () => console.log("Building project")
+            keywords: ["project", "build", "compile"],
+            priority: 6,
+            action: async () => console.log("Building project")
         },
         {
             id: "project.clean",
@@ -337,14 +443,10 @@ function CommandPalette(props: CommandPaletteProps) {
             description: "Clean build artifacts",
             icon: RefreshCw,
             category: "Project",
+            keywords: ["project", "clean", "artifacts"],
+            priority: 5,
             action: async () => {
-                const confirm = await showDialog(
-                    "Clean Project",
-                    "This will remove all build artifacts. Continue?"
-                );
-                if (confirm) {
-                    console.log("Cleaning project");
-                }
+                console.log("Cleaning project");
             }
         },
         // Database Commands
@@ -354,15 +456,10 @@ function CommandPalette(props: CommandPaletteProps) {
             description: "Connect to a database",
             icon: Database,
             category: "Database",
+            keywords: ["database", "connect", "db"],
+            priority: 5,
             action: async () => {
-                const connectionString = await showDialog(
-                    "Database Connection",
-                    "Enter the database connection string:",
-                    "mongodb://localhost:27017/mydb"
-                );
-                if (connectionString) {
-                    console.log(`Connecting to database: ${connectionString}`);
-                }
+                console.log('Usage: Type "connect: <connection-string>" in the command palette');
             }
         },
         // File Operations
@@ -372,15 +469,10 @@ function CommandPalette(props: CommandPaletteProps) {
             description: "Download a file from URL",
             icon: Download,
             category: "File",
+            keywords: ["file", "download", "url"],
+            priority: 4,
             action: async () => {
-                const url = await showDialog(
-                    "Download File",
-                    "Enter the URL to download:",
-                    "https://example.com/file.zip"
-                );
-                if (url) {
-                    console.log(`Downloading file: ${url}`);
-                }
+                console.log('Usage: Type "download: <url>" in the command palette');
             }
         },
         {
@@ -389,33 +481,63 @@ function CommandPalette(props: CommandPaletteProps) {
             description: "Upload current file to server",
             icon: Upload,
             category: "File",
+            keywords: ["file", "upload", "server"],
+            priority: 4,
             action: async () => {
-                const server = await showDialog(
-                    "Upload File",
-                    "Enter the server URL:",
-                    "ftp://server.com/path/"
-                );
-                if (server) {
-                    console.log(`Uploading to server: ${server}`);
-                }
+                console.log('Usage: Type "upload: <server-url>" in the command palette');
             }
         }
     ];
     
     // Combine all commands
-    const commands = () => [...generalCommands, ...getMonacoCommands()];
+    const commands = () => {
+        const monacoCommands = getMonacoCommands();
+        const providerCommands = allCommands();
+        return [...providerCommands, ...monacoCommands, ...legacyGeneralCommands];
+    };
     
     // Filter commands based on search query
-    const filteredCommands = () => {
-        const allCommands = commands();
+    const [filteredCommands, setFilteredCommands] = createSignal<QuickAccessItem[]>([]);
+    
+    createEffect(async () => {
+        const allCmds = commands();
         const query = localSearchQuery().trim();
-        if (!query) return allCommands;
-        return allCommands.filter(cmd => 
+        if (!query) {
+            setFilteredCommands(allCmds);
+            return;
+        }
+        
+        // Handle special syntax commands
+        if (query.includes(':') || query.startsWith('>')) {
+            // Use centralized command palette handler for special commands
+            const specialCommand = await CommandPaletteHandler.parseAndExecute(query);
+            if (specialCommand) {
+                setFilteredCommands([{
+                    id: specialCommand.id,
+                    title: specialCommand.title,
+                    description: specialCommand.description,
+                    icon: specialCommand.icon,
+                    category: specialCommand.category,
+                    keywords: [],
+                    priority: 10,
+                    action: async () => {
+                        await specialCommand.action();
+                        props.onClose();
+                    }
+                }]);
+                return;
+            }
+        }
+        
+        const filtered = allCmds.filter(cmd => 
             cmd.title.toLowerCase().includes(query.toLowerCase()) ||
             cmd.description?.toLowerCase().includes(query.toLowerCase()) ||
-            cmd.category.toLowerCase().includes(query.toLowerCase())
-        );
-    };
+            cmd.category.toLowerCase().includes(query.toLowerCase()) ||
+            cmd.keywords?.some(keyword => keyword.includes(query.toLowerCase()))
+        ).sort((a, b) => (b.priority || 0) - (a.priority || 0));
+        
+        setFilteredCommands(filtered);
+    });
     
     // Handle keyboard navigation
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -450,7 +572,7 @@ function CommandPalette(props: CommandPaletteProps) {
     };
     
     // Sync local search with props and reset selection
-    (() => {
+    createMemo(() => {
         if (props.isOpen && !localSearchQuery()) {
             setLocalSearchQuery(props.searchQuery);
         }
@@ -458,13 +580,16 @@ function CommandPalette(props: CommandPaletteProps) {
             setLocalSearchQuery("");
         }
         resetSelection();
-    })();
+    });
     
-    // Watch for local search query changes
-    (() => {
-        localSearchQuery(); // Track dependency
+    // Watch for local search query changes and reload commands
+    createMemo(() => {
+        const query = localSearchQuery();
         resetSelection();
-    })();
+        if (query.trim()) {
+            loadCommands(query);
+        }
+    });
     
     return (
         <Show when={props.isOpen}>

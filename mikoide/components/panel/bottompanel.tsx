@@ -1,5 +1,6 @@
 import { createSignal } from "solid-js";
 import { Terminal, AlertCircle, CheckCircle, Info, Zap, Play} from "lucide-solid";
+import TerminalView from "../terminal/TerminalView";
 // import chromeIPC from "../../data/chromeipc";
 
 interface BottomPanelProps {
@@ -11,40 +12,13 @@ type BottomPanelPage = 'terminal' | 'problems' | 'output' | 'debug' | 'tasks' | 
 
 function BottomPanel(props: BottomPanelProps) {
     const [activePage, setActivePage] = createSignal<BottomPanelPage>('terminal');
-    const [isRunning] = createSignal(false);
 
 
 
     const renderActivePage = () => {
         switch (activePage()) {
             case 'terminal': return (
-                <div class="flex flex-col h-full">
-                    {/* Terminal Header */}
-                    <div class="flex items-center justify-between px-4 py-2  border-b border-neutral-700">
-                        <div class="flex items-center gap-2">
-                            <Terminal size={14} class="text-green-400" />
-                            <span class="text-xs font-medium">Terminal</span>
-                        </div>
-         
-                    </div>
-                    {/* Terminal Content */}
-                    <div class="flex-1 p-4 bg-black text-green-400 font-mono text-sm overflow-auto">
-                        <div class="mb-2">MikoIDE Terminal v1.0.0</div>
-                        <div class="mb-1">$ Welcome to integrated terminal</div>
-                        <div class="mb-1">$ Ready for commands...</div>
-                        {isRunning() && (
-                            <div class="mb-1 text-yellow-400">$ Running project...</div>
-                        )}
-                        <div class="flex items-center">
-                            <span class="mr-2">$</span>
-                            <input 
-                                type="text" 
-                                class="bg-transparent border-none outline-none flex-1 text-green-400" 
-                                placeholder="Enter command..."
-                            />
-                        </div>
-                    </div>
-                </div>
+                <TerminalView height={props.height - 80} />
             );
             case 'problems': return (
                 <div class="p-4 text-gray-400 text-sm">
@@ -175,7 +149,7 @@ function BottomPanel(props: BottomPanelProps) {
 
     return (
         <div
-            class="flex flex-col bg-neutral-900 rounded-[8px] border border-neutral-800 select-none"
+            class="flex flex-col bg-neutral-900 rounded-md border border-neutral-800 select-none"
             style={{ height: `${props.height}px` }}
         >
             {/* Tab bar */}

@@ -23,6 +23,7 @@ set(APP_SRCS
   ../../src/main/v8/BackendManager.cpp
   ../../src/main/v8/ipc/TaskManager.cpp
   ../../src/main/v8/ipc/BackendIPC.cpp
+  ../../include/main/v8/ipc/BackendIPC.hpp
 
   )
 
@@ -79,6 +80,15 @@ if(OS_LINUX)
   set_app_executable_target_properties(${APP_TARGET})
   add_dependencies(${APP_TARGET} shared)
   target_link_libraries(${APP_TARGET} shared)
+  
+  # Add external library include directories
+  target_include_directories(${APP_TARGET} PRIVATE 
+    "${CMAKE_SOURCE_DIR}/app/include"
+    "${CMAKE_SOURCE_DIR}/external/rapidjson/include"
+    "${CMAKE_SOURCE_DIR}/external/rapidyaml/src"
+    "${CMAKE_SOURCE_DIR}/external/libgit2/include"
+    "${CMAKE_SOURCE_DIR}/external/libuv/include"
+  )
 
   # Manually copy assets directory
   # add_custom_command(
@@ -118,6 +128,14 @@ if(OS_MAC)
   add_dependencies(${APP_TARGET} shared)
   target_link_libraries(${APP_TARGET} shared)
   set_target_properties(${APP_TARGET} PROPERTIES RESOURCE "${APP_RESOURCES_SRCS}" MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/${SHARED_INFO_PLIST}")
+  
+  # Add external library include directories
+  target_include_directories(${APP_TARGET} PRIVATE 
+    "${CMAKE_SOURCE_DIR}/external/rapidjson/include"
+    "${CMAKE_SOURCE_DIR}/external/rapidyaml/src"
+    "${CMAKE_SOURCE_DIR}/external/libgit2/include"
+    "${CMAKE_SOURCE_DIR}/external/libuv/include"
+  )
 
   # Copy the CEF framework into the Frameworks directory
   add_custom_command(

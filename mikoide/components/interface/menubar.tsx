@@ -1,7 +1,7 @@
 import { createSignal, createMemo, For, Show } from 'solid-js';
 import { useI18n } from '../../i18n';
 import { getEnvironmentSpecificLocalizedMenu, type MenuItem, type MenuSection } from '../../data/menu';
-import executeMenuAction from '../../data/chromeipc';
+import executeMenuAction from '../../core/chromeipc';
 
 interface MenuBarProps {
     class?: string;

@@ -1,6 +1,7 @@
 import { createSignal, onMount } from "solid-js";
 import {  Folder, GitBranch, Settings,  Book, Star, Terminal, Lightbulb, Plus, FolderOpen, Zap } from "lucide-solid";
-import chromeIPC from "../../../data/chromeipc";
+import chromeIPC from "../../../core/chromeipc";
+import { gitOperations } from "../../../core/git/operations";
 import { getComponentColors } from "../../../data/theme/default";
 import { useI18n } from "../../../i18n";
 import "../../../appearance/theme/init";
@@ -107,19 +108,33 @@ function Welcome(props: WelcomeProps) {
 
   const handleNewFile = async () => {
     try {
-      await chromeIPC.newFile();
-      props.onNewFile();
+      const response = await chromeIPC.newFile();
+      if (response.success) {
+        // Call the global handleNewFile function instead of props.onNewFile
+        if ((window as any).handleNewFile) {
+          await (window as any).handleNewFile();
+        } else {
+          props.onNewFile();
+        }
+      }
     } catch (error) {
       console.error('Failed to create new file:', error);
-      props.onNewFile();
+      // Fallback to local creation
+      if ((window as any).handleNewFile) {
+        await (window as any).handleNewFile();
+      } else {
+        props.onNewFile();
+      }
     }
   };
 
   const handleOpenFolder = async () => {
     try {
-      const response = await chromeIPC.executeMenuAction('file.open_folder');
-      if (response.success && response.data?.folderPath) {
-        await addToRecentProjects(response.data.folderPath);
+      const result = await gitOperations.openFolder();
+      if (!result.success) {
+        console.error(result.message);
+      } else if (result.data?.folderPath) {
+        await addToRecentProjects(result.data.folderPath);
       }
       props.onOpenFolder();
     } catch (error) {
@@ -143,11 +158,7 @@ function Welcome(props: WelcomeProps) {
   };
 
   const handleCloneRepository = async () => {
-    try {
-      await chromeIPC.executeMenuAction('git.clone');
-    } catch (error) {
-      console.error('Failed to clone repository:', error);
-    }
+    console.log('To clone a repository, use the command palette and type: clone: <repository-url>');
   };
 
   return (

@@ -71,3 +71,8 @@ Makefile
 # match build, build-debug, build-release, etc.
 build*/
 app/assets
+
+# ================================
+# Reference
+# ================================
+vscode

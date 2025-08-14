@@ -2,7 +2,7 @@ import { createSignal, onCleanup } from "solid-js";
 import { Folder, Settings, Search, Blocks, Database, Pyramid, FlaskConical } from "lucide-solid";
 import GitSrcControl from "../../assets/images/tools/gitcontrol.svg";
 import CmakeIcon from "../../assets/images/tools/cmake.svg";
-import chromeIPC from "../../data/chromeipc";
+import chromeIPC from "../../core/chromeipc";
 
 // Import sidebar pages
 import Explorer from "../sidebar/explorer";

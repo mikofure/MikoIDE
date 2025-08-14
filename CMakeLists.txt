@@ -59,6 +59,22 @@ find_package(CEF REQUIRED)
 # Include FetchContent module for downloading dependencies
 include(FetchContent)
 
+# Set libgit2 options before adding subdirectory
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build Shared Library (OFF for Static)" FORCE)
+set(BUILD_TESTS OFF CACHE BOOL "Build Tests" FORCE)
+set(BUILD_CLI OFF CACHE BOOL "Build CLI" FORCE)
+set(BUILD_EXAMPLES OFF CACHE BOOL "Build Examples" FORCE)
+set(BUILD_FUZZERS OFF CACHE BOOL "Build Fuzzers" FORCE)
+
+# Configure libgit2 for Windows
+if(WIN32)
+  set(USE_HTTPS "Schannel" CACHE STRING "Use Schannel for HTTPS on Windows" FORCE)
+  set(USE_SSH OFF CACHE BOOL "Disable SSH support" FORCE)
+endif()
+
+# Add libgit2 as a subdirectory
+add_subdirectory(external/libgit2)
+
 #
 # Target configuration
 #

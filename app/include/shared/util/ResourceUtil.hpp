@@ -3,7 +3,7 @@
 #include "include/cef_parser.h"
 #include "include/wrapper/cef_stream_resource_handler.h"
 
-#if defined(OS_WIN)
+#if defined(OS_WIN) || defined(OS_LINUX)
 #include "include/wrapper/cef_resource_manager.h"
 #endif
 
@@ -56,11 +56,13 @@ public:
     // returns the BINARY id value associated with resource path on Windows
     static int getResourceId(const std::string &resourcePath);
 
-    // create a new provider for loading BINARY resources on Windows
-    static CefResourceManager::Provider *createBinaryResourceProvider(const std::string &rootURL);
-
     // load resource by binary ID
     static bool loadBinaryResource(int binaryId, DWORD &dwSize, LPBYTE &pBytes);
+#endif
+
+#if defined(OS_WIN) || defined(OS_LINUX)
+    // create a new provider for loading BINARY resources
+    static CefResourceManager::Provider *createBinaryResourceProvider(const std::string &rootURL);
 #endif
 };
 
