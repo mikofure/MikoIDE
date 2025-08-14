@@ -1,6 +1,6 @@
 import { createSignal, For } from "solid-js";
 import { ChevronRight, ChevronDown, File, Folder, FolderOpen, AlertCircle } from "lucide-solid";
-import chromeIPC from "../../data/chromeipc";
+import chromeIPC from "../../core/chromeipc";
 import { useI18n } from "../../i18n";
 import { showTrustDialog } from "../dialog";
 

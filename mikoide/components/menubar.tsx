@@ -1,7 +1,7 @@
 // src/components/MenuBar.tsx
 import { For, Show, createSignal, createMemo, onMount, onCleanup } from "solid-js";
 import { getEnvironmentSpecificLocalizedMenu, matchKeyboardEvent, type MenuItem } from "../data/menu";
-import chromeIPC, { type MenuActionType } from "../data/chromeipc";
+import chromeIPC, { type MenuActionType } from "../core/chromeipc";
 import { useI18n } from "../i18n";
 import { ChevronRight } from "lucide-solid";
 

@@ -1,10 +1,11 @@
-import { onMount, onCleanup, createEffect } from "solid-js";
+import { onMount, onCleanup, createEffect, createSignal } from "solid-js";
 import * as monaco from "monaco-editor";
 import "../../styles/monaco.css";
 import { ChevronRight, FileText } from "lucide-solid";
+import chromeIPC from "../../core/chromeipc";
 // Dynamic language icons using devicon
-const getLanguageIcon = (language?: string, fileName?: string) => {
-    const effectiveLanguage = getEffectiveLanguage(language, fileName);
+const getLanguageIcon = (language?: string, fileName?: string, content?: string) => {
+    const effectiveLanguage = getEffectiveLanguage(language, fileName, content);
     
     // Map Monaco language IDs to devicon class names
     const iconMap: Record<string, string> = {
@@ -20,6 +21,16 @@ const getLanguageIcon = (language?: string, fileName?: string) => {
         'java': 'devicon-java-plain',
         'xml': 'devicon-xml-plain',
         'yaml': 'devicon-yaml-plain',
+        'rust': 'devicon-rust-plain',
+        'go': 'devicon-go-plain',
+        'php': 'devicon-php-plain',
+        'ruby': 'devicon-ruby-plain',
+        'shell': 'devicon-bash-plain',
+        'sql': 'devicon-mysql-plain',
+        'dockerfile': 'devicon-docker-plain',
+        'toml': 'devicon-toml-plain',
+        'ini': 'devicon-plain-wordmark',
+        'log': 'devicon-plain-wordmark',
         'plaintext': 'devicon-plain-wordmark' // fallback for plain text
     };
     
@@ -30,59 +41,142 @@ interface CodeEditorProps {
     initialContent?: string;
     language?: string;
     fileName?: string;
+    filePath?: string;
     onContentChange?: (content: string) => void;
     onWordCountChange?: (words: number, chars: number) => void;
     onCursorPositionChange?: (line: number, col: number) => void;
     onEditorReady?: (editor: monaco.editor.IStandaloneCodeEditor) => void;
 }
 
-// Determine the effective language for Monaco editor
-const getEffectiveLanguage = (language?: string, fileName?: string) => {
+// Enhanced auto language detection for Monaco editor
+const getEffectiveLanguage = (language?: string, fileName?: string, content?: string) => {
     if (language === 'plaintext') {
         return 'plaintext';
     }
     if (language === 'auto' || !language) {
-        // Auto-detect based on file extension
+        // Auto-detect based on file extension first
         if (fileName && fileName.includes('.')) {
             const ext = fileName.split('.').pop()?.toLowerCase();
             switch (ext) {
                 case 'ts': case 'tsx':
                     return 'typescript';
-                case 'js': case 'jsx':
+                case 'js': case 'jsx': case 'mjs': case 'cjs':
                     return 'javascript';
-                case 'json':
+                case 'json': case 'jsonc':
                     return 'json';
-                case 'css':
+                case 'css': case 'scss': case 'sass': case 'less':
                     return 'css';
-                case 'html':
+                case 'html': case 'htm': case 'xhtml':
                     return 'html';
-                case 'md':
+                case 'md': case 'markdown': case 'mdown': case 'mkd':
                     return 'markdown';
-                case 'py':
+                case 'py': case 'pyw': case 'pyi':
                     return 'python';
-                case 'cpp': case 'cc': case 'cxx':
+                case 'cpp': case 'cc': case 'cxx': case 'c++': case 'hpp': case 'hxx': case 'h++':
                     return 'cpp';
-                case 'c':
+                case 'c': case 'h':
                     return 'c';
-                case 'java':
+                case 'java': case 'class':
                     return 'java';
-                case 'xml':
+                case 'xml': case 'xsd': case 'xsl': case 'xslt':
                     return 'xml';
                 case 'yaml': case 'yml':
                     return 'yaml';
+                case 'rs':
+                    return 'rust';
+                case 'go':
+                    return 'go';
+                case 'php':
+                    return 'php';
+                case 'rb':
+                    return 'ruby';
+                case 'sh': case 'bash': case 'zsh':
+                    return 'shell';
+                case 'sql':
+                    return 'sql';
+                case 'dockerfile':
+                    return 'dockerfile';
+                case 'toml':
+                    return 'toml';
+                case 'ini': case 'cfg': case 'conf':
+                    return 'ini';
+                case 'log':
+                    return 'log';
                 default:
-                    return 'plaintext';
+                    break;
             }
         }
+        
+        // Content-based detection as fallback
+        if (content) {
+            const trimmedContent = content.trim();
+            // Check for common file patterns
+            if (trimmedContent.startsWith('#!/bin/bash') || trimmedContent.startsWith('#!/bin/sh')) {
+                return 'shell';
+            }
+            if (trimmedContent.startsWith('<?php')) {
+                return 'php';
+            }
+            if (trimmedContent.startsWith('<!DOCTYPE html') || trimmedContent.includes('<html')) {
+                return 'html';
+            }
+            if (trimmedContent.startsWith('{') && trimmedContent.endsWith('}')) {
+                try {
+                    JSON.parse(trimmedContent);
+                    return 'json';
+                } catch {
+                    // Not valid JSON
+                }
+            }
+        }
+        
         return 'plaintext';
     }
     return language;
+};
+
+// Function to get breadcrumb path from file path
+const getBreadcrumbPath = async (filePath?: string): Promise<string[]> => {
+    if (!filePath) {
+        return ['workspace'];
+    }
+    
+    try {
+        // Try to get repository info if in CEF environment
+        if (chromeIPC.isAvailable()) {
+            const repoInfo = await chromeIPC.gitGetRepositoryInfo();
+            if (repoInfo.success && repoInfo.data?.path) {
+                const repoPath = repoInfo.data.path.replace(/\\/g, '/');
+                const normalizedFilePath = filePath.replace(/\\/g, '/');
+                
+                // Get relative path from repository root
+                if (normalizedFilePath.startsWith(repoPath)) {
+                    const relativePath = normalizedFilePath.substring(repoPath.length + 1);
+                    const pathParts = relativePath.split('/').filter(part => part.length > 0);
+                    return pathParts.length > 1 ? pathParts.slice(0, -1) : ['root'];
+                }
+            }
+        }
+    } catch (error) {
+        console.warn('Failed to get repository info:', error);
+    }
+    
+    // Fallback: extract directory from file path
+    const normalizedPath = filePath.replace(/\\/g, '/');
+    const pathParts = normalizedPath.split('/').filter(part => part.length > 0);
+    
+    if (pathParts.length > 1) {
+        return pathParts.slice(0, -1);
+    }
+    
+    return ['workspace'];
 };
 
 export default function CodeEditor(props: CodeEditorProps) {
     let editorContainer: HTMLDivElement | undefined;
     let editor: monaco.editor.IStandaloneCodeEditor;
     let fontSize = 14;
+    const [breadcrumbPath, setBreadcrumbPath] = createSignal<string[]>(['workspace']);
 
     onMount(() => {
         if (!editorContainer) return;
@@ -107,7 +201,7 @@ export default function CodeEditor(props: CodeEditorProps) {
             },
         });
 
-        const effectiveLanguage = getEffectiveLanguage(props.language, props.fileName);
+        const effectiveLanguage = getEffectiveLanguage(props.language, props.fileName, props.initialContent);
 
         // editor
         editor = monaco.editor.create(editorContainer, {
@@ -213,36 +307,49 @@ export default function CodeEditor(props: CodeEditorProps) {
         if (editor) {
             const model = editor.getModel();
             if (model) {
-                const effectiveLanguage = getEffectiveLanguage(props.language, props.fileName);
+                const effectiveLanguage = getEffectiveLanguage(props.language, props.fileName, editor.getValue());
                 monaco.editor.setModelLanguage(model, effectiveLanguage);
             }
+        }
+    });
+    
+    // Update breadcrumb path when file path changes
+    createEffect(async () => {
+        if (props.filePath) {
+            const path = await getBreadcrumbPath(props.filePath);
+            setBreadcrumbPath(path);
         }
     });
 
     return (
         <div class="flex flex-col h-full w-full select-none">
-            {/* Header - now shows current file name */}
-            <div class="text-xs text-gray-300 px-3 py-1 truncate border-b border-neutral-800">
+            {/* Header - shows dynamic breadcrumb path and file name */}
+            <div class="text-xs text-gray-300 px-3 py-1 truncate">
                 <div class="flex items-center gap-1">
-                    <p>src</p>
-                    <ChevronRight class="w-4 h-4 opacity-50" />
+                    {breadcrumbPath().map((pathPart, index) => (
+                        <>
+                            <p class="text-gray-400">{pathPart}</p>
+                            {index < breadcrumbPath().length - 1 && <ChevronRight class="w-3 h-3 opacity-50" />}
+                        </>
+                    ))}
+                    {breadcrumbPath().length > 0 && <ChevronRight class="w-4 h-4 opacity-50" />}
                     <div class="flex space-x-1 items-center">
                         {(() => {
-                            const effectiveLanguage = getEffectiveLanguage(props.language, props.fileName);
+                            const effectiveLanguage = getEffectiveLanguage(props.language, props.fileName, props.initialContent);
                             if (effectiveLanguage === 'plaintext') {
                                 return <FileText class="w-3 h-3" />;
                             } else {
-                                return <i class={`${getLanguageIcon(props.language, props.fileName)} w-3 h-3 text-xs`} />;
+                                return <i class={`${getLanguageIcon(props.language, props.fileName, props.initialContent)} w-3 h-3 text-xs`} />;
                             }
                         })()}
-                        <span>{props.fileName || "untitled"}</span>
+                        <span class="font-medium">{props.fileName || "untitled"}</span>
                     </div>
                 </div>
             </div>
 
             <div
                 ref={editorContainer}
-                style="flex: 1; width: 100%; border-radius: 8px; overflow: hidden;"
+                style="flex: 1; width: 100%; border-radius: 0px; overflow: hidden;"
             ></div>
         </div>
     );

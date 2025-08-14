@@ -1,6 +1,6 @@
 import { createSignal, For } from "solid-js";
 import {  X, FileText, Replace } from "lucide-solid";
-import chromeIPC from "../../data/chromeipc";
+import chromeIPC from "../../core/chromeipc";
 
 interface SearchResult {
     file: string;

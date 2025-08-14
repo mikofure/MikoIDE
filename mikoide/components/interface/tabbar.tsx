@@ -75,6 +75,7 @@ export interface Tab {
   language: string | 'auto' | 'plaintext';
   isDirty: boolean;
   icon?: string;
+  filePath?: string;
 }
 
 interface TabBarProps {
@@ -90,7 +91,7 @@ export default function TabBar(props: TabBarProps) {
   return (
     <div class="flex items-center bg-[#121212] border-b border-neutral-800 px-1 select-none">
       {/* Tabs */}
-      <div class="flex flex-1 overflow-x-auto scrollbar-hide space-x-0">
+      <div class="flex flex-1 overflow-x-auto scrollbar-hide space-x-1">
         <For each={props.tabs}>
           {(tab) => {
             // Determine display language and icon based on file type

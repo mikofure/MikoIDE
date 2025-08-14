@@ -8,7 +8,7 @@ import StatusBar from "../components/statusbar";
 import TabBar, { type Tab } from "../components/interface/tabbar";
 import Capture from "../components/interface/capture";
 import Welcome from "../components/interface/pages/welcome";
-import chromeIPC from "../data/chromeipc";
+import chromeIPC from "../core/chromeipc";
 import * as monaco from "monaco-editor";
 import { I18nProvider } from "../i18n";
 import { DialogProvider } from "../components/dialog";
@@ -21,7 +21,7 @@ import "@fontsource/sarabun/400.css";
 function App() {
   const [sidebarWidth, setSidebarWidth] = createSignal(300);
   const [rightPanelWidth, setRightPanelWidth] = createSignal(300);
-  const [bottomPanelHeight, setBottomPanelHeight] = createSignal(200);
+  const [bottomPanelHeight, setBottomPanelHeight] = createSignal(500);
   const [words, setWords] = createSignal(0);
   const [chars, setChars] = createSignal(0);
   const [line, setLine] = createSignal(1);
@@ -37,7 +37,7 @@ function App() {
   const [panelStates, setPanelStates] = createSignal({
     left: true,
     right: false,
-    bottom: false,
+    bottom: true,
     grid: false
   });
 
@@ -109,7 +109,8 @@ function App() {
     }
   };
 
-  const handleNewTab = async () => {
+  // Handle new file creation (Ctrl+N) - creates a file in both web and CEF
+  const handleNewFile = async () => {
     try {
       const response = await chromeIPC.newFile();
       if (response.success) {
@@ -144,6 +145,23 @@ function App() {
       setTabs([...currentTabs, newTab]);
       setActiveTabId(newId);
     }
+  };
+
+  // Handle new tab creation (Ctrl+T) - creates a tab locally
+  const handleNewTab = () => {
+    const newId = Date.now().toString();
+    const newTab: Tab = {
+      id: newId,
+      name: "untitled",
+      content: "",
+      language: "plaintext",
+      isDirty: false
+    };
+
+    // Remove welcome tab if it exists and add new tab
+    const currentTabs = tabs().filter(tab => tab.id !== "welcome");
+    setTabs([...currentTabs, newTab]);
+    setActiveTabId(newId);
   };
 
   const handleOpenFolder = () => {
@@ -337,6 +355,7 @@ function App() {
     // Make editor action handler available globally
     (window as any).handleEditorMenuAction = handleEditorMenuAction;
     (window as any).handleNewTab = handleNewTab;
+    (window as any).handleNewFile = handleNewFile;
     (window as any).handleOpenFile = handleOpenFile;
     (window as any).handleSaveFile = handleSaveFileWeb;
     
@@ -344,6 +363,7 @@ function App() {
     return () => {
       delete (window as any).handleEditorMenuAction;
       delete (window as any).handleNewTab;
+      delete (window as any).handleNewFile;
       delete (window as any).handleOpenFile;
       delete (window as any).handleSaveFile;
     };
@@ -396,7 +416,7 @@ function App() {
         handleTabClose(activeTabId());
         break;
       case 'file.new':
-        await handleNewTab();
+        await handleNewFile();
         break;
       default:
         console.log(`Unhandled menu action: ${action}`);
@@ -495,7 +515,7 @@ function App() {
                 <div class="flex-1 min-h-0">
                   {activeTab()?.language === "welcome" ? (
                     <Welcome
-                      onNewFile={handleNewTab}
+                      onNewFile={handleNewFile}
                       onOpenFolder={handleOpenFolder}
                     />
                   ) : (
@@ -505,6 +525,7 @@ function App() {
                       initialContent={activeTab()?.content || ""}
                       language={activeTab()?.language || "typescript"}
                       fileName={activeTab()?.name || "untitled"}
+                      filePath={activeTab()?.filePath}
                       onContentChange={handleContentChange}
                       onWordCountChange={(w, c) => {
                         setWords(w);
@@ -534,7 +555,7 @@ function App() {
                       onMouseDown={handleBottomPanelResizeStart}
                       style={{ "user-select": "none" }}
                     />
-                    <div style={{ height: `${bottomPanelHeight()}px` }} class="rounded-md border border-neutral-800 overflow-hidden">
+                    <div style={{ height: `${bottomPanelHeight()}px` }} class="overflow-hidden">
                       <BottomPanel height={bottomPanelHeight()} onResize={setBottomPanelHeight} />
                     </div>
                   </div>

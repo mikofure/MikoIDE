@@ -1,9 +1,9 @@
 import { createSignal, onMount, onCleanup } from "solid-js";
 import MenuBar from "./menubar"; // 👈 import
-import CommandPalette from "./cmdpalette";
+import CommandPalette from "./quickacess/cmdpalette";
 import LanguageSwitcher from "./interface/languageswitcher";
 import { Search, PanelLeft, PanelBottom, PanelRight, LayoutGrid, Aperture, ChevronDown, Settings, User, LogOut, Github, Monitor } from "lucide-solid";
-import chromeIPC from "../data/chromeipc";
+import chromeIPC from "../core/chromeipc";
 import microsoftIcon from "../assets/images/brand/microsoft.svg";
 import googleIcon from "../assets/images/brand/google.svg";
 
@@ -117,12 +117,12 @@ function TitleBar(props: TitleBarProps) {
 
     return (
         <div class="fixed w-screen flex items-center text-white select-none z-[999] h-[40px] px-2" style={{ "-webkit-app-region": "drag" }}>
-            {/* ซ้าย */}
+            {/* Left */}
             <div class="flex items-center" style={{ "-webkit-app-region": "no-drag" }}>
                 <MenuBar />
             </div>
 
-            {/* กลาง (search button) */}
+            {/* Center (search button) */}
             <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex" style={{ "-webkit-app-region": "no-drag" }}>
                 <p class="text-white text-xs font-semibold">MikoIDE</p>
                 <p class="text-xs opacity-55">/welcome</p>
@@ -138,7 +138,7 @@ function TitleBar(props: TitleBarProps) {
                 editorInstance={props.editorInstance}
             />
 
-            {/* ขวา */}
+            {/* Right */}
             <div class="flex gap-1 ml-auto h-full">
                 {/* cmdpalette */}
                 <button

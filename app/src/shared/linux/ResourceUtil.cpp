@@ -1,5 +1,6 @@
 #include "shared/util/ResourceUtil.hpp"
 #include "shared/AppConfig.hpp"
+#include "shared/util/BinaryResourceProvider.hpp"
 
 #include <libgen.h>
 #include <linux/limits.h>
@@ -31,6 +32,12 @@ bool ResourceUtil::getResourceDir(std::string &dir)
     dir = std::string(path) + "/" + ASSETS_PATH;
 
     return true;
+}
+
+CefResourceManager::Provider *ResourceUtil::createBinaryResourceProvider(const std::string &rootURL)
+{
+    // only URLs beginning with root URL will be handled by this provider
+    return new BinaryResourceProvider(rootURL);
 }
 
 } // namespace util

@@ -6,6 +6,22 @@ import { resolve } from 'path'
 
 export default defineConfig({
   plugins: [solid(), tailwindcss(), viteSingleFile()],
+  
+  define: {
+    global: 'globalThis'
+  },
+  
+  resolve: {
+    alias: {
+      buffer: 'buffer',
+      process: 'process/browser',
+      util: 'util'
+    }
+  },
+  
+  optimizeDeps: {
+    include: ['buffer', 'process']
+  },
   assetsInclude: ['**/*.woff2', '**/*.woff', '**/*.ttf', '**/*.otf'],
   
   build: {

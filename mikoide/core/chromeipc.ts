@@ -27,7 +27,10 @@ type MenuActionType =
     | 'view.explorer' | 'view.fullScreen' | 'view.zoomIn' | 'view.zoomOut'
     | 'window.minimize' | 'window.maximize' | 'window.close' | 'window.restore' | 'window.new'
     | 'tools.terminal' | 'tools.settings' | 'help.about'
-    | 'git.clone' | 'git.init' | 'git.commit' | 'git.push' | 'git.pull';
+    | 'git.clone' | 'git.init' | 'git.commit' | 'git.push' | 'git.pull' | 'git.fetch'
+    | 'git.status' | 'git.add' | 'git.remove' | 'git.reset' | 'git.log' | 'git.show'
+    | 'git.diff' | 'git.branch' | 'git.checkout' | 'git.merge' | 'git.rebase'
+    | 'git.stash' | 'git.tag' | 'git.remote';
 
 // File operation types
 type FileOperationType = 
@@ -42,6 +45,66 @@ type WindowControlType = 'minimize' | 'maximize' | 'restore' | 'close';
 
 // Panel control types
 type PanelControlType = 'left' | 'bottom' | 'right' | 'grid';
+
+// Git operation types
+type GitOperationType = 
+    | 'init' | 'clone' | 'add' | 'remove' | 'commit' | 'status' | 'fetch' | 'pull' | 'push'
+    | 'log' | 'show' | 'diff' | 'reset' | 'listBranches' | 'createBranch' | 'checkout'
+    | 'deleteBranch' | 'merge' | 'rebase' | 'cherryPick' | 'revert' | 'createTag'
+    | 'listTags' | 'deleteTag' | 'listRemotes' | 'addRemote' | 'removeRemote'
+    | 'renameRemote' | 'setRemoteUrl' | 'stash' | 'stashApply' | 'stashPop'
+    | 'stashList' | 'stashDrop' | 'isRepository' | 'getRepositoryInfo' | 'clean' | 'archive';
+
+// Git credentials interface
+interface GitCredentials {
+    username?: string;
+    password?: string;
+    privateKey?: string;
+    publicKey?: string;
+    passphrase?: string;
+}
+
+// Git clone options interface
+interface GitCloneOptions {
+    branch?: string;
+    depth?: number;
+    credentials?: GitCredentials;
+}
+
+// Git commit options interface
+interface GitCommitOptions {
+    author?: { name: string; email: string };
+    amend?: boolean;
+    allowEmpty?: boolean;
+}
+
+// Git status result interface
+interface GitStatusResult {
+    modified: string[];
+    added: string[];
+    deleted: string[];
+    untracked: string[];
+}
+
+// Git branch interface
+interface GitBranchInfo {
+    name: string;
+    current: boolean;
+    commit: string;
+}
+
+// Git remote interface
+interface GitRemoteInfo {
+    name: string;
+    url: string;
+}
+
+// Git merge result interface
+interface GitMergeResult {
+    success: boolean;
+    conflicts?: string[];
+    message?: string;
+}
 
 class ChromeIPC {
     private messageQueue: Map<string, (response: IPCResponse) => void> = new Map();
@@ -58,7 +121,7 @@ class ChromeIPC {
     private generateMessageId(): string {
         return `msg_${++this.messageId}_${Date.now()}`;
     }
-
+    // @ts-expect-error
     private handleBackendMessage(event: any) {
         try {
             const response: IPCResponse = JSON.parse(event.data);
@@ -199,6 +262,9 @@ class ChromeIPC {
         
         // Check if this is a CEF-only file operation
         const cefOnlyFileActions = ['file.open_folder'];
+        
+        // Check if this is a CEF-only tool operation
+        const cefOnlyToolActions = ['tools.terminal'];
 
         if (editorActions.includes(action)) {
             // Handle editor actions locally
@@ -236,18 +302,8 @@ class ChromeIPC {
             try {
                 switch (action) {
                     case 'file.new':
-                        // In web mode, create a new tab with empty content
-                        if (!this.isAvailable()) {
-                            if (typeof window !== 'undefined' && (window as any).handleNewTab) {
-                                (window as any).handleNewTab();
-                                return {
-                                    id: this.generateMessageId(),
-                                    success: true,
-                                    data: { action, handled: 'web' },
-                                    timestamp: Date.now()
-                                };
-                            }
-                        }
+                        // Redirect to newFile method to avoid circular dependency
+                        return this.newFile();
                         break;
                     case 'file.open':
                         // In web mode, use file input dialog
@@ -305,11 +361,21 @@ class ChromeIPC {
         }
 
         if (cefOnlyFileActions.includes(action) && !this.isAvailable()) {
-            // CEF-only actions in web environment
+            // CEF-only file actions in web environment
             return {
                 id: this.generateMessageId(),
                 success: false,
                 error: `Action '${action}' is only available in desktop mode`,
+                timestamp: Date.now()
+            };
+        }
+        
+        if (cefOnlyToolActions.includes(action) && !this.isAvailable()) {
+            // CEF-only tool actions in web environment
+            return {
+                id: this.generateMessageId(),
+                success: false,
+                error: `Terminal operations are only available in desktop mode (CEF). Web browser environment is not supported.`,
                 timestamp: Date.now()
             };
         }
@@ -350,7 +416,18 @@ class ChromeIPC {
     }
 
     async newFile(): Promise<IPCResponse> {
-        return this.executeMenuAction('file.new');
+        // Direct implementation to avoid circular dependency with handleNewTab
+        if (!this.isAvailable()) {
+            // In web mode, return success and let the caller handle tab creation
+            return {
+                id: this.generateMessageId(),
+                success: true,
+                data: { action: 'file.new', handled: 'web' },
+                timestamp: Date.now()
+            };
+        }
+        // In CEF mode, send to backend
+        return this.sendMessage('menu_action', { action: 'file.new' });
     }
 
     // Enhanced file operations
@@ -425,12 +502,28 @@ class ChromeIPC {
         return this.sendMessage('search', { action: 'in_file', query, filePath });
     }
 
-    // Terminal operations
+    // Terminal operations (CEF only - not supported in web browsers)
     async openTerminal(): Promise<IPCResponse> {
+        if (!this.isAvailable()) {
+            return {
+                id: this.generateMessageId(),
+                success: false,
+                error: 'Terminal operations are only available in desktop mode (CEF). Web browser environment is not supported.',
+                timestamp: Date.now()
+            };
+        }
         return this.sendMessage('terminal', { action: 'open' });
     }
 
     async executeCommand(command: string): Promise<IPCResponse> {
+        if (!this.isAvailable()) {
+            return {
+                id: this.generateMessageId(),
+                success: false,
+                error: 'Terminal command execution is only available in desktop mode (CEF). Web browser environment is not supported.',
+                timestamp: Date.now()
+            };
+        }
         return this.sendMessage('terminal', { action: 'execute', command });
     }
 
@@ -441,6 +534,179 @@ class ChromeIPC {
 
     async setSetting(key: string, value: any): Promise<IPCResponse> {
         return this.sendMessage('settings', { action: 'set', key, value });
+    }
+
+    // Git operations
+    async sendGitOperation(operation: GitOperationType, params?: any): Promise<IPCResponse> {
+        return this.sendMessage('git_operation', { operation, params });
+    }
+
+    // Git repository operations
+    async gitInit(dir?: string, options?: { bare?: boolean; initialBranch?: string }): Promise<IPCResponse> {
+        return this.sendGitOperation('init', { dir, ...options });
+    }
+
+    async gitClone(url: string, dir?: string, options?: GitCloneOptions): Promise<IPCResponse> {
+        return this.sendGitOperation('clone', { url, dir, ...options });
+    }
+
+    async gitAdd(filepath: string | string[], dir?: string): Promise<IPCResponse> {
+        const files = Array.isArray(filepath) ? filepath : [filepath];
+        return this.sendGitOperation('add', { files, dir });
+    }
+
+    async gitRemove(filepath: string | string[], dir?: string): Promise<IPCResponse> {
+        const files = Array.isArray(filepath) ? filepath : [filepath];
+        return this.sendGitOperation('remove', { files, dir });
+    }
+
+    async gitCommit(message: string, dir?: string, options?: GitCommitOptions): Promise<IPCResponse> {
+        return this.sendGitOperation('commit', { message, dir, ...options });
+    }
+
+    async gitStatus(dir?: string, options?: { includeUntracked?: boolean; includeIgnored?: boolean }): Promise<IPCResponse> {
+        return this.sendGitOperation('status', { dir, ...options });
+    }
+
+    async gitFetch(dir?: string, options?: { remote?: string; ref?: string; credentials?: GitCredentials; prune?: boolean }): Promise<IPCResponse> {
+        return this.sendGitOperation('fetch', { dir, ...options });
+    }
+
+    async gitPull(dir?: string, options?: { remote?: string; branch?: string; credentials?: GitCredentials; rebase?: boolean }): Promise<IPCResponse> {
+        return this.sendGitOperation('pull', { dir, ...options });
+    }
+
+    async gitPush(dir?: string, options?: { remote?: string; ref?: string; credentials?: GitCredentials; force?: boolean; setUpstream?: boolean }): Promise<IPCResponse> {
+        return this.sendGitOperation('push', { dir, ...options });
+    }
+
+    async gitLog(dir?: string, options?: { ref?: string; maxCount?: number; skip?: number; since?: Date; until?: Date; author?: string; grep?: string }): Promise<IPCResponse> {
+        const params = { dir, ...options };
+          //@ts-expect-error
+        if (params.since) params.since = params.since.toISOString();
+          //@ts-expect-error
+        if (params.until) params.until = params.until.toISOString();
+        return this.sendGitOperation('log', params);
+    }
+
+    async gitShow(commit: string, dir?: string): Promise<IPCResponse> {
+        return this.sendGitOperation('show', { commit, dir });
+    }
+
+    async gitDiff(dir?: string, options?: { from?: string; to?: string; cached?: boolean; nameOnly?: boolean; unified?: number }): Promise<IPCResponse> {
+        return this.sendGitOperation('diff', { dir, ...options });
+    }
+
+    async gitReset(filepath?: string | string[], dir?: string, options?: { mode?: 'soft' | 'mixed' | 'hard'; commit?: string }): Promise<IPCResponse> {
+        const files = filepath ? (Array.isArray(filepath) ? filepath : [filepath]) : undefined;
+        return this.sendGitOperation('reset', { files, dir, ...options });
+    }
+
+    // Git branch operations
+    async gitListBranches(dir?: string, options?: { remote?: boolean; all?: boolean }): Promise<IPCResponse> {
+        return this.sendGitOperation('listBranches', { dir, ...options });
+    }
+
+    async gitCreateBranch(name: string, dir?: string, options?: { checkout?: boolean; startPoint?: string; force?: boolean }): Promise<IPCResponse> {
+        return this.sendGitOperation('createBranch', { name, dir, ...options });
+    }
+
+    async gitCheckout(ref: string, dir?: string, options?: { force?: boolean; createBranch?: boolean; track?: boolean }): Promise<IPCResponse> {
+        return this.sendGitOperation('checkout', { ref, dir, ...options });
+    }
+
+    async gitDeleteBranch(name: string, dir?: string, options?: { force?: boolean; remote?: boolean }): Promise<IPCResponse> {
+        return this.sendGitOperation('deleteBranch', { name, dir, ...options });
+    }
+
+    async gitMerge(branch: string, dir?: string, options?: { noFastForward?: boolean; squash?: boolean; strategy?: string }): Promise<IPCResponse> {
+        return this.sendGitOperation('merge', { branch, dir, ...options });
+    }
+
+    async gitRebase(upstream: string, dir?: string, options?: { onto?: string; interactive?: boolean; preserveMerges?: boolean }): Promise<IPCResponse> {
+        return this.sendGitOperation('rebase', { upstream, dir, ...options });
+    }
+
+    async gitCherryPick(commits: string | string[], dir?: string, options?: { noCommit?: boolean; signoff?: boolean }): Promise<IPCResponse> {
+        const commitList = Array.isArray(commits) ? commits : [commits];
+        return this.sendGitOperation('cherryPick', { commits: commitList, dir, ...options });
+    }
+
+    async gitRevert(commits: string | string[], dir?: string, options?: { noCommit?: boolean; signoff?: boolean }): Promise<IPCResponse> {
+        const commitList = Array.isArray(commits) ? commits : [commits];
+        return this.sendGitOperation('revert', { commits: commitList, dir, ...options });
+    }
+
+    // Git tag operations
+    async gitCreateTag(name: string, dir?: string, options?: { commit?: string; message?: string; force?: boolean }): Promise<IPCResponse> {
+        return this.sendGitOperation('createTag', { name, dir, ...options });
+    }
+
+    async gitListTags(dir?: string, options?: { pattern?: string; sort?: string }): Promise<IPCResponse> {
+        return this.sendGitOperation('listTags', { dir, ...options });
+    }
+
+    async gitDeleteTag(name: string, dir?: string, options?: { remote?: boolean }): Promise<IPCResponse> {
+        return this.sendGitOperation('deleteTag', { name, dir, ...options });
+    }
+
+    // Git remote operations
+    async gitListRemotes(dir?: string, options?: { verbose?: boolean }): Promise<IPCResponse> {
+        return this.sendGitOperation('listRemotes', { dir, ...options });
+    }
+
+    async gitAddRemote(name: string, url: string, dir?: string, options?: { fetch?: boolean }): Promise<IPCResponse> {
+        return this.sendGitOperation('addRemote', { name, url, dir, ...options });
+    }
+
+    async gitRemoveRemote(name: string, dir?: string): Promise<IPCResponse> {
+        return this.sendGitOperation('removeRemote', { name, dir });
+    }
+
+    async gitRenameRemote(oldName: string, newName: string, dir?: string): Promise<IPCResponse> {
+        return this.sendGitOperation('renameRemote', { oldName, newName, dir });
+    }
+
+    async gitSetRemoteUrl(name: string, url: string, dir?: string): Promise<IPCResponse> {
+        return this.sendGitOperation('setRemoteUrl', { name, url, dir });
+    }
+
+    // Git stash operations
+    async gitStash(dir?: string, options?: { message?: string; includeUntracked?: boolean; keepIndex?: boolean }): Promise<IPCResponse> {
+        return this.sendGitOperation('stash', { dir, ...options });
+    }
+
+    async gitStashApply(stashId?: string, dir?: string, options?: { index?: boolean }): Promise<IPCResponse> {
+        return this.sendGitOperation('stashApply', { stashId, dir, ...options });
+    }
+
+    async gitStashPop(stashId?: string, dir?: string, options?: { index?: boolean }): Promise<IPCResponse> {
+        return this.sendGitOperation('stashPop', { stashId, dir, ...options });
+    }
+
+    async gitStashList(dir?: string): Promise<IPCResponse> {
+        return this.sendGitOperation('stashList', { dir });
+    }
+
+    async gitStashDrop(stashId: string, dir?: string): Promise<IPCResponse> {
+        return this.sendGitOperation('stashDrop', { stashId, dir });
+    }
+
+    // Git utility operations
+    async gitIsRepository(dir?: string): Promise<IPCResponse> {
+        return this.sendGitOperation('isRepository', { dir });
+    }
+
+    async gitGetRepositoryInfo(dir?: string): Promise<IPCResponse> {
+        return this.sendGitOperation('getRepositoryInfo', { dir });
+    }
+
+    async gitClean(dir?: string, options?: { dryRun?: boolean; force?: boolean; directories?: boolean; ignored?: boolean }): Promise<IPCResponse> {
+        return this.sendGitOperation('clean', { dir, ...options });
+    }
+
+    async gitArchive(outputPath: string, dir?: string, options?: { ref?: string; format?: 'zip' | 'tar' | 'tar.gz'; prefix?: string }): Promise<IPCResponse> {
+        return this.sendGitOperation('archive', { outputPath, dir, ...options });
     }
 
     // Utility method to check if IPC is available
@@ -462,7 +728,15 @@ export {
     type FileOperationType,
     type WindowOperationType,
     type WindowControlType,
-    type PanelControlType
+    type PanelControlType,
+    type GitOperationType,
+    type GitCredentials,
+    type GitCloneOptions,
+    type GitCommitOptions,
+    type GitStatusResult,
+    type GitBranchInfo,
+    type GitRemoteInfo,
+    type GitMergeResult
 };
 
 export default chromeIPC;

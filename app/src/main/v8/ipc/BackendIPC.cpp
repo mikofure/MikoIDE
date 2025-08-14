@@ -24,7 +24,7 @@ namespace v8
 namespace ipc
 {
 
-BackendIPC::BackendIPC()
+BackendIPC::BackendIPC() : gitHandler(std::make_unique<miko::gitcontrol::GitIPCHandler>())
 {
     // Initialize IPC handler
 }
@@ -55,6 +55,10 @@ bool BackendIPC::Execute(const CefString &name, CefRefPtr<CefV8Value> object, co
     else if (name == "showMessageBox")
     {
         return handleShowMessageBox(arguments, retval, exception);
+    }
+    else if (name == "gitOperation")
+    {
+        return handleIPCMessage(arguments, retval, exception);
     }
 
     return false;
@@ -105,6 +109,10 @@ bool BackendIPC::handleIPCMessage(const CefV8ValueList &arguments, CefRefPtr<Cef
     else if (messageType == "app_state")
     {
         return handleAppStateIPC(document, retval, exception);
+    }
+    else if (messageType == "git_operation")
+    {
+        return handleGitOperationIPC(document, retval, exception);
     }
     
     // Create success response for unknown message types
@@ -622,6 +630,146 @@ bool BackendIPC::handleFileExistsIPC(const rapidjson::Value &payload, CefRefPtr<
     retval->SetValue("exists", CefV8Value::CreateBool(exists), V8_PROPERTY_ATTRIBUTE_NONE);
     
     return true;
+}
+
+bool BackendIPC::handleGitOperationIPC(const rapidjson::Document &document, CefRefPtr<CefV8Value> &retval, CefString &exception)
+{
+    if (!document.HasMember("payload") || !document["payload"].IsObject())
+    {
+        exception = "Git operation message must have a 'payload' object";
+        return true;
+    }
+    
+    const rapidjson::Value &payload = document["payload"];
+    
+    if (!payload.HasMember("operation") || !payload["operation"].IsString())
+    {
+        exception = "Git operation payload must have an 'operation' field";
+        return true;
+    }
+    
+    std::string operation = payload["operation"].GetString();
+    std::string requestId = document.HasMember("requestId") && document["requestId"].IsString() 
+                           ? document["requestId"].GetString() : "";
+    
+    // Convert payload to parameters map
+    std::map<std::string, std::any> params = convertV8ToParamsMap(payload);
+    
+    // Create Git IPC message
+    miko::gitcontrol::GitIPCMessage gitMessage;
+    gitMessage.operation = operation;
+    gitMessage.params = params;
+    gitMessage.requestId = requestId;
+    
+    // Handle the Git operation asynchronously
+    gitHandler->handleMessage(gitMessage, [&retval](const miko::gitcontrol::GitIPCResponse& response) {
+        // This callback will be called when the Git operation completes
+        // For now, we'll handle it synchronously
+    });
+    
+    // For synchronous handling, we'll create a simple response
+    // In a real implementation, this should be handled asynchronously
+    miko::gitcontrol::GitIPCResponse response;
+    response.success = true;
+    response.requestId = requestId;
+    response.data["message"] = "Git operation " + operation + " initiated";
+    
+    retval = convertGitResponseToV8(response);
+    return true;
+}
+
+CefRefPtr<CefV8Value> BackendIPC::convertGitResponseToV8(const miko::gitcontrol::GitIPCResponse &response)
+{
+    CefRefPtr<CefV8Value> result = CefV8Value::CreateObject(nullptr, nullptr);
+    result->SetValue("success", CefV8Value::CreateBool(response.success), V8_PROPERTY_ATTRIBUTE_NONE);
+    result->SetValue("requestId", CefV8Value::CreateString(response.requestId), V8_PROPERTY_ATTRIBUTE_NONE);
+    
+    if (!response.success)
+    {
+        result->SetValue("error", CefV8Value::CreateString(response.error), V8_PROPERTY_ATTRIBUTE_NONE);
+    }
+    else
+    {
+        // Convert data map to V8 object
+        CefRefPtr<CefV8Value> dataObj = CefV8Value::CreateObject(nullptr, nullptr);
+        for (const auto& [key, value] : response.data)
+        {
+            try {
+                // Handle different types in std::any
+                if (value.type() == typeid(std::string))
+                {
+                    dataObj->SetValue(key, CefV8Value::CreateString(std::any_cast<std::string>(value)), V8_PROPERTY_ATTRIBUTE_NONE);
+                }
+                else if (value.type() == typeid(bool))
+                {
+                    dataObj->SetValue(key, CefV8Value::CreateBool(std::any_cast<bool>(value)), V8_PROPERTY_ATTRIBUTE_NONE);
+                }
+                else if (value.type() == typeid(int))
+                {
+                    dataObj->SetValue(key, CefV8Value::CreateInt(std::any_cast<int>(value)), V8_PROPERTY_ATTRIBUTE_NONE);
+                }
+                else if (value.type() == typeid(double))
+                {
+                    dataObj->SetValue(key, CefV8Value::CreateDouble(std::any_cast<double>(value)), V8_PROPERTY_ATTRIBUTE_NONE);
+                }
+                // Add more type conversions as needed
+            }
+            catch (const std::bad_any_cast&)
+            {
+                // Skip invalid conversions
+            }
+        }
+        result->SetValue("data", dataObj, V8_PROPERTY_ATTRIBUTE_NONE);
+    }
+    
+    return result;
+}
+
+std::map<std::string, std::any> BackendIPC::convertV8ToParamsMap(const rapidjson::Value &payload)
+{
+    std::map<std::string, std::any> params;
+    
+    for (auto it = payload.MemberBegin(); it != payload.MemberEnd(); ++it)
+    {
+        const std::string key = it->name.GetString();
+        const rapidjson::Value& value = it->value;
+        
+        if (value.IsString())
+        {
+            params[key] = std::string(value.GetString());
+        }
+        else if (value.IsBool())
+        {
+            params[key] = value.GetBool();
+        }
+        else if (value.IsInt())
+        {
+            params[key] = value.GetInt();
+        }
+        else if (value.IsDouble())
+        {
+            params[key] = value.GetDouble();
+        }
+        else if (value.IsArray())
+        {
+            std::vector<std::string> stringArray;
+            for (rapidjson::SizeType i = 0; i < value.Size(); i++)
+            {
+                if (value[i].IsString())
+                {
+                    stringArray.push_back(value[i].GetString());
+                }
+            }
+            params[key] = stringArray;
+        }
+        else if (value.IsObject())
+        {
+            // Recursively convert nested objects
+            params[key] = convertV8ToParamsMap(value);
+        }
+    }
+    
+    return params;
 }
 
 CefRefPtr<CefV8Value> BackendIPC::createSuccessResponse(const std::string &message)
