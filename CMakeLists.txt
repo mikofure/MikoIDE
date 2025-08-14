@@ -14,7 +14,7 @@ project("MikoIDE")
 
 # CEF configuration
 set_property(GLOBAL PROPERTY OS_FOLDERS ON)
-set(CEF_VERSION "120.2.7+g4bc6a59+chromium-120.0.6099.234")
+set(CEF_VERSION "139.0.17+g6c347eb+chromium-139.0.7258.31")
 
 # Determine the platform
 if(NOT DEFINED CEF_PLATFORM)
