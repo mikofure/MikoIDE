@@ -2,3 +2,4 @@ build
 app/webapp.cpp
 **/build/**
 node_modules
+vscode

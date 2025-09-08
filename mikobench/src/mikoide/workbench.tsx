@@ -1,13 +1,13 @@
 import type { Component } from 'solid-js';
 import { createSignal, createEffect, onMount, onCleanup } from 'solid-js';
-import { MonacoEditor } from '../editor';
-import { TabBar } from '../editor';
+import { TabBar, EnhancedEditor } from '../editor';
 import * as monaco from 'monaco-editor';
 import { useWorkbench, type FileTab } from '../contexts/WorkbenchContext';
 
 const Workbench: Component = () => {
   const { tabs, setTabs, activeTab, activeTabId, setActiveTabId } = useWorkbench();
   const [editorInstance, setEditorInstance] = createSignal<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const [currentViewMode, setCurrentViewMode] = createSignal<'code' | 'diff' | 'markdown' | 'split-horizontal' | 'split-vertical' | 'markdown-split'>('code');
 
   const handleTabSelect = (tabId: string) => {
     setActiveTabId(tabId);
@@ -39,6 +39,17 @@ const Workbench: Component = () => {
         : tab
     );
     setTabs(updatedTabs);
+  };
+
+  const handleViewModeChange = (mode: 'code' | 'diff' | 'markdown' | 'split-horizontal' | 'split-vertical' | 'markdown-split') => {
+    setCurrentViewMode(mode);
+  };
+
+  const isMarkdownFile = () => {
+    const current = activeTab();
+    if (!current) return false;
+    const fileName = current.title.toLowerCase();
+    return fileName.endsWith('.md') || fileName.endsWith('.markdown') || current.language === 'markdown';
   };
 
   const handleEditorMount = (editor: monaco.editor.IStandaloneCodeEditor) => {
@@ -230,17 +241,26 @@ const Workbench: Component = () => {
         onTabSelect={handleTabSelect}
         onTabClose={handleTabClose}
         onNewTab={createNewFile}
+        currentViewMode={currentViewMode()}
+        onViewModeChange={handleViewModeChange}
+        allowedViewModes={['code', 'diff', 'markdown', 'markdown-split', 'split-horizontal', 'split-vertical']}
+        isMarkdownFile={isMarkdownFile()}
       />
       
       {/* Editor Area */}
       <div ref={editorContainerRef} class="flex-1 relative overflow-hidden">
         {activeTab() ? (
-          <MonacoEditor
+          <EnhancedEditor
             value={activeTab()!.content}
             language={activeTab()!.language}
             theme="vs-code-dark"
             onChange={handleEditorChange}
-            onMount={handleEditorMount}
+            onEditorMount={handleEditorMount}
+            fileName={activeTab()!.title}
+            defaultViewMode={currentViewMode()}
+            allowedViewModes={['code', 'diff', 'markdown', 'markdown-split', 'split-horizontal', 'split-vertical']}
+            showToolbar={false}
+            onViewModeChange={handleViewModeChange}
             options={{
               fontSize: 14,
               lineNumbers: 'on',
