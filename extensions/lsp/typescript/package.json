@@ -1,0 +1,34 @@
+{
+  "name": "miko-typescript-lsp",
+  "version": "1.0.0",
+  "description": "TypeScript Language Server Protocol extension for Miko IDE",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "bun run index.js",
+    "dev": "bun --watch index.js",
+    "build": "bun build index.js --outdir=dist"
+  },
+  "dependencies": {
+    "typescript": "^5.3.3",
+    "typescript-language-server": "^4.3.3",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.11",
+    "vscode-uri": "^3.0.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "bun-types": "latest"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "typescript",
+    "lsp",
+    "language-server",
+    "miko-ide"
+  ],
+  "author": "Miko IDE",
+  "license": "MIT"
+}

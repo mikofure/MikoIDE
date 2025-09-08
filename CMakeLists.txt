@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.19)
-project(MikoView)
+project(MikoIDE)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -228,16 +228,6 @@ if(OS_WINDOWS)
         $<TARGET_FILE_DIR:${PROJECT_NAME}>
         COMMENT "Copying SDL3 DLL to output directory"
     )
-    
-    # Copy React build assets for release builds
-    if(CMAKE_BUILD_TYPE STREQUAL "Release" OR "$<CONFIG>" STREQUAL "Release")
-        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_SOURCE_DIR}/renderer/dist"
-            "${CEF_TARGET_OUT_DIR}/assets"
-            COMMENT "Copying React build assets to release directory"
-        )
-    endif()
 endif()
 
 # Set startup project for Visual Studio

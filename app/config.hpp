@@ -7,7 +7,7 @@
 #include "webapp.hpp"
 
 // Application configuration constants
-#define APP_NAME "MikoView"
+#define APP_NAME "MikoIDE"
 #define APP_VERSION "1.0.0"
 #define APP_AUTHOR "Developer"
 

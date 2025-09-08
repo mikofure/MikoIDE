@@ -1,0 +1,29 @@
+EXPORTS
+; LSP Server lifecycle functions
+lsp_create_server
+lsp_destroy_server
+lsp_initialize
+lsp_shutdown
+
+; Document operations
+lsp_did_open
+lsp_did_change
+lsp_did_save
+lsp_did_close
+
+; Language features
+lsp_completion
+lsp_hover
+lsp_definition
+lsp_references
+lsp_diagnostics
+
+; Formatting
+lsp_format_document
+lsp_format_range
+
+; Message processing
+lsp_process_message
+
+; Memory management
+lsp_free_string

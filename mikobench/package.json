@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.13",
+    "@vscode/codicons": "^0.0.40",
     "developer-icons": "^6.0.4",
     "lucide-solid": "^0.542.0",
     "monaco-editor": "^0.52.2",

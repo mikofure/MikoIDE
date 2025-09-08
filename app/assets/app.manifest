@@ -3,10 +3,10 @@
   <assemblyIdentity
     version="1.0.0.0"
     processorArchitecture="*"
-    name="MikoView"
+    name="MikoIDE"
     type="win32"
   />
-  <description>MikoView - C++ Native Webview with CEF</description>
+  <description>MikoIDE - C++ Native Webview with CEF</description>
   
   <!-- DPI Awareness -->
   <application xmlns="urn:schemas-microsoft-com:asm.v3">

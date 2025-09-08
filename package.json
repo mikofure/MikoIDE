@@ -1,0 +1,24 @@
+{
+  "name": "mikoide",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "mikobench"
+  ],
+  "scripts": {
+    "dev": "bun --cwd mikobench run dev",
+    "build": "bun --cwd mikobench run build",
+    "preview": "bun --cwd mikobench run preview",
+    "build:cmake": "bun run tools/build.ts",
+    "clean:cmake": "bun run tools/clean.ts",
+    "buildtobin": "bun run tools/utils/buildtobin.ts",
+    "iconconvert": "bun run tools/utils/iconconvert.ts"
+  },
+  "dependencies": {
+    "@types/node": "latest"
+  },
+  "devDependencies": {
+    "bun-types": "latest",
+    "typescript": "latest"
+  }
+}

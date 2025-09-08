@@ -2,6 +2,7 @@
 // #define WIN32_LEAN_AND_MEAN
 // #define NOMINMAX
 #include <windows.h>
+#include <shellapi.h>  // Add this for Shell_NotifyIcon
 
 // Undefine Windows macros that conflict with CEF
 #ifdef GetFirstChild
@@ -43,37 +44,107 @@ CefRefPtr<CefWindow> g_cef_window;
 CefRefPtr<CefBrowserView> g_browser_view;
 bool g_running = true;
 
-// Helper function to load icon from Windows resource
-CefRefPtr<CefImage> LoadIconFromResource() {
-    HINSTANCE hInstance = GetModuleHandle(NULL);
-    if (!hInstance) {
-        Logger::LogMessage("Failed to get module handle");
-        return nullptr;
+// Global icon handle for reuse
+static HICON g_app_icon = NULL;
+
+// Load application icon once and cache it
+HICON LoadApplicationIcon() {
+    if (g_app_icon) {
+        return g_app_icon; // Return cached icon
     }
     
-    // Load the icon from the compiled resource
-    // Use the resource name as defined in app.rc: IDI_APPLICATION
-    HICON hIcon = LoadIcon(hInstance, L"IDI_APPLICATION");
+    HINSTANCE hInstance = GetModuleHandle(NULL);
+    if (!hInstance) {
+        Logger::LogMessage("Failed to get module handle for icon loading");
+        return NULL;
+    }
+    
+    // Try to load icon from resource (ID 101 as defined in app.rc)
+    g_app_icon = LoadIcon(hInstance, MAKEINTRESOURCE(101));
+    if (!g_app_icon) {
+        Logger::LogMessage("Failed to load application icon from resource ID 101");
+        // Fallback to system default application icon
+        g_app_icon = LoadIcon(NULL, IDI_APPLICATION);
+    }
+    
+    if (g_app_icon) {
+        Logger::LogMessage("Application icon loaded successfully");
+    } else {
+        Logger::LogMessage("Failed to load any application icon");
+    }
+    
+    return g_app_icon;
+}
+
+// Set taskbar icon with proper window class registration
+void SetPermanentTaskbarIcon(HWND hwnd) {
+    if (!hwnd) {
+        Logger::LogMessage("Invalid window handle for taskbar icon");
+        return;
+    }
+
+    HICON hIcon = LoadApplicationIcon();
     if (!hIcon) {
-        Logger::LogMessage("Failed to load icon from resource");
+        Logger::LogMessage("No icon available for taskbar");
+        return;
+    }
+    
+    // Set both large and small icons
+    SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+    SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
+    
+    // Ensure window appears in taskbar with proper extended style
+    LONG_PTR exStyle = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
+    SetWindowLongPtr(hwnd, GWL_EXSTYLE, exStyle | WS_EX_APPWINDOW);
+    
+    // Force taskbar to update the icon
+    SetWindowPos(hwnd, NULL, 0, 0, 0, 0, 
+                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+    
+    Logger::LogMessage("Permanent taskbar icon set successfully");
+}
+
+// Alternative method: Set application ID to distinguish from Chromium
+void SetApplicationUserModelID(HWND hwnd) {
+    // Load Shell32.dll dynamically to avoid dependency issues
+    HMODULE hShell32 = LoadLibrary(L"Shell32.dll");
+    if (hShell32) {
+        typedef HRESULT (WINAPI *SetCurrentProcessExplicitAppUserModelIDProc)(PCWSTR);
+        SetCurrentProcessExplicitAppUserModelIDProc SetCurrentProcessExplicitAppUserModelID = 
+            (SetCurrentProcessExplicitAppUserModelIDProc)GetProcAddress(hShell32, "SetCurrentProcessExplicitAppUserModelID");
+        
+        if (SetCurrentProcessExplicitAppUserModelID) {
+            // Set unique application ID to separate from Chromium
+            HRESULT hr = SetCurrentProcessExplicitAppUserModelID(L"SwipeIDE.Application.1.0");
+            if (SUCCEEDED(hr)) {
+                Logger::LogMessage("Application User Model ID set successfully");
+            } else {
+                Logger::LogMessage("Failed to set Application User Model ID");
+            }
+        }
+        FreeLibrary(hShell32);
+    }
+}
+
+// Convert Windows HICON to CEF image for window icon
+CefRefPtr<CefImage> ConvertIconToCefImage(HICON hIcon) {
+    if (!hIcon) {
         return nullptr;
     }
     
     // Get icon info to extract bitmap data
     ICONINFO iconInfo;
     if (!GetIconInfo(hIcon, &iconInfo)) {
-        Logger::LogMessage("Failed to get icon info");
-        DestroyIcon(hIcon);
+        Logger::LogMessage("Failed to get icon info for CEF conversion");
         return nullptr;
     }
     
     // Get bitmap info for the color bitmap
     BITMAP bmp;
     if (!GetObject(iconInfo.hbmColor, sizeof(BITMAP), &bmp)) {
-        Logger::LogMessage("Failed to get bitmap object");
+        Logger::LogMessage("Failed to get bitmap object for CEF conversion");
         DeleteObject(iconInfo.hbmColor);
         DeleteObject(iconInfo.hbmMask);
-        DestroyIcon(hIcon);
         return nullptr;
     }
     
@@ -93,12 +164,11 @@ CefRefPtr<CefImage> LoadIconFromResource() {
     
     if (!GetDIBits(hdcMem, iconInfo.hbmColor, 0, bmp.bmHeight, bitmapData.data(), 
                    (BITMAPINFO*)&bi, DIB_RGB_COLORS)) {
-        Logger::LogMessage("Failed to get DIB bits");
+        Logger::LogMessage("Failed to get DIB bits for CEF conversion");
         DeleteDC(hdcMem);
         ReleaseDC(NULL, hdc);
         DeleteObject(iconInfo.hbmColor);
         DeleteObject(iconInfo.hbmMask);
-        DestroyIcon(hIcon);
         return nullptr;
     }
     
@@ -111,7 +181,6 @@ CefRefPtr<CefImage> LoadIconFromResource() {
         ReleaseDC(NULL, hdc);
         DeleteObject(iconInfo.hbmColor);
         DeleteObject(iconInfo.hbmMask);
-        DestroyIcon(hIcon);
         return nullptr;
     }
     
@@ -120,7 +189,6 @@ CefRefPtr<CefImage> LoadIconFromResource() {
     ReleaseDC(NULL, hdc);
     DeleteObject(iconInfo.hbmColor);
     DeleteObject(iconInfo.hbmMask);
-    DestroyIcon(hIcon);
     
     return image;
 }
@@ -156,34 +224,37 @@ public:
     
     // Called when window is created - set the icon here
     void OnWindowCreated(CefRefPtr<CefWindow> window) override {
-        // Load icon from compiled Windows resource
-        CefRefPtr<CefImage> icon = LoadIconFromResource();
-        if (icon) {
-            // Set both window icon and app icon (taskbar icon)
-            window->SetWindowIcon(icon);
-            window->SetWindowAppIcon(icon);
-            Logger::LogMessage("Window icon set successfully from resource");
-        } else {
-            Logger::LogMessage("Failed to load icon from resource");
+        // Get window handle
+        HWND hwnd = window->GetWindowHandle();
+        if (!hwnd) {
+            Logger::LogMessage("Failed to get window handle in OnWindowCreated");
+            return;
         }
         
-        // Set native Windows icon for taskbar
-         HWND hwnd = window->GetWindowHandle();
-         if (hwnd) {
-             HICON hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(101));
-             if (hIcon) {
-                 SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
-                 SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
-                 Logger::LogMessage("Native Windows icon set for taskbar");
-             } else {
-                 Logger::LogMessage("Failed to load native Windows icon");
-             }
-         }
+        // Set unique Application User Model ID first
+        SetApplicationUserModelID(hwnd);
+        
+        // Load the application icon once
+        HICON hIcon = LoadApplicationIcon();
+        if (hIcon) {
+            // Convert to CEF image for CEF window icon
+            CefRefPtr<CefImage> cefIcon = ConvertIconToCefImage(hIcon);
+            if (cefIcon) {
+                window->SetWindowIcon(cefIcon);
+                window->SetWindowAppIcon(cefIcon);
+                Logger::LogMessage("CEF window icons set successfully");
+            }
+            
+            // Set native Windows taskbar icon
+            SetPermanentTaskbarIcon(hwnd);
+        } else {
+            Logger::LogMessage("Failed to load application icon in OnWindowCreated");
+        }
     }
     
-    // Enable frameless (borderless) window
+    // Use standard window frame to ensure proper taskbar integration
     bool IsFrameless(CefRefPtr<CefWindow> window) override {
-        return true;  // Return false to ensure window appears in taskbar
+        return true;  // Use standard frame for reliable taskbar icon display
     }
     
     // Allow window to be resizable
@@ -216,9 +287,12 @@ void HandleEvents() {
 
 // Use WinMain instead of main for Windows applications without console
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
-    // Note: Removed SDL initialization since we're using CEF views exclusively
-    // CEF handles all window management and events through its views system
-
+    // Pre-load application icon to ensure it's available
+    LoadApplicationIcon();
+    
+    // Set Application User Model ID early in the process
+    SetApplicationUserModelID(NULL);
+    
     void* sandbox_info = nullptr;
     CefMainArgs main_args(GetModuleHandle(nullptr));
 
@@ -279,7 +353,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
      browser_settings.javascript_dom_paste = STATE_DISABLED;  // Disable DOM paste for security
      browser_settings.local_storage = STATE_ENABLED;
      browser_settings.javascript_close_windows = STATE_DISABLED;  // Prevent JavaScript from closing windows
-    
+
     // Create browser view delegate to hide UI elements
     CefRefPtr<CustomBrowserViewDelegate> browser_view_delegate = new CustomBrowserViewDelegate();
     
@@ -300,6 +374,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     
     // Center the window
     g_cef_window->CenterWindow(CefSize(1200, 800));
+
+    // Final taskbar icon verification after window is fully shown
+    Sleep(200); // Brief delay for window initialization
+    HWND hwnd = g_cef_window->GetWindowHandle();
+    if (hwnd) {
+        SetPermanentTaskbarIcon(hwnd);
+        Logger::LogMessage("Final taskbar icon verification completed");
+    }
 
     // Log startup information
     Logger::LogMessage("=== SwipeIDE CEF + SDL Application ===");
