@@ -42,7 +42,6 @@ This is a Monaco Editor based code editor built with SolidJS.
 - Syntax highlighting
 - IntelliSense
 - Multiple tabs
-- VS Code themes
 
 ## Getting Started
 1. Create new files using Ctrl+N
