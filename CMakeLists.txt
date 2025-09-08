@@ -150,36 +150,6 @@ if(OS_WINDOWS)
     add_subdirectory("${CEF_ROOT}/libcef_dll" libcef_dll_wrapper)
 endif()
 
-# Convert PNG icon to ICO if needed
-if(WIN32)
-    set(ICON_PNG "${CMAKE_SOURCE_DIR}/app/assets/icon.png")
-    set(ICON_ICO "${CMAKE_SOURCE_DIR}/app/assets/icon.ico")
-    
-    # Check if icon.png exists and icon.ico doesn't exist or is older
-    if(EXISTS "${ICON_PNG}")
-        if(NOT EXISTS "${ICON_ICO}" OR "${ICON_PNG}" IS_NEWER_THAN "${ICON_ICO}")
-            find_package(Python3 COMPONENTS Interpreter)
-            if(Python3_FOUND)
-                message(STATUS "Converting icon.png to icon.ico")
-                execute_process(
-                    COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tools/iconconvert.py" "${ICON_PNG}" "${ICON_ICO}"
-                    RESULT_VARIABLE icon_convert_result
-                    OUTPUT_VARIABLE icon_convert_output
-                    ERROR_VARIABLE icon_convert_error
-                )
-                
-                if(NOT icon_convert_result EQUAL 0)
-                    message(WARNING "Failed to convert icon: ${icon_convert_error}")
-                else()
-                    message(STATUS "Icon converted successfully")
-                endif()
-            else()
-                message(WARNING "Python3 not found, cannot convert icon automatically")
-            endif()
-        endif()
-    endif()
-endif()
-
 # Add executable as Windows application (no console)
 add_executable(${PROJECT_NAME} WIN32
     app/main.cpp
@@ -193,7 +163,7 @@ add_executable(${PROJECT_NAME} WIN32
 
 # Add Windows resource file
 if(WIN32)
-    target_sources(${PROJECT_NAME} PRIVATE app/assets/app.rc)
+    target_sources(${PROJECT_NAME} PRIVATE shared/windows/assets/app.rc)
 endif()
 
 # Set target properties using CEF macros

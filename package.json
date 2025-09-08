@@ -15,7 +15,8 @@
     "iconconvert": "bun run tools/utils/iconconvert.ts"
   },
   "dependencies": {
-    "@types/node": "latest"
+    "@types/node": "latest",
+    "glob": "^11.0.3"
   },
   "devDependencies": {
     "bun-types": "latest",

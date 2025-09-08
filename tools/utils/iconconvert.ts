@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { join, extname, basename } from 'path';
+import { join, extname, basename, dirname } from 'path';
+import { glob } from 'glob';
 
 // Note: This is a simplified version that requires external tools
 // For full PNG to ICO conversion, you would need to use ImageMagick or similar
@@ -12,17 +13,12 @@ interface IconSize {
     height: number;
 }
 
-const ICON_SIZES: IconSize[] = [
-    { width: 16, height: 16 },
-    { width: 32, height: 32 },
-    { width: 48, height: 48 },
-    { width: 64, height: 64 },
-    { width: 128, height: 128 },
-    { width: 256, height: 256 }
+const ICON_SIZES = [
+    { width: 512, height: 512 }
 ];
 
 function validatePngFile(filePath: string): boolean {
-    """Validate if file is a PNG image"""
+    // """Validate if file is a PNG image"""
     if (!existsSync(filePath)) {
         console.error(`Error: File not found: ${filePath}`);
         return false;
@@ -46,7 +42,7 @@ function validatePngFile(filePath: string): boolean {
 }
 
 async function convertPngToIco(inputPath: string, outputPath: string): Promise<boolean> {
-    """Convert PNG to ICO using ImageMagick (requires magick command)"""
+    // """Convert PNG to ICO using ImageMagick (requires magick command)"""
     try {
         // Build ImageMagick command for multiple sizes
         const sizeArgs = ICON_SIZES.map(size => `${size.width}x${size.height}`).join(',');
@@ -82,7 +78,7 @@ async function convertPngToIco(inputPath: string, outputPath: string): Promise<b
 }
 
 function generateIcoHeader(numImages: number): Buffer {
-    """Generate ICO file header"""
+    // """Generate ICO file header"""
     const header = Buffer.alloc(6);
     header.writeUInt16LE(0, 0);        // Reserved (must be 0)
     header.writeUInt16LE(1, 2);        // Image type (1 = ICO)
@@ -91,7 +87,7 @@ function generateIcoHeader(numImages: number): Buffer {
 }
 
 function fallbackConversion(inputPath: string, outputPath: string): void {
-    """Fallback: Simple copy with warning (not a real ICO conversion)"""
+    // """Fallback: Simple copy with warning (not a real ICO conversion)"""
     console.warn('Warning: ImageMagick not available. Creating a simple copy.');
     console.warn('For proper ICO conversion, please install ImageMagick.');
     
@@ -102,43 +98,104 @@ function fallbackConversion(inputPath: string, outputPath: string): void {
     console.log('Note: This is not a proper ICO file conversion.');
 }
 
-function main(): void {
-    const args = process.argv.slice(2);
-    
-    if (args.length < 1) {
-        console.log('Usage: bun run iconconvert.ts <input.png> [output.ico]');
-        console.log('Convert PNG image to ICO format with multiple sizes');
-        console.log('');
-        console.log('Examples:');
-        console.log('  bun run iconconvert.ts icon.png');
-        console.log('  bun run iconconvert.ts icon.png app.ico');
-        process.exit(1);
-    }
-    
-    const inputPath = args[0];
-    const outputPath = args[1] || join(
-        process.cwd(),
-        basename(inputPath, extname(inputPath)) + '.ico'
-    );
-    
+async function processFile(inputPath: string, outputPath: string): Promise<boolean> {
     // Validate input file
     if (!validatePngFile(inputPath)) {
-        process.exit(1);
+        return false;
     }
     
     console.log(`Converting ${inputPath} to ${outputPath}`);
     console.log(`Target sizes: ${ICON_SIZES.map(s => `${s.width}x${s.height}`).join(', ')}`);
     
     // Try ImageMagick conversion first
-    convertPngToIco(inputPath, outputPath).then(success => {
+    try {
+        const success = await convertPngToIco(inputPath, outputPath);
         if (!success) {
             // Fallback to simple copy
             fallbackConversion(inputPath, outputPath);
         }
-    }).catch(() => {
+        return true;
+    } catch {
         // Fallback to simple copy
         fallbackConversion(inputPath, outputPath);
-    });
+        return true;
+    }
+}
+
+async function main(): Promise<void> {
+    const args = process.argv.slice(2);
+    
+    if (args.length < 1) {
+        console.log('Usage: bun run iconconvert.ts <input> [output]');
+        console.log('Convert PNG image(s) to ICO format with multiple sizes');
+        console.log('');
+        console.log('Examples:');
+        console.log('  bun run iconconvert.ts icon.png');
+        console.log('  bun run iconconvert.ts icon.png app.ico');
+        console.log('  bun run iconconvert.ts "./icons/*.png" "./output/*.ico"');
+        console.log('  bun run iconconvert.ts ./shared/icon/*.png ./shared/windows/fileicon/*.ico');
+        process.exit(1);
+    }
+    
+    const inputPattern = args[0];
+    const outputPattern = args[1];
+    
+    // Check if input contains glob patterns
+    if (inputPattern.includes('*') || inputPattern.includes('?')) {
+        // Handle glob patterns
+        const inputFiles = await glob(inputPattern, { windowsPathsNoEscape: true });
+        
+        if (inputFiles.length === 0) {
+            console.error(`No files found matching pattern: ${inputPattern}`);
+            process.exit(1);
+        }
+        
+        console.log(`Found ${inputFiles.length} files matching pattern: ${inputPattern}`);
+        
+        let successCount = 0;
+        
+        for (const inputFile of inputFiles) {
+            let outputFile: string;
+            
+            if (outputPattern && outputPattern.includes('*')) {
+                // Replace * in output pattern with input filename
+                const inputBasename = basename(inputFile, extname(inputFile));
+                outputFile = outputPattern.replace('*', inputBasename);
+            } else if (outputPattern) {
+                // Use output pattern as directory and generate filename
+                const inputBasename = basename(inputFile, extname(inputFile));
+                outputFile = join(outputPattern, inputBasename + '.ico');
+            } else {
+                // Generate output filename in same directory as input
+                const inputBasename = basename(inputFile, extname(inputFile));
+                outputFile = join(dirname(inputFile), inputBasename + '.ico');
+            }
+            
+            // Ensure output directory exists
+            const outputDir = dirname(outputFile);
+            try {
+                await Bun.write(join(outputDir, '.keep'), '');
+            } catch {
+                // Directory creation will be handled by the write operation
+            }
+            
+            const success = await processFile(inputFile, outputFile);
+            if (success) {
+                successCount++;
+            }
+        }
+        
+        console.log(`\nProcessed ${successCount}/${inputFiles.length} files successfully.`);
+    } else {
+        // Handle single file
+        const inputPath = inputPattern;
+        const outputPath = outputPattern || join(
+            dirname(inputPath),
+            basename(inputPath, extname(inputPath)) + '.ico'
+        );
+        
+        await processFile(inputPath, outputPath);
+    }
 }
 
 if (import.meta.main) {
