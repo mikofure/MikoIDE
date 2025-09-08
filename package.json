@@ -10,6 +10,7 @@
     "build": "bun --cwd mikobench vite build",
     "preview": "bun --cwd mikobench run preview",
     "build:cmake": "bun run tools/build.ts",
+    "build:win": "bun run build && bun run buildtobin && bun run build:cmake",
     "clean:cmake": "bun run tools/clean.ts",
     "buildtobin": "bun run tools/utils/buildtobin.ts",
     "iconconvert": "bun run tools/utils/iconconvert.ts"

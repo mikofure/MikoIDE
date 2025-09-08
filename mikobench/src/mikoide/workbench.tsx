@@ -60,36 +60,57 @@ const Workbench: Component = () => {
 
   // Handle resize to fix Monaco Editor sizing issues
   let editorContainerRef: HTMLDivElement | undefined;
-  let resizeTimeout: number | undefined;
+  // let resizeTimeout: number | undefined;
   
   onMount(() => {
+    let editorContainerRef = document.getElementById('editor-container');
+    let resizeTimeout: number | undefined;
+
     const handleResize = () => {
       const editor = editorInstance();
       if (editor) {
-        // Debounce resize calls to prevent infinite loops
         if (resizeTimeout) {
           clearTimeout(resizeTimeout);
         }
-        resizeTimeout = setTimeout(() => {
+        resizeTimeout = window.setTimeout(() => {
           editor.layout();
         }, 10);
       }
     };
 
-    // Global keyboard shortcut handler
+    // Global keyboard shortcut handler using cefQuery
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.key === 'n') {
+        e.preventDefault(); // Prevent Chrome's default behavior
         if (e.shiftKey) {
           // Ctrl+Shift+N: Spawn new window
-          e.preventDefault();
-          spawnNewWindow();
+          (window as any).cefQuery({
+            request: 'spawn_new_window',
+            onSuccess: () => {},
+            onFailure: () => {}
+          });
         } else {
           // Ctrl+N: Create new file
-          e.preventDefault(); // Prevent browser's new window
-          createNewFile();
+          (window as any).cefQuery({
+            request: 'create_new_file',
+            onSuccess: () => {},
+            onFailure: () => {}
+          });
         }
       }
+      if (e.ctrlKey && e.key === 't') {
+        e.preventDefault(); // Prevent Chrome's default new tab
+        // Ctrl+T: Create new file
+        (window as any).cefQuery({
+          request: 'create_new_file',
+          onSuccess: () => {},
+          onFailure: () => {}
+        });
+      }
     };
+
+    // Expose createNewFile function to CEF (for cefQuery callback)
+    (window as any).createNewFileFromCEF = createNewFile;
 
     // Listen for window resize events
     window.addEventListener('resize', handleResize);
@@ -120,6 +141,8 @@ const Workbench: Component = () => {
     onCleanup(() => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('keydown', handleKeyDown);
+      // Clean up global function
+      delete (window as any).createNewFileFromCEF;
       if (resizeObserver) {
         resizeObserver.disconnect();
       }
@@ -206,6 +229,7 @@ const Workbench: Component = () => {
         activeTabId={activeTabId()}
         onTabSelect={handleTabSelect}
         onTabClose={handleTabClose}
+        onNewTab={createNewFile}
       />
       
       {/* Editor Area */}

@@ -54,6 +54,14 @@ CefRefPtr<CefRequestHandler> SimpleClient::GetRequestHandler() {
     return this;
 }
 
+CefRefPtr<CefKeyboardHandler> SimpleClient::GetKeyboardHandler() {
+  return this;
+}
+
+CefRefPtr<CefDownloadHandler> SimpleClient::GetDownloadHandler() {
+  return this;
+}
+
 bool SimpleClient::OnQuery(CefRefPtr<CefBrowser> browser,
                           CefRefPtr<CefFrame> frame,
                           int64_t query_id,
@@ -105,6 +113,14 @@ bool SimpleClient::OnQuery(CefRefPtr<CefBrowser> browser,
     else if (request_str == "spawn_new_window") {
         // Create a new browser window
         SpawnNewWindow();
+        callback->Success("");
+        return true;
+    }
+    else if (request_str == "create_new_file") {
+        // Handle new file creation via cefQuery
+        browser->GetMainFrame()->ExecuteJavaScript(
+            "if (window.createNewFileFromCEF) { window.createNewFileFromCEF(); }",
+            browser->GetMainFrame()->GetURL(), 0);
         callback->Success("");
         return true;
     }
@@ -249,6 +265,35 @@ CefRefPtr<CefResourceHandler> SimpleClient::GetResourceHandler(
     return nullptr;
 }
 
+bool SimpleClient::OnBeforePopup(CefRefPtr<CefBrowser> browser,
+                                  CefRefPtr<CefFrame> frame,
+                                  int popup_id,
+                                  const CefString& target_url,
+                                  const CefString& target_frame_name,
+                                  CefLifeSpanHandler::WindowOpenDisposition target_disposition,
+                                  bool user_gesture,
+                                  const CefPopupFeatures& popupFeatures,
+                                  CefWindowInfo& windowInfo,
+                                  CefRefPtr<CefClient>& client,
+                                  CefBrowserSettings& settings,
+                                  CefRefPtr<CefDictionaryValue>& extra_info,
+                                  bool* no_javascript_access) {
+    CEF_REQUIRE_UI_THREAD();
+
+    // Log popup attempt
+    Logger::LogMessage("Popup blocked: " + target_url.ToString());
+
+    // Block all popups to prevent unwanted Chrome UI elements
+  // Only allow controlled new windows via SpawnNewWindow for legitimate user gestures
+  if (user_gesture && target_disposition == CEF_WOD_NEW_WINDOW) {
+    // For legitimate user gestures like Ctrl+Shift+N, use our controlled SpawnNewWindow
+    SpawnNewWindow();
+  }
+
+    // Always return true to block the popup
+    return true;
+}
+
 void SimpleClient::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
     CEF_REQUIRE_UI_THREAD();
     browser_list_.push_back(browser);
@@ -383,6 +428,134 @@ CefRefPtr<CefBrowser> SimpleClient::GetFirstBrowser() {
 
 bool SimpleClient::HasBrowsers() {
     return !browser_list_.empty();
+}
+
+bool SimpleClient::OnPreKeyEvent(CefRefPtr<CefBrowser> browser,
+                                 const CefKeyEvent& event,
+                                 CefEventHandle os_event,
+                                 bool* is_keyboard_shortcut) {
+    CEF_REQUIRE_UI_THREAD();
+    
+    // Block dangerous Chrome shortcuts that could expose browser UI
+    if (event.type == KEYEVENT_KEYDOWN || event.type == KEYEVENT_RAWKEYDOWN) {
+        // Block F12 (Developer Tools)
+        if (event.windows_key_code == VK_F12) {
+            Logger::LogMessage("Blocked F12 developer tools shortcut");
+            return true; // Block the key event
+        }
+        
+        // Block Ctrl+Shift+I (Developer Tools)
+        if (event.windows_key_code == 'I' && 
+            (event.modifiers & EVENTFLAG_CONTROL_DOWN) && 
+            (event.modifiers & EVENTFLAG_SHIFT_DOWN)) {
+            Logger::LogMessage("Blocked Ctrl+Shift+I developer tools shortcut");
+            return true;
+        }
+        
+        // Block Ctrl+Shift+J (Console)
+        if (event.windows_key_code == 'J' && 
+            (event.modifiers & EVENTFLAG_CONTROL_DOWN) && 
+            (event.modifiers & EVENTFLAG_SHIFT_DOWN)) {
+            Logger::LogMessage("Blocked Ctrl+Shift+J console shortcut");
+            return true;
+        }
+        
+        // Block Ctrl+U (View Source)
+        if (event.windows_key_code == 'U' && 
+            (event.modifiers & EVENTFLAG_CONTROL_DOWN) && 
+            !(event.modifiers & EVENTFLAG_SHIFT_DOWN)) {
+            Logger::LogMessage("Blocked Ctrl+U view source shortcut");
+            return true;
+        }
+        
+        // Block Ctrl+Shift+C (Inspect Element)
+        if (event.windows_key_code == 'C' && 
+            (event.modifiers & EVENTFLAG_CONTROL_DOWN) && 
+            (event.modifiers & EVENTFLAG_SHIFT_DOWN)) {
+            Logger::LogMessage("Blocked Ctrl+Shift+C inspect element shortcut");
+            return true;
+        }
+        
+        // Block F5 and Ctrl+R (Refresh) - handled by frontend
+        if (event.windows_key_code == VK_F5 || 
+            (event.windows_key_code == 'R' && (event.modifiers & EVENTFLAG_CONTROL_DOWN))) {
+            Logger::LogMessage("Blocked browser refresh shortcut - handled by frontend");
+            return true;
+        }
+        
+        // Block Ctrl+Shift+Delete (Clear Browsing Data)
+        if (event.windows_key_code == VK_DELETE && 
+            (event.modifiers & EVENTFLAG_CONTROL_DOWN) && 
+            (event.modifiers & EVENTFLAG_SHIFT_DOWN)) {
+            Logger::LogMessage("Blocked Ctrl+Shift+Delete clear data shortcut");
+            return true;
+        }
+        
+        // Block Ctrl+N (New Window) - handled by frontend
+        if (event.windows_key_code == 'N' && 
+            (event.modifiers & EVENTFLAG_CONTROL_DOWN) && 
+            !(event.modifiers & EVENTFLAG_SHIFT_DOWN)) {
+            Logger::LogMessage("Blocked Ctrl+N new window shortcut - handled by frontend");
+            return true;
+        }
+        
+        // Block Ctrl+T (New Tab) - handled by frontend
+        if (event.windows_key_code == 'T' && 
+            (event.modifiers & EVENTFLAG_CONTROL_DOWN) && 
+            !(event.modifiers & EVENTFLAG_SHIFT_DOWN)) {
+            Logger::LogMessage("Blocked Ctrl+T new tab shortcut - handled by frontend");
+            return true;
+        }
+        
+        // Block Ctrl+Shift+N (New Incognito Window) - handled by frontend
+        if (event.windows_key_code == 'N' && 
+            (event.modifiers & EVENTFLAG_CONTROL_DOWN) && 
+            (event.modifiers & EVENTFLAG_SHIFT_DOWN)) {
+            Logger::LogMessage("Blocked Ctrl+Shift+N incognito window shortcut - handled by frontend");
+            return true;
+        }
+    }
+    
+    // Allow other key events to proceed to frontend
+    return false;
+}
+
+bool SimpleClient::OnBeforeDownload(CefRefPtr<CefBrowser> browser,
+                                    CefRefPtr<CefDownloadItem> download_item,
+                                    const CefString& suggested_name,
+                                    CefRefPtr<CefBeforeDownloadCallback> callback) {
+  CEF_REQUIRE_UI_THREAD();
+
+  // Create downloads directory if it doesn't exist
+  std::string downloads_path = "downloads/" + suggested_name.ToString();
+  
+  // Log download start
+  Logger::LogMessage("Download started: " + suggested_name.ToString());
+  
+  // Continue download without showing dialog (show_dialog = false)
+  callback->Continue(downloads_path, false);
+  
+  return true;
+}
+
+void SimpleClient::OnDownloadUpdated(CefRefPtr<CefBrowser> browser,
+                                     CefRefPtr<CefDownloadItem> download_item,
+                                     CefRefPtr<CefDownloadItemCallback> callback) {
+  CEF_REQUIRE_UI_THREAD();
+
+  if (download_item->IsComplete()) {
+    Logger::LogMessage("Download completed: " + download_item->GetFullPath().ToString());
+  } else if (download_item->IsCanceled()) {
+    Logger::LogMessage("Download canceled: " + download_item->GetFullPath().ToString());
+  } else {
+    // Log download progress
+    int64_t received = download_item->GetReceivedBytes();
+    int64_t total = download_item->GetTotalBytes();
+    if (total > 0) {
+      int progress = static_cast<int>((received * 100) / total);
+      Logger::LogMessage("Download progress: " + std::to_string(progress) + "% - " + download_item->GetFullPath().ToString());
+    }
+  }
 }
 
 void SimpleClient::SpawnNewWindow() {

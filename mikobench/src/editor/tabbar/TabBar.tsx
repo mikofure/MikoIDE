@@ -1,5 +1,6 @@
 import type { Component } from 'solid-js';
 import { For } from 'solid-js';
+import { Plus } from 'lucide-solid';
 import Tab from './Tab';
 
 export interface TabData {
@@ -14,6 +15,7 @@ interface TabBarProps {
   activeTabId?: string;
   onTabSelect?: (tabId: string) => void;
   onTabClose?: (tabId: string) => void;
+  onNewTab?: () => void;
 }
 
 const TabBar: Component<TabBarProps> = (props) => {
@@ -31,6 +33,15 @@ const TabBar: Component<TabBarProps> = (props) => {
           />
         )}
       </For>
+      {/* New File Button */}
+      <button
+        class="flex items-center px-3 py-2 text-sm cursor-pointer border-r border-[var(--vscode-tab-border)] bg-[var(--vscode-tab-inactiveBackground)] text-[var(--vscode-tab-inactiveForeground)] hover:bg-[var(--vscode-tab-hoverBackground)] transition-colors duration-150 min-w-fit"
+        onClick={props.onNewTab}
+        title="New File (Ctrl+N)"
+      >
+        <Plus size={14} class="mr-1" />
+        <span class="text-xs">New File</span>
+      </button>
     </div>
   );
 };
