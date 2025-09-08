@@ -1,0 +1,106 @@
+@import 'tailwindcss';
+
+
+/* VSCode Theme Variables */
+:root {
+  /* WCO Variables */
+  --titlebar-height: 32px;
+  --titlebar-area-x: env(titlebar-area-x, 0);
+  --titlebar-area-y: env(titlebar-area-y, 0);
+  --titlebar-area-width: env(titlebar-area-width, 100%);
+  --titlebar-area-height: env(titlebar-area-height, 32px);
+  
+  /* VSCode Dark Theme Colors */
+  --vscode-bg-primary: #1E1E1E;
+  --vscode-bg-secondary: #252526;
+  --vscode-bg-tertiary: #2D2D30;
+  --vscode-fg-primary: #D4D4D4;
+  --vscode-fg-secondary: #CCCCCC;
+  --vscode-fg-muted: #A6A6A6;
+  --vscode-accent: #007ACC;
+  --vscode-accent-hover: #0078d4;
+  --vscode-border: #454545;
+  --vscode-selection: #ADD6FF26;
+  --vscode-tab-active: #222222;
+  --vscode-tab-inactive: #2D2D30;
+  --vscode-sidebar: #252526;
+  --vscode-activity-bar: #333333;
+  --vscode-status-bar: #007ACC;
+  --vscode-input-bg: #3C3C3C;
+  --vscode-button-bg: #0E639C;
+  --vscode-button-hover: #1177BB;
+  --vscode-success: #89D185;
+  --vscode-warning: #FFCC02;
+  --vscode-error: #F85149;
+  
+  /* Editor Variables */
+  --vscode-editor-background: #1E1E1E;
+  --vscode-editor-foreground: #D4D4D4;
+  
+  /* Tab Variables */
+  --vscode-tab-border: #454545;
+  --vscode-tab-activeBackground: #1E1E1E;
+  --vscode-tab-activeForeground: #FFFFFF;
+  --vscode-tab-activeBorder: #007ACC;
+  --vscode-tab-inactiveBackground: #2D2D30;
+  --vscode-tab-inactiveForeground: #969696;
+  --vscode-tab-hoverBackground: #1E1E1E;
+  --vscode-tab-unfocusedActiveForeground: #CCCCCC;
+  
+  /* Editor Group Header Variables */
+  --vscode-editorGroupHeader-tabsBackground: #252526;
+  --vscode-editorGroupHeader-tabsBorder: #454545;
+  
+  /* Status Bar Variables */
+  --vscode-statusBar-background: #007ACC;
+  --vscode-statusBar-foreground: #FFFFFF;
+  --vscode-statusBar-border: #007ACC;
+  --vscode-statusBar-prominentForeground: #FFFFFF;
+  
+  /* Toolbar Variables */
+  --vscode-toolbar-hoverBackground: #2A2D2E;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  user-select: none;
+}
+
+html {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background-color: var(--vscode-bg-primary);
+  color: var(--vscode-fg-primary);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background-color: var(--vscode-bg-primary);
+  color: var(--vscode-fg-primary);
+  font-size: 13px;
+}
+
+#root {
+  height: 100vh;
+  background-color: var(--vscode-bg-primary);
+}
+
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}

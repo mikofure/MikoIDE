@@ -1,0 +1,25 @@
+{
+  "name": "mikobench",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.1.13",
+    "developer-icons": "^6.0.4",
+    "lucide-solid": "^0.542.0",
+    "monaco-editor": "^0.52.2",
+    "solid-js": "^1.9.8",
+    "tailwindcss": "^4.1.13",
+    "vite-plugin-singlefile": "^2.3.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.3",
+    "vite": "^7.1.2",
+    "vite-plugin-solid": "^2.11.8"
+  }
+}
