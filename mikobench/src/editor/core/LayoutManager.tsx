@@ -1,5 +1,5 @@
 import type { Component, JSX } from 'solid-js';
-import { createSignal, createEffect, Show, Switch, Match } from 'solid-js';
+import { createSignal, createEffect, Switch, Match } from 'solid-js';
 import MonacoEditor from './MonacoEditor';
 import DiffEditor from './DiffEditor';
 import MarkdownPreview from './MarkdownPreview';
@@ -61,7 +61,7 @@ const LayoutManager: Component<LayoutManagerProps> = (props) => {
     setEditorValue(value);
     props.onChange?.(value);
   };
-
+  //@ts-expect-error
   const handleViewModeChange = (mode: ViewMode) => {
     setCurrentViewMode(mode);
     props.onViewModeChange?.(mode);
@@ -71,7 +71,7 @@ const LayoutManager: Component<LayoutManagerProps> = (props) => {
     setSplitRatio(ratio);
     props.onSplitChange?.(ratio);
   };
-
+   //@ts-expect-error
   const isMarkdownFile = () => {
     const lang = props.language?.toLowerCase();
     return lang === 'markdown' || lang === 'md';

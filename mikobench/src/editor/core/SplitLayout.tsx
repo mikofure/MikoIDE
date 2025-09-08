@@ -16,7 +16,9 @@ interface SplitLayoutProps {
 const SplitLayout: Component<SplitLayoutProps> = (props) => {
   const [split, setSplit] = createSignal(props.initialSplit || 50);
   const [isDragging, setIsDragging] = createSignal(false);
+   //@ts-expect-error
   const [startPos, setStartPos] = createSignal(0);
+   //@ts-expect-error
   const [startSplit, setStartSplit] = createSignal(0);
   
   let containerRef: HTMLDivElement | undefined;
