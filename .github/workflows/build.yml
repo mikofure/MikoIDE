@@ -45,8 +45,6 @@ jobs:
       run: |
         New-Item -ItemType Directory -Force -Path "release"
         Copy-Item -Path "build\Release\*" -Destination "release\" -Recurse -Force
-        Copy-Item -Path "extensions\lsp\c\build\Release\*" -Destination "release\extensions\c\" -Recurse -Force
-        Copy-Item -Path "extensions\lsp\cpp\build\Release\*" -Destination "release\extensions\cpp\" -Recurse -Force
         Compress-Archive -Path "release\*" -DestinationPath "mikoide-windows.zip" -Force
       shell: pwsh
     
