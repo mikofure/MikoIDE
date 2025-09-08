@@ -14,7 +14,7 @@ A modern, cross-platform IDE built with C++ and TypeScript, featuring integrated
 
 - 🚀 **Fast Performance**: Native C++ backend with optimized web-based frontend
 - 🔧 **LSP Support**: Built-in language servers for C, C++, and TypeScript
-- 🎨 **Modern UI**: Clean, responsive interface built with React and TypeScript
+- 🎨 **Modern UI**: Clean, responsive interface built with Solid.js and TypeScript
 - 🛠️ **CMake Integration**: Seamless project building and management
 - 📦 **Extension System**: Modular architecture for easy extensibility
 - 🔍 **Advanced Editor**: Syntax highlighting, code completion, and error detection
@@ -26,10 +26,9 @@ MikoIDE/
 ├── app/                    # C++ application core
 │   ├── main.cpp           # Application entry point
 │   ├── client.cpp         # WebView client implementation
-│   └── assets/            # Application resources
-├── mikobench/             # TypeScript frontend (React + Vite)
+├── mikobench/             # TypeScript frontend (Solid.js + Vite)
 │   ├── src/               # Frontend source code
-│   └── components/        # React components
+│   └── components/        # Solid.js components
 ├── extensions/            # LSP extensions
 │   └── lsp/
 │       ├── c/             # C language server
@@ -101,11 +100,11 @@ bun run build:cmake cpp-lsp --verbose
 ### Project Structure
 
 #### Frontend (mikobench/)
-Built with React, TypeScript, and Vite for fast development and optimal performance.
+Built with Solid.js, TypeScript, and Vite for fast development and optimal performance.
 
 #### Backend (app/)
 C++ application using:
-- **WebView2** for rendering the frontend
+- **Chromium Embedded Framework (CEF)** for rendering the frontend
 - **Binary Resource Provider** for embedded web assets
 - **Logger** for debugging and diagnostics
 
@@ -150,7 +149,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Built with modern C++ and TypeScript
 - Powered by CMake and Bun.js
 - LSP integration for enhanced development experience
-- WebView2 for seamless web-native integration
+- Chromium Embedded Framework for seamless web-native integration
 
 ---
 
