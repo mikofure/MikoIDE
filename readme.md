@@ -151,6 +151,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - LSP integration for enhanced development experience
 - Chromium Embedded Framework for seamless web-native integration
 
----
+## Credits
 
+- [Codicons](https://github.com/microsoft/vscode-codicons) by Microsoft, licensed under [Creative Commons Attribution 4.0 International Public License (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/legalcode) and [MIT License](https://opensource.org/licenses/MIT).
+- Visual Studio Code and its icons are trademarks of Microsoft. This project is not affiliated with or endorsed by Microsoft.
+
+---
 **MikoIDE** - Modern IDE for Modern Development 🚀
