@@ -29,6 +29,12 @@ jobs:
       with:
         cmake-version: '3.25'
     
+    - name: Setup .NET Framework 4.8
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '4.8.x'
+        dotnet-quality: 'framework'
+    
     - name: Install dependencies
       run: bun install
     
@@ -41,15 +47,22 @@ jobs:
     - name: Build main application
       run: bun run build:cmake main --verbose
     
-    - name: Create release package
-      run: |
-        New-Item -ItemType Directory -Force -Path "release"
-        Copy-Item -Path "build\Release\*" -Destination "release\" -Recurse -Force
-        Compress-Archive -Path "release\*" -DestinationPath "mikoide-windows.zip" -Force
+    - name: Create portable package
+      run: bun run tools/prod.ts --portable
       shell: pwsh
     
-    - name: Upload artifacts
+    - name: Create installer package
+      run: bun run tools/prod.ts --installer
+      shell: pwsh
+    
+    - name: Upload portable artifact
       uses: actions/upload-artifact@v4
       with:
-        name: mikoide-windows
-        path: mikoide-windows.zip
+        name: mikoide-windows-portable
+        path: out/mikoide_win-portable.zip
+    
+    - name: Upload installer artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: mikoide-windows-installer
+        path: out/mikoide_setup.exe
