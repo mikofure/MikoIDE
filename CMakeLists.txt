@@ -125,10 +125,10 @@ find_package(CEF REQUIRED)
 # Determine the target output directory based on platform and generator
 if(CMAKE_CONFIGURATION_TYPES)
     # Multi-config generators (Visual Studio, Xcode)
-    set(CEF_TARGET_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIGURATION>")
+    set(CEF_TARGET_OUT_DIR "${CMAKE_BINARY_DIR}/bin/$<CONFIGURATION>")
 else()
     # Single-config generators (Ninja, Make)
-    set(CEF_TARGET_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}")
+    set(CEF_TARGET_OUT_DIR "${CMAKE_BINARY_DIR}/bin/${CMAKE_BUILD_TYPE}")
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CEF_TARGET_OUT_DIR})
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CEF_TARGET_OUT_DIR})
 endif()
@@ -169,6 +169,11 @@ endif()
 # Set target properties using CEF macros
 SET_EXECUTABLE_TARGET_PROPERTIES(${PROJECT_NAME})
 
+# Set target properties for consistent output directory
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CEF_TARGET_OUT_DIR}"
+)
+
 # Link SDL3 and CEF libraries
 target_link_libraries(${PROJECT_NAME}
     SDL3::SDL3
@@ -199,6 +204,9 @@ if(OS_WINDOWS)
         COMMENT "Copying SDL3 DLL to output directory"
     )
 endif()
+
+# Add crashreport subdirectory
+add_subdirectory(crashreport)
 
 # Set startup project for Visual Studio
 if(WIN32)
