@@ -28,7 +28,7 @@ if (!isPortable && !isInstaller) {
 }
 
 // Paths
-const buildDir = join(projectRoot, 'build', 'Release');
+const buildDir = join(projectRoot, 'build', 'bin', 'Release');
 const outDir = join(projectRoot, 'out');
 const mikoinstallerDir = join(projectRoot, 'mikoinstaller');
 const mikoinstallerAssetsDir = join(mikoinstallerDir, 'assets');
