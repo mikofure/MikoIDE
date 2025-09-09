@@ -1,0 +1,3 @@
+[submodule "mikoinstaller"]
+	path = mikoinstaller
+	url = https://github.com/mikofure/mikoinstaller
