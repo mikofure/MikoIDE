@@ -114,13 +114,13 @@ function buildInstaller() {
   try {
     if (isWindows) {
       // Build Windows installer using dotnet
-      execSync('dotnet publish -c Release', { 
+      execSync('dotnet publish --configuration Installer --output publish/Installer', { 
         cwd: mikoinstallerDir,
         stdio: 'inherit'
       });
       
       // Find the built executable
-      const builtExePath = join(mikoinstallerDir, 'bin', 'Release', 'net48', 'mikoinstaller.exe');
+      const builtExePath = join(mikoinstallerDir, 'publish', 'Installer', 'mikoinstaller.exe');
       const outputExePath = join(outDir, `${projectName}_setup.exe`);
       
       if (existsSync(builtExePath)) {
