@@ -1,11 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
-import type { TabData } from '../editor/tabbar/TabBar';
-
-export interface FileTab extends TabData {
-  content: string;
-  language: string;
-  filePath?: string;
-}
+import type { FileTab } from '../../store/editorSlice';
 
 interface WorkbenchContextType {
   tabs: FileTab[];

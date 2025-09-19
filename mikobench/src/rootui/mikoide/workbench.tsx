@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { TabBar, EnhancedEditor } from '../editor';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import TabBar from './components/TabBar';
+import { useWorkbench } from '../contexts/WorkbenchContext';
+import type { FileTab, ViewMode } from '../../store/editorSlice';
 import * as monaco from 'monaco-editor';
-import { useWorkbench, type FileTab } from '../contexts/WorkbenchContext';
 
 const Workbench: React.FC = () => {
   const { tabs, setTabs, activeTab, activeTabId, setActiveTabId } = useWorkbench();
   const [editorInstance, setEditorInstance] = useState<monaco.editor.IStandaloneCodeEditor | null>(null);
-  const [currentViewMode, setCurrentViewMode] = useState<'code' | 'diff' | 'markdown' | 'split-horizontal' | 'split-vertical' | 'markdown-split'>('code');
+  const [currentViewMode, setCurrentViewMode] = useState<ViewMode>('code');
   const editorContainerRef = useRef<HTMLDivElement>(null);
 
   const handleTabSelect = (tabId: string) => {
@@ -16,32 +17,32 @@ const Workbench: React.FC = () => {
   const handleTabClose = (tabId: string) => {
     const currentTabs = tabs;
     const tabIndex = currentTabs.findIndex(tab => tab.id === tabId);
-    
+
     if (tabIndex === -1) return;
-    
+
     const newTabs = currentTabs.filter(tab => tab.id !== tabId);
     setTabs(newTabs);
-    
+
     // If closing active tab, switch to another tab
     if (activeTabId === tabId && newTabs.length > 0) {
       const newActiveIndex = Math.min(tabIndex, newTabs.length - 1);
       setActiveTabId(newTabs[newActiveIndex].id);
     }
   };
-
+  //@ts-expect-error
   const handleEditorChange = (value: string) => {
     const currentActiveTabId = activeTabId;
     if (!currentActiveTabId) return;
-    
+
     const updatedTabs = tabs.map((tab: FileTab) =>
-      tab.id === currentActiveTabId 
+      tab.id === currentActiveTabId
         ? { ...tab, content: value, isDirty: true }
         : tab
     );
     setTabs(updatedTabs);
   };
 
-  const handleViewModeChange = (mode: 'code' | 'diff' | 'markdown' | 'split-horizontal' | 'split-vertical' | 'markdown-split') => {
+  const handleViewModeChange = (mode: ViewMode) => {
     setCurrentViewMode(mode);
   };
 
@@ -51,19 +52,15 @@ const Workbench: React.FC = () => {
     const fileName = current.title.toLowerCase();
     return fileName.endsWith('.md') || fileName.endsWith('.markdown') || current.language === 'markdown';
   };
-
+  //@ts-expect-error
   const handleEditorMount = (editor: monaco.editor.IStandaloneCodeEditor) => {
     setEditorInstance(editor);
-    
+
     // Add keyboard shortcuts
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyN, () => {
       createNewFile();
     });
-    
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyN, () => {
-      spawnNewWindow();
-    });
-    
+
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
       saveCurrentFile();
     });
@@ -79,43 +76,23 @@ const Workbench: React.FC = () => {
       isDirty: false,
       closable: true
     };
-    
+
     setTabs([...tabs, newTab]);
     setActiveTabId(newId);
   }, [tabs, setTabs, setActiveTabId]);
 
-  const spawnNewWindow = () => {
-    // Check if we're running in CEF environment
-    if ((window as any).cefQuery) {
-      (window as any).cefQuery({
-        request: 'spawn_new_window',
-        onSuccess: () => {
-          console.log('New window spawned successfully');
-        },
-        onFailure: (error_code: number, error_message: string) => {
-          console.error(`Failed to spawn new window [${error_code}]: ${error_message}`);
-        }
-      });
-    } else {
-      // Fallback for web browser - open new tab/window
-      window.open(window.location.href, '_blank');
-      console.log('Opened new browser tab (web browser mode)');
-    }
-  };
-
   const saveCurrentFile = () => {
     const currentTab = activeTab;
     if (!currentTab) return;
-    
+
     // Mark as saved (remove dirty state)
-    const updatedTabs = tabs.map((tab: FileTab) => 
-      tab.id === currentTab.id 
+    const updatedTabs = tabs.map((tab: FileTab) =>
+      tab.id === currentTab.id
         ? { ...tab, isDirty: false }
         : tab
     );
     setTabs(updatedTabs);
-    
-    // In a real implementation, you would save to filesystem here
+
     console.log('File saved:', currentTab.title);
   };
 
@@ -134,60 +111,20 @@ const Workbench: React.FC = () => {
       }
     };
 
-    // Global keyboard shortcut handler using cefQuery
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === 'n') {
-        e.preventDefault(); // Prevent Chrome's default behavior
-        if (e.shiftKey) {
-          // Ctrl+Shift+N: Spawn new window
-          (window as any).cefQuery({
-            request: 'spawn_new_window',
-            onSuccess: () => {},
-            onFailure: () => {}
-          });
-        } else {
-          // Ctrl+N: Create new file
-          (window as any).cefQuery({
-            request: 'create_new_file',
-            onSuccess: () => {},
-            onFailure: () => {}
-          });
-        }
-      }
-      if (e.ctrlKey && e.key === 't') {
-        e.preventDefault(); // Prevent Chrome's default new tab
-        // Ctrl+T: Create new file
-        (window as any).cefQuery({
-          request: 'create_new_file',
-          onSuccess: () => {},
-          onFailure: () => {}
-        });
-      }
-    };
-
-    // Expose createNewFile function to CEF (for cefQuery callback)
-    (window as any).createNewFileFromCEF = createNewFile;
-
     // Listen for window resize events
     window.addEventListener('resize', handleResize);
-    // Listen for global keyboard events
-    window.addEventListener('keydown', handleKeyDown);
-    
-    // Set up ResizeObserver for the editor container with debouncing
+
+    // Set up ResizeObserver for the editor container
     let resizeObserver: ResizeObserver | undefined;
     if (editorContainerRef.current) {
       resizeObserver = new ResizeObserver(() => {
-        // Use a different timeout to avoid conflicts
         setTimeout(handleResize, 5);
       });
       resizeObserver.observe(editorContainerRef.current);
     }
-    
+
     return () => {
       window.removeEventListener('resize', handleResize);
-      window.removeEventListener('keydown', handleKeyDown);
-      // Clean up global function
-      delete (window as any).createNewFileFromCEF;
       if (resizeObserver) {
         resizeObserver.disconnect();
       }
@@ -195,7 +132,7 @@ const Workbench: React.FC = () => {
         clearTimeout(resizeTimeout);
       }
     };
-  }, [editorInstance, createNewFile]);
+  }, [editorInstance]);
 
   // Update editor content when active tab changes
   useEffect(() => {
@@ -204,7 +141,7 @@ const Workbench: React.FC = () => {
       if (currentValue !== activeTab.content) {
         editorInstance.setValue(activeTab.content);
       }
-      
+
       // Update language
       const model = editorInstance.getModel();
       if (model) {
@@ -216,7 +153,6 @@ const Workbench: React.FC = () => {
   // Trigger resize when editor instance changes (tab switching)
   useEffect(() => {
     if (editorInstance) {
-      // Small delay to ensure DOM is updated
       setTimeout(() => {
         editorInstance.layout();
       }, 50);
@@ -224,8 +160,16 @@ const Workbench: React.FC = () => {
   }, [editorInstance]);
 
   return (
-    <div className="flex flex-col h-full bg-[var(--vscode-editor-background)]">
-      {/* Tab Bar */}
+    <div
+      className="workbench-container"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        width: '100vw',
+        background: '#1e1e1e',
+      }}
+    >
       <TabBar
         tabs={tabs}
         activeTabId={activeTabId}
@@ -236,46 +180,38 @@ const Workbench: React.FC = () => {
         onViewModeChange={handleViewModeChange}
         allowedViewModes={['code', 'diff', 'markdown', 'markdown-split', 'split-horizontal', 'split-vertical']}
         isMarkdownFile={isMarkdownFile()}
+        steamTheme={false}
       />
-      
+
       {/* Editor Area */}
-      <div ref={editorContainerRef} className="flex-1 relative overflow-hidden">
+      <div
+        ref={editorContainerRef}
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          background: '#1e1e1e',
+          position: 'relative',
+        }}
+      >
         {activeTab ? (
-          <EnhancedEditor
-            value={activeTab.content}
-            language={activeTab.language}
-            theme="vs-code-dark"
-            onChange={handleEditorChange}
-            onEditorMount={handleEditorMount}
-            fileName={activeTab.title}
-            defaultViewMode={currentViewMode}
-            allowedViewModes={['code', 'diff', 'markdown', 'markdown-split', 'split-horizontal', 'split-vertical']}
-            showToolbar={false}
-            onViewModeChange={handleViewModeChange}
-            options={{
-              fontSize: 14,
-              lineNumbers: 'on',
-              minimap: { enabled: true },
-              scrollBeyondLastLine: false,
-              wordWrap: 'on',
-              automaticLayout: true,
-              tabSize: 2,
-              insertSpaces: true,
-              renderWhitespace: 'selection',
-              bracketPairColorization: { enabled: true },
-              guides: {
-                bracketPairs: true,
-                indentation: true
-              }
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              position: 'relative',
             }}
+            data-editor-container="true"
+            data-file={activeTab.title}
           />
         ) : (
-          <div className="flex items-center justify-center h-full text-[var(--vscode-editor-foreground)] opacity-60">
-            <div className="text-center">
-              <p className="text-lg mb-2">No file open</p>
-              <p className="text-sm">Press Ctrl+N to create a new file</p>
-            </div>
-          </div>
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              position: 'relative',
+            }}
+          />
         )}
       </div>
     </div>

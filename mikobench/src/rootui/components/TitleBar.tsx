@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { editorMenu, type MenuSection, type MenuItem } from './data/menu';
-import Logo from "../assets/logo.png"
+import Logo from "../../assets/logo.png"
 interface WindowControlsAPI {
   minimize(): void;
   maximize(): void;
