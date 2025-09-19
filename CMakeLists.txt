@@ -157,8 +157,8 @@ add_executable(${PROJECT_NAME} WIN32
     app/client.cpp
     app/app.cpp
     app/webapp.cpp
-    app/BinaryResourceProvider.cpp
-    app/ResourceUtil.cpp
+    app/resources.cpp
+    app/resourceutil.cpp
 )
 
 # Add Windows resource file

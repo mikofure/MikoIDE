@@ -1,6 +1,7 @@
 #include "client.hpp"
 #include "config.hpp"
 #include "logger.hpp"
+#include "internal/simpleipc.hpp"
 #include "include/wrapper/cef_helpers.h"
 #include "include/cef_app.h"
 #include "include/views/cef_window.h"
@@ -122,6 +123,27 @@ bool SimpleClient::OnQuery(CefRefPtr<CefBrowser> browser,
             "if (window.createNewFileFromCEF) { window.createNewFileFromCEF(); }",
             browser->GetMainFrame()->GetURL(), 0);
         callback->Success("");
+        return true;
+    }
+    else if (request_str.substr(0, 9) == "ipc_call:") {
+        // Handle IPC calls: format is "ipc_call:method:message"
+        std::string remaining = request_str.substr(9);
+        size_t colon_pos = remaining.find(':');
+        
+        std::string method;
+        std::string message;
+        
+        if (colon_pos != std::string::npos) {
+            method = remaining.substr(0, colon_pos);
+            message = remaining.substr(colon_pos + 1);
+        } else {
+            method = remaining;
+            message = "";
+        }
+        
+        // Handle the IPC call using the singleton handler
+        std::string result = SimpleIPC::IPCHandler::GetInstance().HandleCall(method, message);
+        callback->Success(result);
         return true;
     }
     
@@ -393,6 +415,9 @@ void SimpleClient::OnLoadStart(CefRefPtr<CefBrowser> browser,
     if (frame->IsMain()) {
         std::string mode = AppConfig::IsDebugMode() ? "DEBUG" : "RELEASE";
         Logger::LogMessage("Loading page in " + mode + " mode...");
+        
+        // Initialize IPC system
+        SimpleIPC::InitializeIPC(frame);
     }
 }
 
@@ -445,12 +470,12 @@ bool SimpleClient::OnPreKeyEvent(CefRefPtr<CefBrowser> browser,
         }
         
         // Block Ctrl+Shift+I (Developer Tools)
-        if (event.windows_key_code == 'I' && 
-            (event.modifiers & EVENTFLAG_CONTROL_DOWN) && 
-            (event.modifiers & EVENTFLAG_SHIFT_DOWN)) {
-            Logger::LogMessage("Blocked Ctrl+Shift+I developer tools shortcut");
-            return true;
-        }
+        // if (event.windows_key_code == 'I' && 
+        //     (event.modifiers & EVENTFLAG_CONTROL_DOWN) && 
+        //     (event.modifiers & EVENTFLAG_SHIFT_DOWN)) {
+        //     Logger::LogMessage("Blocked Ctrl+Shift+I developer tools shortcut");
+        //     return true;
+        // }
         
         // Block Ctrl+Shift+J (Console)
         if (event.windows_key_code == 'J' && 

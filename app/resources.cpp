@@ -1,4 +1,4 @@
-#include "binaryresourceprovider.hpp"
+#include "resources.hpp"
 #include "resourceutil.hpp"
 #include "include/cef_response.h"
 #include "include/cef_stream.h"

@@ -7,9 +7,9 @@
 #include "webapp.hpp"
 
 // Application configuration constants
-#define APP_NAME "MikoIDE"
+#define APP_NAME "CEF Quickstart"
 #define APP_VERSION "1.0.0"
-#define APP_AUTHOR "Developer"
+#define APP_AUTHOR "Ariz Kamizuki"
 
 // Window configuration
 #define DEFAULT_WINDOW_WIDTH 1200

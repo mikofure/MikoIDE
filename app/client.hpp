@@ -10,7 +10,7 @@
 #include "include/cef_download_handler.h"
 #include "include/wrapper/cef_message_router.h"
 #include "include/cef_task.h"
-#include "binaryresourceprovider.hpp"
+#include "resources.hpp"
 #include <list>
 
 class SimpleClient;

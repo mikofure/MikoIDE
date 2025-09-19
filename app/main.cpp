@@ -36,7 +36,7 @@
 #include "logger.hpp"
 #include "client.hpp"
 #include "app.hpp"
-#include "binaryresourceprovider.hpp"
+#include "resources.hpp"
 
 // Global variables
 CefRefPtr<SimpleClient> g_client;
