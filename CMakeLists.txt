@@ -176,6 +176,7 @@ add_executable(${PROJECT_NAME} WIN32
     app/resources/editor.cpp
     app/resources/resources.cpp
     app/resources/resourceutil.cpp
+    app/renderer/dx11_renderer.cpp
     app/internal/simpleipc.cpp
     app/bootstrap/bootstrap.cpp
 )

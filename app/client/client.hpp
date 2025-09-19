@@ -21,6 +21,7 @@
 #include "include/wrapper/cef_message_router.h"
 #include "include/cef_task.h"
 #include "../resources/resources.hpp"
+#include "../renderer/dx11_renderer.hpp"
 #include <list>
 #include <memory>
 #include <string>
@@ -79,6 +80,11 @@ public:
     void UpdateTexture(const void* buffer, int width, int height);
     void SetClient(CefRefPtr<SimpleClient> client) { client_ = client; }
     
+    // DX11 Renderer integration
+    bool IsDX11Available() const { return dx11_renderer_ && dx11_renderer_->IsInitialized(); }
+    void EnableDX11Rendering(bool enable);
+    DX11Renderer* GetDX11Renderer() const { return dx11_renderer_.get(); }
+    
     // Window state
     bool IsMinimized() const { return minimized_; }
     bool IsMaximized() const { return maximized_; }
@@ -115,6 +121,10 @@ private:
     int drag_start_y_;
     int window_start_x_;
     int window_start_y_;
+    
+    // DX11 Renderer for performance optimization
+    std::unique_ptr<DX11Renderer> dx11_renderer_;
+    bool dx11_enabled_;
     
     void InitializeDwmApi();
     void UpdateWindowStyle();

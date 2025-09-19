@@ -40,7 +40,9 @@ SDL3Window::SDL3Window()
     , drag_start_x_(0)
     , drag_start_y_(0)
     , window_start_x_(0)
-    , window_start_y_(0) {
+    , window_start_y_(0)
+    , dx11_renderer_(nullptr)
+    , dx11_enabled_(false) {
 }
 
 SDL3Window::~SDL3Window() {
@@ -116,11 +118,29 @@ bool SDL3Window::Initialize(int width, int height) {
     ApplyRoundedCorners();
     UpdateWindowStyle();
 
+    // Initialize DX11 renderer for performance boost
+    dx11_renderer_ = std::make_unique<DX11Renderer>();
+    if (dx11_renderer_->Initialize(hwnd_, width_, height_)) {
+        dx11_enabled_ = true;
+        Logger::LogMessage("DX11 renderer initialized successfully - performance mode enabled");
+    } else {
+        dx11_enabled_ = false;
+        dx11_renderer_.reset();
+        Logger::LogMessage("DX11 renderer initialization failed - falling back to SDL3 rendering");
+    }
+
     Logger::LogMessage("SDL3Window initialized successfully");
     return true;
 }
 
 void SDL3Window::Shutdown() {
+    // Cleanup DX11 renderer first
+    if (dx11_renderer_) {
+        dx11_renderer_->Shutdown();
+        dx11_renderer_.reset();
+        dx11_enabled_ = false;
+    }
+    
     if (texture_) {
         SDL_DestroyTexture(texture_);
         texture_ = nullptr;
@@ -387,17 +407,31 @@ void SDL3Window::SendScrollEvent(const SDL_Event& event) {
 }
 
 void SDL3Window::UpdateTexture(const void* buffer, int width, int height) {
-    if (!renderer_) {
-        Logger::LogMessage("UpdateTexture: Renderer is null");
-        return;
-    }
-
     if (!buffer) {
         Logger::LogMessage("UpdateTexture: Buffer is null");
         return;
     }
 
     Logger::LogMessage("UpdateTexture: Received buffer " + std::to_string(width) + "x" + std::to_string(height));
+
+    // Try DX11 texture update first if available and enabled
+    if (dx11_enabled_ && dx11_renderer_) {
+        if (dx11_renderer_->UpdateTexture(buffer, width, height)) {
+            Logger::LogMessage("UpdateTexture: DX11 texture update succeeded");
+            return;
+        } else {
+            Logger::LogMessage("UpdateTexture: DX11 texture update failed, falling back to SDL3");
+            // Fall back to SDL3 texture update
+        }
+    }
+
+    // SDL3 fallback texture update
+    if (!renderer_) {
+        Logger::LogMessage("UpdateTexture: Renderer is null");
+        return;
+    }
+
+    Logger::LogMessage("UpdateTexture: Using SDL3 texture update pipeline");
 
     // Check if we need to create or recreate the texture
     bool needNewTexture = false;
@@ -459,6 +493,18 @@ void SDL3Window::UpdateTexture(const void* buffer, int width, int height) {
 }
 
 void SDL3Window::Render() {
+    // Try DX11 rendering first if available and enabled
+    if (dx11_enabled_ && dx11_renderer_) {
+        if (dx11_renderer_->Render()) {
+            // DX11 rendering succeeded
+            return;
+        } else {
+            Logger::LogMessage("Render: DX11 rendering failed, falling back to SDL3");
+            // Fall back to SDL3 rendering
+        }
+    }
+
+    // SDL3 fallback rendering
     if (!renderer_) {
         Logger::LogMessage("Render: Renderer is null");
         return;
@@ -469,20 +515,7 @@ void SDL3Window::Render() {
         return;
     }
 
-    // Get texture properties for debugging using SDL3 properties API
-    SDL_PropertiesID props = SDL_GetTextureProperties(texture_);
-    if (props) {
-        Uint32 format = (Uint32)SDL_GetNumberProperty(props, SDL_PROP_TEXTURE_FORMAT_NUMBER, 0);
-        int access = (int)SDL_GetNumberProperty(props, SDL_PROP_TEXTURE_ACCESS_NUMBER, 0);
-        int w = (int)SDL_GetNumberProperty(props, SDL_PROP_TEXTURE_WIDTH_NUMBER, 0);
-        int h = (int)SDL_GetNumberProperty(props, SDL_PROP_TEXTURE_HEIGHT_NUMBER, 0);
-        Logger::LogMessage("Render: Texture info - format=" + std::to_string(format) + ", access=" + std::to_string(access) + ", size=" + std::to_string(w) + "x" + std::to_string(h));
-    } else {
-        Logger::LogMessage("Render: Failed to get texture properties - " + std::string(SDL_GetError()));
-        return;
-    }
-
-    Logger::LogMessage("Render: Starting render cycle");
+    Logger::LogMessage("Render: Using SDL3 rendering pipeline");
 
     // Clear the renderer
     SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
@@ -757,8 +790,13 @@ bool SDL3Window::HandleWindowDragging(const SDL_Event& event) {
                     // Capture mouse to ensure we get all mouse events
                     SDL_CaptureMouse(true);
                     
-                    Logger::LogMessage("Window dragging started at (" + std::to_string(event.button.x) + ", " + std::to_string(event.button.y) + ")");
+                    Logger::LogMessage("Window dragging started at (" + std::to_string(event.button.x) + ", " + std::to_string(event.button.y) + ") - in draggable region");
                     return true; // Consume the event
+                } else {
+                    // Point is not in a draggable region, don't start dragging
+                    // Let the event pass through to CEF for normal interaction
+                    Logger::LogMessage("Mouse click at (" + std::to_string(event.button.x) + ", " + std::to_string(event.button.y) + ") - not in draggable region, passing to CEF");
+                    return false;
                 }
             }
             break;
@@ -843,19 +881,45 @@ void SimpleClient::OnDraggableRegionsChanged(
     // Store the draggable regions for window movement
     draggable_regions_ = regions;
     
-    Logger::LogMessage("Draggable regions updated: " + std::to_string(regions.size()) + " regions");
+    // Enhanced logging for debugging
+    Logger::LogMessage("Draggable regions updated. Total regions: " + std::to_string(regions.size()));
+    
+    for (size_t i = 0; i < regions.size(); ++i) {
+        const auto& region = regions[i];
+        std::string region_type = region.draggable ? "draggable" : "non-draggable";
+        Logger::LogMessage("Region " + std::to_string(i) + ": " + region_type + 
+                          " at (" + std::to_string(region.bounds.x) + ", " + std::to_string(region.bounds.y) + 
+                          ") size " + std::to_string(region.bounds.width) + "x" + std::to_string(region.bounds.height));
+    }
 }
 
 bool SimpleClient::IsPointInDragRegion(int x, int y) const {
+    // First, check if point is in any non-draggable region
+    // Non-draggable regions take priority over draggable ones
+    for (const auto& region : draggable_regions_) {
+        if (!region.draggable &&
+            x >= region.bounds.x &&
+            x < region.bounds.x + region.bounds.width &&
+            y >= region.bounds.y &&
+            y < region.bounds.y + region.bounds.height) {
+            // Point is in a non-draggable region (app-region: no-drag)
+            return false;
+        }
+    }
+    
+    // Then check if point is in any draggable region
     for (const auto& region : draggable_regions_) {
         if (region.draggable &&
             x >= region.bounds.x &&
-            y >= region.bounds.y &&
             x < region.bounds.x + region.bounds.width &&
+            y >= region.bounds.y &&
             y < region.bounds.y + region.bounds.height) {
+            // Point is in a draggable region (app-region: drag)
             return true;
         }
     }
+    
+    // Point is not in any defined region, default to non-draggable
     return false;
 }
 
@@ -1149,16 +1213,3 @@ void SimpleClient::SendMouseWheelEvent(int x, int y, int delta_x, int delta_y) {
     }
 }
 
-void SimpleClient::SendKeyEvent(const CefKeyEvent& event) {
-    auto browser = GetFirstBrowser();
-    if (browser) {
-        browser->GetHost()->SendKeyEvent(event);
-    }
-}
-
-void SimpleClient::SendFocusEvent(bool set_focus) {
-    auto browser = GetFirstBrowser();
-    if (browser) {
-        browser->GetHost()->SetFocus(set_focus);
-    }
-}
