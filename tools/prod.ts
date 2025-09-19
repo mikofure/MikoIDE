@@ -17,6 +17,21 @@ const isWindows = currentPlatform === 'win32';
 const isLinux = currentPlatform === 'linux';
 const isMacOS = currentPlatform === 'darwin';
 
+// Function to detect available PowerShell
+function detectPowerShell(): string {
+  try {
+    execSync('pwsh --version', { stdio: 'ignore' });
+    return 'pwsh';
+  } catch {
+    try {
+      execSync('powershell.exe -Command "Get-Host"', { stdio: 'ignore' });
+      return 'powershell.exe';
+    } catch {
+      throw new Error('Neither pwsh nor powershell.exe is available');
+    }
+  }
+}
+
 // Parse command line arguments
 const args = process.argv.slice(2);
 const isPortable = args.includes('--portable');
@@ -94,7 +109,8 @@ function createArchive(sourceDir: string, outputPath: string, excludePatterns: s
     
     // Create zip using PowerShell
     const powershellCmd = `Compress-Archive -Path "${tempDir}\\*" -DestinationPath "${outputPath}" -Force`;
-    execSync(powershellCmd, { shell: 'powershell.exe' });
+    const powershellExe = detectPowerShell();
+    execSync(powershellCmd, { shell: powershellExe });
     
     // Clean up temp directory
     rmSync(tempDir, { recursive: true, force: true });
