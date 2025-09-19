@@ -71,7 +71,7 @@ const Tab: React.FC<TabProps> = ({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    fontSize: '13px',
+    fontSize: '12px',
     fontFamily: mikoTheme ? 'system-ui, -apple-system, sans-serif' : 'inherit',
   });
 

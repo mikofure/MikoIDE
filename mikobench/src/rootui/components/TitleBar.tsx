@@ -181,7 +181,7 @@ export default function TitleBar() {
 
       {/* App Title and Menu */}
       <div className="flex items-center h-full">
-        <div className="px-3 text-xs text-[#cccccc] font-bold">
+        <div className="px-2 text-xs text-[#cccccc] font-bold flex items-center space-x-2" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
           <div className="h-5 w-5" style={{
             backgroundImage: `url(${Logo})`,
             backgroundSize: '16px',
@@ -189,6 +189,7 @@ export default function TitleBar() {
             backgroundPosition: 'center',
             WebkitAppRegion: 'no-drag'
           } as React.CSSProperties} />
+          <p>Hyperion</p>
         </div>
 
         {/* Menu Bar */}

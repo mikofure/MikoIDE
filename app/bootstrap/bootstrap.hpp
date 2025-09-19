@@ -9,9 +9,6 @@
 #include <d3d11.h>
 #include <dxgi.h>
 #include <wincodec.h>
-#include <shldisp.h>
-#include <comdef.h>
-#include <dwmapi.h>
 #include <string>
 #include <filesystem>
 #include <functional>
@@ -26,9 +23,6 @@
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "windowscodecs.lib")
-#pragma comment(lib, "ole32.lib")
-#pragma comment(lib, "oleaut32.lib")
-#pragma comment(lib, "dwmapi.lib")
 
 // Dialog resource IDs
 #define IDD_DOWNLOAD_DIALOG 1001
@@ -125,17 +119,15 @@ public:
 
 // Bootstrap class for managing CEF helper download and extraction
 class Bootstrap {
-public:
-    static bool s_cancelled;
-    
 private:
     static std::unique_ptr<ModernDialog> s_modern_dialog;
+    static bool s_cancelled;
     static std::string s_current_status;
     static int s_current_progress;
 
     static bool DownloadFile(const std::string& url, const std::filesystem::path& destination, ProgressCallback callback);
     static bool DownloadFileSingle(const std::string& url, const std::filesystem::path& destination, ProgressCallback callback);
-    static bool DownloadChunk(const std::string& url, ::DownloadChunk& chunk);
+    static bool DownloadChunk(const std::string& url, DownloadChunk& chunk);
     static size_t GetRemoteFileSize(const std::string& url);
     static bool ExtractZip(const std::filesystem::path& zipPath, const std::filesystem::path& extractPath, ProgressCallback callback);
     static void UpdateProgress(int percentage, const std::string& status, size_t bytesDownloaded = 0, size_t totalBytes = 0);

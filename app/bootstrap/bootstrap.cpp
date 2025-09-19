@@ -92,8 +92,6 @@ LRESULT CALLBACK ModernDialog::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, L
                 return 0;
                 
             case WM_CLOSE:
-                // Set cancellation flag to stop background processes
-                Bootstrap::s_cancelled = true;
                 pThis->Hide();
                 return 0;
                 
@@ -360,15 +358,6 @@ bool ModernDialog::Create(HINSTANCE hInstance, HWND hParent, const std::wstring&
         hInstance,
         this
     );
-    
-    if (m_hwnd) {
-        // Enable dark theme for title bar using DWM API
-        BOOL darkMode = TRUE;
-        DwmSetWindowAttribute(m_hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &darkMode, sizeof(darkMode));
-        
-        // Alternative attribute for older Windows versions
-        DwmSetWindowAttribute(m_hwnd, 20, &darkMode, sizeof(darkMode));
-    }
     
     return m_hwnd != nullptr;
 }
@@ -706,7 +695,6 @@ bool Bootstrap::DownloadFileSingle(const std::string& url, const std::filesystem
 // Extract ZIP file with improved error handling and progress
 bool Bootstrap::ExtractZip(const std::filesystem::path& zipPath, const std::filesystem::path& extractPath, ProgressCallback callback) {
     Logger::LogMessage("Starting ZIP extraction from: " + zipPath.string() + " to: " + extractPath.string());
-    Logger::LogMessage("Extracting filename: " + zipPath.filename().string());
     
     callback(0, "Initializing extraction...", 0, 0);
     
@@ -718,105 +706,91 @@ bool Bootstrap::ExtractZip(const std::filesystem::path& zipPath, const std::file
         return false;
     }
     
-    // Verify the ZIP file exists and is readable
-    if (!std::filesystem::exists(zipPath, ec) || ec) {
-        Logger::LogMessage("ZIP file does not exist: " + zipPath.string());
-        return false;
-    }
-    
-    callback(25, "Opening ZIP file for " + zipPath.filename().string() + "...", 0, 0);
-    
-    // Use Windows Shell API to extract ZIP file
+    // Use PowerShell to extract the ZIP file with better error handling
     std::wstring zipPathW = zipPath.wstring();
     std::wstring extractPathW = extractPath.wstring();
     
-    // Create shell folder objects
-    IShellDispatch* pShellDispatch = nullptr;
-    HRESULT hr = CoCreateInstance(CLSID_Shell, nullptr, CLSCTX_INPROC_SERVER, IID_IShellDispatch, (void**)&pShellDispatch);
-    if (FAILED(hr) || !pShellDispatch) {
-        Logger::LogMessage("Failed to create Shell dispatch object");
+    // Build PowerShell command with error handling
+    std::wstring psCommand = L"powershell.exe -Command \"try { Expand-Archive -Path '";
+    psCommand += zipPathW;
+    psCommand += L"' -DestinationPath '";
+    psCommand += extractPathW;
+    psCommand += L"' -Force; Write-Host 'SUCCESS' } catch { Write-Host 'ERROR:' $_.Exception.Message; exit 1 }\"";
+    
+    callback(25, "Starting PowerShell extraction...", 0, 0);
+    
+    STARTUPINFOW si = {};
+    PROCESS_INFORMATION pi = {};
+    si.cb = sizeof(si);
+    si.dwFlags = STARTF_USESHOWWINDOW;
+    si.wShowWindow = SW_HIDE;
+    
+    BOOL success = CreateProcessW(
+        nullptr,
+        const_cast<LPWSTR>(psCommand.c_str()),
+        nullptr,
+        nullptr,
+        FALSE,
+        0,
+        nullptr,
+        nullptr,
+        &si,
+        &pi
+    );
+    
+    if (success) {
+        callback(50, "Extracting files...", 0, 0);
+        
+        // Wait for the process to complete with timeout
+        DWORD waitResult = WaitForSingleObject(pi.hProcess, 300000); // 5 minute timeout
+        
+        if (waitResult == WAIT_TIMEOUT) {
+            Logger::LogMessage("ZIP extraction timed out");
+            TerminateProcess(pi.hProcess, 1);
+            CloseHandle(pi.hProcess);
+            CloseHandle(pi.hThread);
+            return false;
+        }
+        
+        DWORD exitCode;
+        GetExitCodeProcess(pi.hProcess, &exitCode);
+        
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+        
+        callback(75, "Verifying extraction...", 0, 0);
+        
+        if (exitCode == 0) {
+            // Verify extraction by checking if files exist
+            int extractedFiles = 0;
+            try {
+                for (const auto& entry : std::filesystem::recursive_directory_iterator(extractPath, ec)) {
+                    if (!ec && entry.is_regular_file()) {
+                        extractedFiles++;
+                    }
+                }
+            } catch (const std::exception& e) {
+                Logger::LogMessage("Error verifying extraction: " + std::string(e.what()));
+            }
+            
+            callback(100, "Extraction completed", extractedFiles, extractedFiles);
+            
+            if (extractedFiles > 0) {
+                Logger::LogMessage("ZIP extraction completed successfully - " + std::to_string(extractedFiles) + " files extracted");
+                return true;
+            } else {
+                Logger::LogMessage("ZIP extraction completed but no files found");
+                return false;
+            }
+        } else {
+            Logger::LogMessage("ZIP extraction failed with exit code: " + std::to_string(exitCode));
+            return false;
+        }
+    } else {
+        DWORD error = GetLastError();
+        Logger::LogMessage("Failed to start PowerShell extraction process. Error: " + std::to_string(error));
         return false;
     }
-    
-    callback(50, "Extracting files...", 0, 0);
-    
-    // Get the ZIP folder
-    VARIANT zipVar;
-    VariantInit(&zipVar);
-    zipVar.vt = VT_BSTR;
-    zipVar.bstrVal = SysAllocString(zipPathW.c_str());
-    
-    Folder* pZipFolder = nullptr;
-    hr = pShellDispatch->NameSpace(zipVar, &pZipFolder);
-    VariantClear(&zipVar);
-    
-    if (FAILED(hr) || !pZipFolder) {
-        Logger::LogMessage("Failed to open ZIP folder");
-        pShellDispatch->Release();
-        return false;
-    }
-    
-    // Get the destination folder
-    VARIANT destVar;
-    VariantInit(&destVar);
-    destVar.vt = VT_BSTR;
-    destVar.bstrVal = SysAllocString(extractPathW.c_str());
-    
-    Folder* pDestFolder = nullptr;
-    hr = pShellDispatch->NameSpace(destVar, &pDestFolder);
-    VariantClear(&destVar);
-    
-    if (FAILED(hr) || !pDestFolder) {
-        Logger::LogMessage("Failed to open destination folder");
-        pZipFolder->Release();
-        pShellDispatch->Release();
-        return false;
-    }
-    
-    callback(75, "Copying files...", 0, 0);
-    
-    // Get items from ZIP
-    FolderItems* pZipItems = nullptr;
-    hr = pZipFolder->Items(&pZipItems);
-    if (FAILED(hr) || !pZipItems) {
-        Logger::LogMessage("Failed to get ZIP items");
-        pDestFolder->Release();
-        pZipFolder->Release();
-        pShellDispatch->Release();
-        return false;
-    }
-    
-    // Copy all items with no UI and overwrite existing files
-    VARIANT vOptions;
-    VariantInit(&vOptions);
-    vOptions.vt = VT_I4;
-    vOptions.lVal = FOF_NO_UI | FOF_NOCONFIRMATION | FOF_NOERRORUI;
-    
-    VARIANT vItems;
-    VariantInit(&vItems);
-    vItems.vt = VT_DISPATCH;
-    vItems.pdispVal = pZipItems;
-    
-    hr = pDestFolder->CopyHere(vItems, vOptions);
-    
-    VariantClear(&vItems);
-    VariantClear(&vOptions);
-    
-    // Cleanup
-    pZipItems->Release();
-    pDestFolder->Release();
-    pZipFolder->Release();
-    pShellDispatch->Release();
-    
-    if (FAILED(hr)) {
-        Logger::LogMessage("Failed to extract ZIP file using Shell API");
-        return false;
-    }
-    
-    callback(100, "Extraction completed for " + zipPath.filename().string(), 0, 0);
-    Logger::LogMessage("ZIP extraction completed successfully using Windows Shell API");
-    
-    return true;
 }
 
 // Check if CEF helper exists and download if necessary
@@ -931,11 +905,6 @@ BootstrapResult Bootstrap::CheckAndDownloadCEFHelper(HINSTANCE hInstance, HWND h
                 TranslateMessage(&msg);
                 DispatchMessage(&msg);
             }
-        }
-        
-        // Check if extraction thread has finished
-        if (extractThread.joinable()) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
     }
     

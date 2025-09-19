@@ -190,7 +190,7 @@ const Workbench: React.FC = () => {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          background: '#1e1e1e',
+          background: '#000000',
           position: 'relative',
         }}
       >
