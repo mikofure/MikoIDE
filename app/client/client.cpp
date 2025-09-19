@@ -1,7 +1,7 @@
 #include "../client/client.hpp"
 #include "../utils/config.hpp"
 #include "../utils/logger.hpp"
-#include "internal/simpleipc.hpp"
+#include "../internal/simpleipc.hpp"
 #include "include/wrapper/cef_helpers.h"
 #include "include/cef_app.h"
 #include <SDL3/SDL.h>

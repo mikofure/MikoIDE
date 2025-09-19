@@ -25,7 +25,7 @@
 #include "utils/logger.hpp"
 #include "internal/simpleipc.hpp"
 #include "resources/resources.hpp"
-
+#include "client/app.hpp"
 #pragma comment(lib, "shlwapi.lib")
 
 #define SDL_MAIN_HANDLED
@@ -51,7 +51,7 @@ std::string GetDataURI(const std::string& data, const std::string& mime_type);
 std::string GetDownloadPath(const std::string& suggested_name);
 
 // Simple CEF App implementation for OSR
-#include "app.hpp"
+
 
 // Handle SDL events and CEF message loop
 void HandleEvents() {

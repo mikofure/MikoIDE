@@ -7,10 +7,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Determine the target output directory based on platform and generator
 if(CMAKE_CONFIGURATION_TYPES)
     # Multi-config generators (Visual Studio, Xcode)
-    set(CRASHPAD_TARGET_OUT_DIR "${CMAKE_BINARY_DIR}/bin/$<CONFIGURATION>")
+    set(CRASHPAD_TARGET_OUT_DIR "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 else()
     # Single-config generators (Ninja, Make)
-    set(CRASHPAD_TARGET_OUT_DIR "${CMAKE_BINARY_DIR}/bin/${CMAKE_BUILD_TYPE}")
+    set(CRASHPAD_TARGET_OUT_DIR "${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}")
 endif()
 
 # Create crashpad_handler executable

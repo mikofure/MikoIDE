@@ -12,8 +12,8 @@
 #include "include/wrapper/cef_closure_task.h"
 #include "include/base/cef_bind.h"
 
-#include "../app.hpp"
-#include "../logger.hpp"
+#include "../client/app.hpp"
+#include "../utils/logger.hpp"
 
 // WebHelper subprocess entry point
 int WINAPI WinMain(HINSTANCE hInstance,
