@@ -76,7 +76,7 @@ function main(): void {
     const htmlFile = join(projectRoot, 'mikobench', 'dist', 'index.html');
     
     // Output file paths
-    const appDir = join(projectRoot, 'app');
+    const appDir = join(projectRoot, 'app', 'resources');
     const cppFile = join(appDir, 'webapp.cpp');
     const hppFile = join(appDir, 'webapp.hpp');
     
