@@ -10,7 +10,6 @@ interface EditorState {
   theme: string;
   filename: string;
   isDirty: boolean;
-  steamTheme: boolean;
 }
   //@ts-expect-error
 interface EditorMessage {
@@ -21,11 +20,10 @@ interface EditorMessage {
 const EditorApp: React.FC = () => {
   const [editorState, setEditorState] = useState<EditorState>({
     content: '',
+    theme: 'vs-dark',
     language: 'typescript',
-    theme: 'steam-dark',
     filename: 'untitled.ts',
     isDirty: false,
-    steamTheme: true,
   });
     //@ts-expect-error
   const [editorInstance, setEditorInstance] = useState<monaco.editor.IStandaloneCodeEditor | null>(null);
@@ -64,11 +62,11 @@ const EditorApp: React.FC = () => {
         }));
       };
 
-      const handleThemeChanged = (data: { theme: string; steamTheme: boolean }) => {
+      const handleThemeChanged = (data: { theme: string; mikoTheme: boolean }) => {
         setEditorState(prev => ({
           ...prev,
           theme: data.theme,
-          steamTheme: data.steamTheme
+          mikoTheme: data.mikoTheme
         }));
       };
 
@@ -190,9 +188,7 @@ const EditorApp: React.FC = () => {
       style={{
         width: '100vw',
         height: '100vh',
-        background: editorState.steamTheme 
-          ? 'linear-gradient(135deg, #1b2838 0%, #2a475e 50%, #1b2838 100%)'
-          : '#1e1e1e',
+        background:  '#1e1e1e',
         display: 'flex',
         flexDirection: 'column',
       }}
@@ -206,7 +202,6 @@ const EditorApp: React.FC = () => {
           theme={editorState.theme}
           onChange={handleContentChange}
           onMount={setEditorInstance}
-          steamTheme={editorState.steamTheme}
         />
       </div>
     </div>

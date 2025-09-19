@@ -5,3 +5,4 @@ node_modules
 vscode
 out/**
 # ref
+app/resources/editor.cpp

@@ -7,7 +7,7 @@
   ],
   "scripts": {
     "dev": "bun --cwd mikobench dev",
-    "build": "bun --cwd mikobench vite build",
+    "build": "bun --cwd mikobench buildweb.ts",
     "preview": "bun --cwd mikobench run preview",
     "build:cmake": "bun run tools/build.ts",
     "build:win" : "bun run build && bun run buildtobin && bun run build:cmake",

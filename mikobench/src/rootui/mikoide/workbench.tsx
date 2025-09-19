@@ -180,7 +180,7 @@ const Workbench: React.FC = () => {
         onViewModeChange={handleViewModeChange}
         allowedViewModes={['code', 'diff', 'markdown', 'markdown-split', 'split-horizontal', 'split-vertical']}
         isMarkdownFile={isMarkdownFile()}
-        steamTheme={false}
+        mikoTheme={false}
       />
 
       {/* Editor Area */}

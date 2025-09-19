@@ -26,6 +26,7 @@
 #include "internal/simpleipc.hpp"
 #include "resources/resources.hpp"
 #include "client/app.hpp"
+#include "bootstrap/bootstrap.hpp"
 #pragma comment(lib, "shlwapi.lib")
 
 #define SDL_MAIN_HANDLED
@@ -130,6 +131,41 @@ int WINAPI WinMain(HINSTANCE hInstance,
     const std::filesystem::path cefDir     = exeDir / L"bin" / L"cef" / platform;
     const std::filesystem::path helperPath = cefDir / L"mikowebhelper.exe";
     const std::filesystem::path cachePath  = exeDir / L"cache";
+
+    // Bootstrap: Check if CEF helper exists and download if necessary
+    Logger::LogMessage("Bootstrap: Checking CEF helper availability...");
+    BootstrapResult bootstrapResult = Bootstrap::CheckAndDownloadCEFHelper(hInstance);
+    
+    switch (bootstrapResult) {
+        case BootstrapResult::SUCCESS:
+            Logger::LogMessage("Bootstrap: CEF helper downloaded successfully, restarting application...");
+            Bootstrap::RelaunchApplication();
+            return 0;
+            
+        case BootstrapResult::ALREADY_EXISTS:
+            Logger::LogMessage("Bootstrap: CEF helper already exists, continuing...");
+            break;
+            
+        case BootstrapResult::USER_CANCELLED:
+            Logger::LogMessage("Bootstrap: User cancelled download");
+            MessageBoxA(nullptr, "CEF helper download was cancelled. The application cannot start without it.", "MikoIDE", MB_OK | MB_ICONERROR);
+            return 1;
+            
+        case BootstrapResult::DOWNLOAD_FAILED:
+            Logger::LogMessage("Bootstrap: Failed to download CEF helper");
+            MessageBoxA(nullptr, "Failed to download CEF helper. Please check your internet connection and try again.", "MikoIDE", MB_OK | MB_ICONERROR);
+            return 1;
+            
+        case BootstrapResult::EXTRACT_FAILED:
+            Logger::LogMessage("Bootstrap: Failed to extract CEF helper");
+            MessageBoxA(nullptr, "Failed to extract CEF helper. Please try running as administrator.", "MikoIDE", MB_OK | MB_ICONERROR);
+            return 1;
+            
+        default:
+            Logger::LogMessage("Bootstrap: Unknown error occurred");
+            MessageBoxA(nullptr, "An unknown error occurred during bootstrap. Please try again.", "MikoIDE", MB_OK | MB_ICONERROR);
+            return 1;
+    }
 
     // Set DLL search paths BEFORE CefExecuteProcess
     HMODULE k32 = GetModuleHandleW(L"kernel32.dll");

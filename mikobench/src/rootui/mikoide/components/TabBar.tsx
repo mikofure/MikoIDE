@@ -24,7 +24,7 @@ export interface TabBarProps {
   allowedViewModes?: ViewMode[];
   isMarkdownFile?: boolean;
   className?: string;
-  steamTheme?: boolean;
+  mikoTheme?: boolean;
 }
 
 const TabBar: React.FC<TabBarProps> = ({
@@ -34,7 +34,7 @@ const TabBar: React.FC<TabBarProps> = ({
   onTabClose,
   onNewTab,
   className = '',
-  steamTheme = true,
+  mikoTheme = true,
   //@ts-expect-error
   ...props
 }) => {
@@ -50,8 +50,8 @@ const TabBar: React.FC<TabBarProps> = ({
     onNewTab?.();
   };
 
-  // Steam Client inspired styling
-  const tabBarStyle: React.CSSProperties = steamTheme ? {
+  // miko Client inspired styling
+  const tabBarStyle: React.CSSProperties = mikoTheme ? {
     display: 'flex',
     background: 'linear-gradient(180deg, #2a475e 0%, #1b2838 100%)',
     borderBottom: '2px solid #66c0f4',
@@ -90,22 +90,22 @@ const TabBar: React.FC<TabBarProps> = ({
             isDirty={tab.isDirty}
             onClick={() => handleTabClick(tab.id)}
             onClose={tab.closable !== false ? () => handleTabClose(tab.id) : undefined}
-            steamTheme={steamTheme}
+            mikoTheme={mikoTheme}
           />
         ))}
       </div>
 
-      {/* New tab button - Steam Client inspired */}
+      {/* New tab button - miko Client inspired */}
       {onNewTab && (
         <button
           onClick={handleNewTab}
           className="new-tab-button"
           style={{
-            background: steamTheme 
+            background: mikoTheme 
               ? 'linear-gradient(180deg, #66c0f4 0%, #417a9b 100%)'
               : '#3e3e42',
             border: 'none',
-            color: steamTheme ? '#171a21' : '#ffffff',
+            color: mikoTheme ? '#171a21' : '#ffffff',
             cursor: 'pointer',
             padding: '0 12px',
             fontSize: '16px',
@@ -115,18 +115,18 @@ const TabBar: React.FC<TabBarProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            borderLeft: steamTheme ? '1px solid #2a475e' : '1px solid #3e3e42',
+            borderLeft: mikoTheme ? '1px solid #2a475e' : '1px solid #3e3e42',
             transition: 'all 0.2s ease',
           }}
           onMouseEnter={(e) => {
-            if (steamTheme) {
+            if (mikoTheme) {
               e.currentTarget.style.background = 'linear-gradient(180deg, #7dd3fc 0%, #4a90b8 100%)';
             } else {
               e.currentTarget.style.backgroundColor = '#4e4e52';
             }
           }}
           onMouseLeave={(e) => {
-            if (steamTheme) {
+            if (mikoTheme) {
               e.currentTarget.style.background = 'linear-gradient(180deg, #66c0f4 0%, #417a9b 100%)';
             } else {
               e.currentTarget.style.backgroundColor = '#3e3e42';

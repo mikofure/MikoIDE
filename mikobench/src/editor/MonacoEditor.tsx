@@ -18,14 +18,14 @@ interface StandaloneEditorProps {
     width: number;
     height: number;
   };
-  // Steam Client inspired styling
-  steamTheme?: boolean;
+  // miko Client inspired styling
+  mikoTheme?: boolean;
 }
 
 const StandaloneEditor: React.FC<StandaloneEditorProps> = ({
   value = '',
   language = 'javascript',
-  theme = 'steam-dark',
+  theme = 'miko-dark',
   onChange,
   onMount,
   options = {},
@@ -40,9 +40,9 @@ const StandaloneEditor: React.FC<StandaloneEditorProps> = ({
   const [editor, setEditor] = useState<monaco.editor.IStandaloneCodeEditor | null>(null);
   const [isEditorReady, setIsEditorReady] = useState(false);
 
-  // Steam Client inspired theme
-  const setupSteamTheme = useCallback(() => {
-    monaco.editor.defineTheme('steam-dark', {
+  // miko Client inspired theme
+  const setupmikoTheme = useCallback(() => {
+    monaco.editor.defineTheme('miko-dark', {
       base: 'vs-dark',
       inherit: true,
       rules: [
@@ -78,7 +78,7 @@ const StandaloneEditor: React.FC<StandaloneEditorProps> = ({
       }
     });
 
-    monaco.editor.defineTheme('steam-light', {
+    monaco.editor.defineTheme('miko-light', {
       base: 'vs',
       inherit: true,
       rules: [
@@ -90,7 +90,7 @@ const StandaloneEditor: React.FC<StandaloneEditorProps> = ({
         { token: 'function', foreground: '795E26' },
       ],
       colors: {
-        'editor.background': '#c7d5e0', // Steam's light background
+        'editor.background': '#c7d5e0', // miko's light background
         'editor.foreground': '#171a21', // Dark text on light background
         'editorLineNumber.foreground': '#1b2838',
         'editor.selectionBackground': '#66c0f4',
@@ -107,7 +107,7 @@ const StandaloneEditor: React.FC<StandaloneEditorProps> = ({
   useEffect(() => {
     if (!containerRef.current) return;
 
-    setupSteamTheme();
+    setupmikoTheme();
 
     const defaultOptions: monaco.editor.IStandaloneEditorConstructionOptions = {
       value,
@@ -127,7 +127,7 @@ const StandaloneEditor: React.FC<StandaloneEditorProps> = ({
         bracketPairs: true,
         indentation: true
       },
-      // Steam Client inspired options
+      // miko Client inspired options
       fontFamily: 'Consolas, "Courier New", monospace',
       lineHeight: 20,
       letterSpacing: 0.5,
@@ -196,7 +196,7 @@ const StandaloneEditor: React.FC<StandaloneEditorProps> = ({
     }
   }, [position, editor]);
 
-  // Steam Client inspired container styling
+  // miko Client inspired container styling
   const containerStyle: React.CSSProperties = {
     width,
     height,

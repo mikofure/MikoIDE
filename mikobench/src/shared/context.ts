@@ -110,7 +110,7 @@ export interface WorkbenchEvents {
   };
   'workbench:themeChanged': {
     theme: string;
-    steamTheme: boolean;
+    mikoTheme: boolean;
   };
   'workbench:tabClosed': {
     file: string;

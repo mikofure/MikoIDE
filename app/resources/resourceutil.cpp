@@ -1,5 +1,6 @@
 #include "resourceutil.hpp"
 #include "webapp.hpp"
+#include "editor.hpp"
 #include <map>
 #include <algorithm>
 #include "include/cef_stream.h"
@@ -9,6 +10,7 @@ namespace ResourceUtil {
     // Resource path to ID mapping
     static const std::map<std::string, int> resourceMap = {
         {"/index.html", IDR_HTML_INDEX},
+        {"/editor.html", IDR_HTML_EDITOR},
         {"/main.css", IDR_CSS_MAIN},
         {"/main.js", IDR_JS_MAIN}
     };
@@ -26,6 +28,15 @@ namespace ResourceUtil {
         if (resource_id == IDR_HTML_INDEX) {
             const char* html_content = GetWebAppHTML();
             unsigned int html_size = GetWebAppHTMLSize();
+            
+            std::vector<uint8_t> data(html_content, html_content + html_size);
+            return data;
+        }
+
+        // Load HTML content from editor.hpp
+        if (resource_id == IDR_HTML_EDITOR) {
+            const char* html_content = GetEditorHTML();
+            unsigned int html_size = GetEditorHTMLSize();
             
             std::vector<uint8_t> data(html_content, html_content + html_size);
             return data;

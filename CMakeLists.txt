@@ -7,6 +7,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Include FetchContent for downloading dependencies
 include(FetchContent)
 
+# Remove zlib FetchContent since we'll use Windows Shell API
+# FetchContent_Declare(
+#     zlib
+#     GIT_REPOSITORY https://github.com/madler/zlib.git
+#     GIT_TAG master
+#     GIT_SHALLOW TRUE
+# )
+# 
+# FetchContent_MakeAvailable(zlib)
+
 # Download and build SDL3
 FetchContent_Declare(
     SDL3
@@ -163,9 +173,11 @@ add_executable(${PROJECT_NAME} WIN32
     app/client/client.cpp
     app/client/app.cpp
     app/resources/webapp.cpp
+    app/resources/editor.cpp
     app/resources/resources.cpp
     app/resources/resourceutil.cpp
     app/internal/simpleipc.cpp
+    app/bootstrap/bootstrap.cpp
 )
 
 # Add WebHelper subprocess executable
@@ -206,6 +218,21 @@ target_link_libraries(${PROJECT_NAME}
     libcef_dll_wrapper
     ${CEF_STANDARD_LIBS}
 )
+
+# Add Windows-specific libraries for D2D1 and DWrite
+if(WIN32)
+    target_link_libraries(${PROJECT_NAME}
+        d2d1
+        dwrite
+        d3d11
+        dxgi
+        windowscodecs
+        # Windows system libraries
+        dwmapi
+        shell32
+        ole32
+    )
+endif()
 
 # Link CEF libraries for webhelper subprocess
 target_link_libraries(mikowebhelper

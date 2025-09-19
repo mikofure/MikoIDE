@@ -10,7 +10,7 @@
 #define APP_NAME "Hyperion"
 #define APP_VERSION "0.1.0"
 #define APP_AUTHOR "Ariz Kamizuki"
-#define CEF_VERSION_RUNTIME ""
+#define CEF_HELPER_URL "https://github.com/mikofure/MikoIDE/releases/download/v0.1.0-alpha3/mikowebhelper-win64.zip"
 
 // Window configuration
 #define DEFAULT_WINDOW_WIDTH 1200

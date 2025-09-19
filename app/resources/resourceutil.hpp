@@ -7,6 +7,7 @@ namespace ResourceUtil {
     // Resource ID definitions
     enum ResourceId {
         IDR_HTML_INDEX = 100,
+        IDR_HTML_EDITOR = 103,
         IDR_CSS_MAIN = 101,
         IDR_JS_MAIN = 102
     };

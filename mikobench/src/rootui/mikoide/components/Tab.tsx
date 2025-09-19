@@ -7,7 +7,7 @@ export interface TabProps {
   onClose?: () => void;
   onClick?: () => void;
   className?: string;
-  steamTheme?: boolean;
+  mikoTheme?: boolean;
 }
 
 const Tab: React.FC<TabProps> = ({
@@ -17,7 +17,7 @@ const Tab: React.FC<TabProps> = ({
   onClose,
   onClick,
   className = '',
-  steamTheme = true,
+  mikoTheme = true,
 }) => {
   const handleClose = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -28,9 +28,9 @@ const Tab: React.FC<TabProps> = ({
     onClick?.();
   };
 
-  // Steam Client inspired styling
+  // miko Client inspired styling
   const getTabStyle = (): React.CSSProperties => {
-    if (steamTheme) {
+    if (mikoTheme) {
       return {
         display: 'flex',
         alignItems: 'center',
@@ -72,12 +72,12 @@ const Tab: React.FC<TabProps> = ({
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
     fontSize: '13px',
-    fontFamily: steamTheme ? 'system-ui, -apple-system, sans-serif' : 'inherit',
+    fontFamily: mikoTheme ? 'system-ui, -apple-system, sans-serif' : 'inherit',
   });
 
   const getDirtyIndicatorStyle = (): React.CSSProperties => ({
     marginLeft: '6px',
-    color: steamTheme 
+    color: mikoTheme 
       ? (isActive ? '#171a21' : '#66c0f4')
       : '#f0f0f0',
     fontWeight: 'bold',
@@ -88,12 +88,12 @@ const Tab: React.FC<TabProps> = ({
     marginLeft: '8px',
     background: 'none',
     border: 'none',
-    color: steamTheme 
+    color: mikoTheme 
       ? (isActive ? '#171a21' : '#c7d5e0')
       : '#cccccc',
     cursor: 'pointer',
     padding: '2px',
-    borderRadius: steamTheme ? '3px' : '2px',
+    borderRadius: mikoTheme ? '3px' : '2px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -110,12 +110,12 @@ const Tab: React.FC<TabProps> = ({
       onClick={handleClick}
       style={getTabStyle()}
       onMouseEnter={(e) => {
-        if (!isActive && steamTheme) {
+        if (!isActive && mikoTheme) {
           e.currentTarget.style.background = 'linear-gradient(180deg, #3a5a7a 0%, #2a475e 100%)';
         }
       }}
       onMouseLeave={(e) => {
-        if (!isActive && steamTheme) {
+        if (!isActive && mikoTheme) {
           e.currentTarget.style.background = 'linear-gradient(180deg, #2a475e 0%, #1b2838 100%)';
         }
       }}
@@ -134,7 +134,7 @@ const Tab: React.FC<TabProps> = ({
           onClick={handleClose}
           style={getCloseButtonStyle()}
           onMouseEnter={(e) => {
-            if (steamTheme) {
+            if (mikoTheme) {
               e.currentTarget.style.backgroundColor = isActive 
                 ? 'rgba(23, 26, 33, 0.2)'
                 : 'rgba(102, 192, 244, 0.2)';
