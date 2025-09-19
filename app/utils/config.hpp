@@ -72,7 +72,8 @@ public:
     
     static std::string GetStartupUrl() {
         if (IsDebugMode()) {
-            return "http://localhost:5173";
+            // return "http://localhost:5173";
+            return "miko://app/index.html";
         } else {
             // Use custom scheme for embedded resources
             return "miko://app/index.html";
