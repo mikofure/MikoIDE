@@ -263,6 +263,8 @@ bool SDL3Window::HandleEvent(const SDL_Event& event) {
             width_ = event.window.data1;
             height_ = event.window.data2;
             
+            Logger::LogMessage("Window resized to " + std::to_string(width_) + "x" + std::to_string(height_));
+            
             // Recreate texture with new size
             if (texture_) {
                 SDL_DestroyTexture(texture_);
@@ -272,6 +274,7 @@ bool SDL3Window::HandleEvent(const SDL_Event& event) {
                     Logger::LogMessage("Resize: Failed to recreate texture - " + std::string(SDL_GetError()));
                 } else {
                     SDL_SetTextureBlendMode(texture_, SDL_BLENDMODE_NONE);
+                    Logger::LogMessage("Resize: Texture recreated successfully");
                 }
             }
             
@@ -280,6 +283,7 @@ bool SDL3Window::HandleEvent(const SDL_Event& event) {
                 auto browser = client_->GetFirstBrowser();
                 if (browser) {
                     browser->GetHost()->WasResized();
+                    Logger::LogMessage("Resize: Notified CEF browser of size change");
                 }
             }
             return true;
@@ -733,6 +737,11 @@ bool SDL3Window::HandleWindowDragging(const SDL_Event& event) {
                     
                     // Get current window position
                     SDL_GetWindowPosition(window_, &window_start_x_, &window_start_y_);
+                    
+                    // Capture mouse to ensure we get all mouse events
+                    SDL_CaptureMouse(true);
+                    
+                    Logger::LogMessage("Window dragging started at (" + std::to_string(event.button.x) + ", " + std::to_string(event.button.y) + ")");
                     return true; // Consume the event
                 }
             }
@@ -741,15 +750,28 @@ bool SDL3Window::HandleWindowDragging(const SDL_Event& event) {
         case SDL_EVENT_MOUSE_BUTTON_UP:
             if (event.button.button == SDL_BUTTON_LEFT && is_dragging_) {
                 is_dragging_ = false;
+                
+                // Release mouse capture
+                SDL_CaptureMouse(false);
+                
+                Logger::LogMessage("Window dragging stopped");
                 return true; // Consume the event
             }
             break;
             
         case SDL_EVENT_MOUSE_MOTION:
             if (is_dragging_) {
+                // Use global mouse position for more accurate dragging
+                float global_x, global_y;
+                SDL_GetGlobalMouseState(&global_x, &global_y);
+                
+                // Calculate offset from drag start position
+                int offset_x = (int)global_x - (window_start_x_ + drag_start_x_);
+                int offset_y = (int)global_y - (window_start_y_ + drag_start_y_);
+                
                 // Calculate new window position
-                int new_x = window_start_x_ + (event.motion.x - drag_start_x_);
-                int new_y = window_start_y_ + (event.motion.y - drag_start_y_);
+                int new_x = window_start_x_ + offset_x;
+                int new_y = window_start_y_ + offset_y;
                 
                 // Move the window
                 SDL_SetWindowPosition(window_, new_x, new_y);

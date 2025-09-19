@@ -7,9 +7,10 @@
 #include "webapp.hpp"
 
 // Application configuration constants
-#define APP_NAME "CEF Quickstart"
-#define APP_VERSION "1.0.0"
+#define APP_NAME "Hyperion"
+#define APP_VERSION "0.1.0"
 #define APP_AUTHOR "Ariz Kamizuki"
+#define CEF_VERSION_RUNTIME ""
 
 // Window configuration
 #define DEFAULT_WINDOW_WIDTH 1200
