@@ -4,7 +4,7 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
-#include "webapp.hpp"
+#include "../resources/webapp.hpp"
 
 // Application configuration constants
 #define APP_NAME "Hyperion"

@@ -20,7 +20,7 @@
 #include "include/cef_render_handler.h"
 #include "include/wrapper/cef_message_router.h"
 #include "include/cef_task.h"
-#include "resources.hpp"
+#include "../resources/resources.hpp"
 #include <list>
 #include <memory>
 #include <string>

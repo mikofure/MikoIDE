@@ -122,13 +122,19 @@ list(APPEND CMAKE_MODULE_PATH "${CEF_ROOT}/cmake")
 # Find CEF
 find_package(CEF REQUIRED)
 
+# -------------------------------------------------
+# Output Directories (Release/Debug)
+# -------------------------------------------------
+set(CEF_OUT_DIR_RELEASE "${CMAKE_BINARY_DIR}/Release/bin/cef/${CEF_PLATFORM}")
+set(CEF_OUT_DIR_DEBUG   "${CMAKE_BINARY_DIR}/Debug/bin/cef/${CEF_PLATFORM}")
+
 # Determine the target output directory based on platform and generator
 if(CMAKE_CONFIGURATION_TYPES)
     # Multi-config generators (Visual Studio, Xcode)
-    set(CEF_TARGET_OUT_DIR "${CMAKE_BINARY_DIR}/bin/$<CONFIGURATION>")
+    set(CEF_TARGET_OUT_DIR "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 else()
     # Single-config generators (Ninja, Make)
-    set(CEF_TARGET_OUT_DIR "${CMAKE_BINARY_DIR}/bin/${CMAKE_BUILD_TYPE}")
+    set(CEF_TARGET_OUT_DIR "${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}")
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CEF_TARGET_OUT_DIR})
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CEF_TARGET_OUT_DIR})
 endif()
@@ -150,31 +156,49 @@ if(OS_WINDOWS)
     add_subdirectory("${CEF_ROOT}/libcef_dll" libcef_dll_wrapper)
 endif()
 
-# Add executable as Windows application (no console)
+# Add main executable as Windows application (no console)
 add_executable(${PROJECT_NAME} WIN32
     app/main.cpp
-    app/logger.cpp
-    app/client.cpp
-    app/app.cpp
-    app/webapp.cpp
-    app/resources.cpp
-    app/resourceutil.cpp
+    app/utils/logger.cpp
+    app/client/client.cpp
+    app/client/app.cpp
+    app/resources/webapp.cpp
+    app/resources/resources.cpp
+    app/resources/resourceutil.cpp
+    app/internal/simpleipc.cpp
+)
+
+# Add WebHelper subprocess executable
+add_executable(mikowebhelper WIN32
+    app/webhelper/main.cpp
+    app/utils/logger.cpp
+    app/client/app.cpp
 )
 
 # Add Windows resource file
 if(WIN32)
     target_sources(${PROJECT_NAME} PRIVATE shared/windows/assets/app.rc)
+    target_sources(mikowebhelper PRIVATE shared/windows/assets/webhelper.rc)
 endif()
 
 # Set target properties using CEF macros
 SET_EXECUTABLE_TARGET_PROPERTIES(${PROJECT_NAME})
+SET_EXECUTABLE_TARGET_PROPERTIES(mikowebhelper)
 
 # Set target properties for consistent output directory
 set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CEF_TARGET_OUT_DIR}"
+    OUTPUT_NAME "${PROJECT_NAME}"
 )
 
-# Link SDL3 and CEF libraries
+# Set webhelper output properties - place in CEF directory structure
+set_target_properties(mikowebhelper PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CEF_OUT_DIR_DEBUG}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CEF_OUT_DIR_RELEASE}"
+    OUTPUT_NAME "mikowebhelper"
+)
+
+# Link SDL3 and CEF libraries for main executable
 target_link_libraries(${PROJECT_NAME}
     SDL3::SDL3
     SDL3::SDL3-shared
@@ -183,20 +207,33 @@ target_link_libraries(${PROJECT_NAME}
     ${CEF_STANDARD_LIBS}
 )
 
-# Include directories
+# Link CEF libraries for webhelper subprocess
+target_link_libraries(mikowebhelper
+    libcef_lib
+    libcef_dll_wrapper
+    ${CEF_STANDARD_LIBS}
+)
+
+# Include directories for both executables
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CEF_ROOT}
 )
 
-# Copy CEF binaries and resources to output directory
+target_include_directories(mikowebhelper PRIVATE
+    ${CEF_ROOT}
+)
+
+# Copy CEF binaries and resources to CEF directory only
 if(OS_WINDOWS)
-    # Copy CEF binary files
-    COPY_FILES("${PROJECT_NAME}" "${CEF_BINARY_FILES}" "${CEF_BINARY_DIR}" "${CEF_TARGET_OUT_DIR}")
+    # Copy CEF binary files only to CEF directories (not to main app directory)
+    COPY_FILES("mikowebhelper" "${CEF_BINARY_FILES}" "${CEF_BINARY_DIR}" "${CEF_OUT_DIR_DEBUG}")
+    COPY_FILES("mikowebhelper" "${CEF_BINARY_FILES}" "${CEF_BINARY_DIR}" "${CEF_OUT_DIR_RELEASE}")
     
-    # Copy CEF resource files
-    COPY_FILES("${PROJECT_NAME}" "${CEF_RESOURCE_FILES}" "${CEF_RESOURCE_DIR}" "${CEF_TARGET_OUT_DIR}")
+    # Copy CEF resource files only to CEF directories (not to main app directory)
+    COPY_FILES("mikowebhelper" "${CEF_RESOURCE_FILES}" "${CEF_RESOURCE_DIR}" "${CEF_OUT_DIR_DEBUG}")
+    COPY_FILES("mikowebhelper" "${CEF_RESOURCE_FILES}" "${CEF_RESOURCE_DIR}" "${CEF_OUT_DIR_RELEASE}")
     
-    # Copy SDL3 DLL to output directory
+    # Copy SDL3 DLL to main app directory only
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:SDL3::SDL3-shared>

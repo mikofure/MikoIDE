@@ -1,7 +1,7 @@
 build
-app/webapp.cpp
+app/resources/webapp.cpp
 **/build/**
 node_modules
 vscode
 out/**
-ref
+# ref

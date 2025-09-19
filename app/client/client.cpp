@@ -1,6 +1,6 @@
-#include "client.hpp"
-#include "config.hpp"
-#include "logger.hpp"
+#include "../client/client.hpp"
+#include "../utils/config.hpp"
+#include "../utils/logger.hpp"
 #include "internal/simpleipc.hpp"
 #include "include/wrapper/cef_helpers.h"
 #include "include/cef_app.h"
@@ -684,6 +684,22 @@ bool SimpleClient::OnQuery(CefRefPtr<CefBrowser> browser,
     
     std::string request_str = request.ToString();
     
+    // Handle IPC calls
+    if (request_str.find("ipc_call:") == 0) {
+        // Parse IPC call format: "ipc_call:method:message"
+        size_t first_colon = request_str.find(':', 9); // Skip "ipc_call:"
+        if (first_colon != std::string::npos) {
+            std::string method = request_str.substr(9, first_colon - 9);
+            std::string message = request_str.substr(first_colon + 1);
+            
+            // Handle the IPC call
+            std::string response = SimpleIPC::IPCHandler::GetInstance().HandleCall(method, message);
+            callback->Success(response);
+            return true;
+        }
+    }
+    
+    // Legacy window control handlers (kept for backward compatibility)
     if (request_str == "minimize_window") {
         if (window_) {
             window_->Minimize();
