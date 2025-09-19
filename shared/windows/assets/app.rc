@@ -18,12 +18,12 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "CompanyName", "Ariz Kamizuki"
-            VALUE "FileDescription", "MikoIDE - C++ Native Webview with CEF"
+            VALUE "FileDescription", "Hyperion - C++ Native Webview with CEF"
             VALUE "FileVersion", "1.0.0.0"
-            VALUE "InternalName", "MikoIDE"
+            VALUE "InternalName", "Hyperion"
             VALUE "LegalCopyright", "Copyright (C) 2024 Ariz Kamizuki. All rights reserved."
-            VALUE "OriginalFilename", "MikoIDE.exe"
-            VALUE "ProductName", "MikoIDE"
+            VALUE "OriginalFilename", "Hyperion.exe"
+            VALUE "ProductName", "Hyperion"
             VALUE "ProductVersion", "1.0.0.0"
         END
     END

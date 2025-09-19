@@ -1,4 +1,4 @@
-# MikoIDE
+# MikoIDE - Hyperion
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows-blue.svg)

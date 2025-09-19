@@ -3,10 +3,10 @@
   <assemblyIdentity
     version="1.0.0.0"
     processorArchitecture="*"
-    name="MikoIDE"
+    name="Hyperion"
     type="win32"
   />
-  <description>MikoIDE - C++ Native Webview with CEF</description>
+  <description>Hyperion - C++ Native Webview with CEF</description>
   
   <!-- DPI Awareness -->
   <application xmlns="urn:schemas-microsoft-com:asm.v3">

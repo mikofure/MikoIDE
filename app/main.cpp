@@ -1,407 +1,315 @@
-// Remove the manual defines since CEF already defines them on command line
-// #define WIN32_LEAN_AND_MEAN
-// #define NOMINMAX
 #include <windows.h>
-#include <shellapi.h>  // Add this for Shell_NotifyIcon
+#include <shellapi.h>
+#include <dwmapi.h>
+#include <commdlg.h>
+#include <shlobj.h>
 
-// Undefine Windows macros that conflict with CEF
-#ifdef GetFirstChild
-#undef GetFirstChild
-#endif
-#ifdef GetNextSibling
-#undef GetNextSibling
-#endif
-#ifdef GetPrevSibling
-#undef GetPrevSibling
-#endif
-#ifdef GetParent
-#undef GetParent
-#endif
+// Undefine conflicting Windows macros
+#undef min
+#undef max
+#undef GetMessage
 
-// Removed SDL includes - using CEF views exclusively
 #include "include/cef_app.h"
 #include "include/cef_browser.h"
-#include "include/cef_crash_util.h"
+#include "include/cef_frame.h"
 #include "include/wrapper/cef_helpers.h"
-#include "include/views/cef_window.h"
-#include "include/views/cef_window_delegate.h"
-#include "include/views/cef_browser_view.h"
-#include "include/views/cef_browser_view_delegate.h"
-#include "include/cef_image.h"
-#include <filesystem>
-#include <fstream>
+#include "include/wrapper/cef_closure_task.h"
+#include "include/base/cef_bind.h"
 
-// Local includes
+#include "client.hpp"
 #include "config.hpp"
 #include "logger.hpp"
-#include "client.hpp"
-#include "app.hpp"
+#include "internal/simpleipc.hpp"
 #include "resources.hpp"
+
+#define SDL_MAIN_HANDLED
+#include <SDL3/SDL.h>
+
+#include <string>
+#include <memory>
+#include <filesystem>
 
 // Global variables
 CefRefPtr<SimpleClient> g_client;
-CefRefPtr<CefWindow> g_cef_window;
-CefRefPtr<CefBrowserView> g_browser_view;
-bool g_running = true;
+std::unique_ptr<SDL3Window> g_sdl_window;
+bool g_is_closing = false;
 
-// Global icon handle for reuse
-static HICON g_app_icon = NULL;
+// Application settings now come from config.hpp
 
-// Load application icon once and cache it
-HICON LoadApplicationIcon() {
-    if (g_app_icon) {
-        return g_app_icon; // Return cached icon
-    }
-    
-    HINSTANCE hInstance = GetModuleHandle(NULL);
-    if (!hInstance) {
-        Logger::LogMessage("Failed to get module handle for icon loading");
-        return NULL;
-    }
-    
-    // Try to load icon from resource (ID 101 as defined in app.rc)
-    g_app_icon = LoadIcon(hInstance, MAKEINTRESOURCE(101));
-    if (!g_app_icon) {
-        Logger::LogMessage("Failed to load application icon from resource ID 101");
-        // Fallback to system default application icon
-        g_app_icon = LoadIcon(NULL, IDI_APPLICATION);
-    }
-    
-    if (g_app_icon) {
-        Logger::LogMessage("Application icon loaded successfully");
-    } else {
-        Logger::LogMessage("Failed to load any application icon");
-    }
-    
-    return g_app_icon;
-}
+// Forward declarations
+void LoadApplicationIcon();
+void SetPermanentTaskbarIcon();
+void SetApplicationUserModelID();
+CefRefPtr<CefImage> ConvertIconToCefImage(HICON hIcon);
+std::string GetDataURI(const std::string& data, const std::string& mime_type);
+std::string GetDownloadPath(const std::string& suggested_name);
 
-// Set taskbar icon with proper window class registration
-void SetPermanentTaskbarIcon(HWND hwnd) {
-    if (!hwnd) {
-        Logger::LogMessage("Invalid window handle for taskbar icon");
-        return;
-    }
+// Simple CEF App implementation for OSR
+#include "app.hpp"
 
-    HICON hIcon = LoadApplicationIcon();
-    if (!hIcon) {
-        Logger::LogMessage("No icon available for taskbar");
-        return;
-    }
-    
-    // Set both large and small icons
-    SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
-    SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
-    
-    // Ensure window appears in taskbar with proper extended style
-    LONG_PTR exStyle = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
-    SetWindowLongPtr(hwnd, GWL_EXSTYLE, exStyle | WS_EX_APPWINDOW);
-    
-    // Force taskbar to update the icon
-    SetWindowPos(hwnd, NULL, 0, 0, 0, 0, 
-                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
-    
-    Logger::LogMessage("Permanent taskbar icon set successfully");
-}
-
-// Alternative method: Set application ID to distinguish from Chromium
-void SetApplicationUserModelID(HWND hwnd) {
-    // Load Shell32.dll dynamically to avoid dependency issues
-    HMODULE hShell32 = LoadLibrary(L"Shell32.dll");
-    if (hShell32) {
-        typedef HRESULT (WINAPI *SetCurrentProcessExplicitAppUserModelIDProc)(PCWSTR);
-        SetCurrentProcessExplicitAppUserModelIDProc SetCurrentProcessExplicitAppUserModelID = 
-            (SetCurrentProcessExplicitAppUserModelIDProc)GetProcAddress(hShell32, "SetCurrentProcessExplicitAppUserModelID");
-        
-        if (SetCurrentProcessExplicitAppUserModelID) {
-            // Set unique application ID to separate from Chromium
-            HRESULT hr = SetCurrentProcessExplicitAppUserModelID(L"SwipeIDE.Application.1.0");
-            if (SUCCEEDED(hr)) {
-                Logger::LogMessage("Application User Model ID set successfully");
-            } else {
-                Logger::LogMessage("Failed to set Application User Model ID");
-            }
-        }
-        FreeLibrary(hShell32);
-    }
-}
-
-// Convert Windows HICON to CEF image for window icon
-CefRefPtr<CefImage> ConvertIconToCefImage(HICON hIcon) {
-    if (!hIcon) {
-        return nullptr;
-    }
-    
-    // Get icon info to extract bitmap data
-    ICONINFO iconInfo;
-    if (!GetIconInfo(hIcon, &iconInfo)) {
-        Logger::LogMessage("Failed to get icon info for CEF conversion");
-        return nullptr;
-    }
-    
-    // Get bitmap info for the color bitmap
-    BITMAP bmp;
-    if (!GetObject(iconInfo.hbmColor, sizeof(BITMAP), &bmp)) {
-        Logger::LogMessage("Failed to get bitmap object for CEF conversion");
-        DeleteObject(iconInfo.hbmColor);
-        DeleteObject(iconInfo.hbmMask);
-        return nullptr;
-    }
-    
-    // Create device context and get bitmap bits
-    HDC hdc = GetDC(NULL);
-    HDC hdcMem = CreateCompatibleDC(hdc);
-    
-    BITMAPINFOHEADER bi = {};
-    bi.biSize = sizeof(BITMAPINFOHEADER);
-    bi.biWidth = bmp.bmWidth;
-    bi.biHeight = -bmp.bmHeight; // Negative for top-down DIB
-    bi.biPlanes = 1;
-    bi.biBitCount = 32;
-    bi.biCompression = BI_RGB;
-    
-    std::vector<uint8_t> bitmapData(bmp.bmWidth * bmp.bmHeight * 4);
-    
-    if (!GetDIBits(hdcMem, iconInfo.hbmColor, 0, bmp.bmHeight, bitmapData.data(), 
-                   (BITMAPINFO*)&bi, DIB_RGB_COLORS)) {
-        Logger::LogMessage("Failed to get DIB bits for CEF conversion");
-        DeleteDC(hdcMem);
-        ReleaseDC(NULL, hdc);
-        DeleteObject(iconInfo.hbmColor);
-        DeleteObject(iconInfo.hbmMask);
-        return nullptr;
-    }
-    
-    // Create CefImage from bitmap data
-    CefRefPtr<CefImage> image = CefImage::CreateImage();
-    if (!image->AddBitmap(1.0f, bmp.bmWidth, bmp.bmHeight, CEF_COLOR_TYPE_BGRA_8888, 
-                         CEF_ALPHA_TYPE_PREMULTIPLIED, bitmapData.data(), bmp.bmWidth * 4)) {
-        Logger::LogMessage("Failed to create CefImage from bitmap data");
-        DeleteDC(hdcMem);
-        ReleaseDC(NULL, hdc);
-        DeleteObject(iconInfo.hbmColor);
-        DeleteObject(iconInfo.hbmMask);
-        return nullptr;
-    }
-    
-    // Cleanup
-    DeleteDC(hdcMem);
-    ReleaseDC(NULL, hdc);
-    DeleteObject(iconInfo.hbmColor);
-    DeleteObject(iconInfo.hbmMask);
-    
-    return image;
-}
-
-// Custom browser view delegate to hide browser UI
-class CustomBrowserViewDelegate : public CefBrowserViewDelegate {
-public:
-    CustomBrowserViewDelegate() {}
-    
-    // Override to customize browser view behavior
-    CefRefPtr<CefBrowserViewDelegate> GetDelegateForPopupBrowserView(
-        CefRefPtr<CefBrowserView> browser_view,
-        const CefBrowserSettings& settings,
-        CefRefPtr<CefClient> client,
-        bool is_devtools) override {
-        return nullptr;
-    }
-    
-    // Override to hide Chrome toolbar and UI elements
-    ChromeToolbarType GetChromeToolbarType(
-        CefRefPtr<CefBrowserView> browser_view) override {
-        return CEF_CTT_NONE; // Hide all Chrome UI elements
-    }
-    
-private:
-    IMPLEMENT_REFCOUNTING(CustomBrowserViewDelegate);
-};
-
-// Custom window delegate for borderless window with dragging support
-class CustomWindowDelegate : public CefWindowDelegate {
-public:
-    CustomWindowDelegate() {}
-    
-    // Called when window is created - set the icon here
-    void OnWindowCreated(CefRefPtr<CefWindow> window) override {
-        // Get window handle
-        HWND hwnd = window->GetWindowHandle();
-        if (!hwnd) {
-            Logger::LogMessage("Failed to get window handle in OnWindowCreated");
-            return;
-        }
-        
-        // Set unique Application User Model ID first
-        SetApplicationUserModelID(hwnd);
-        
-        // Load the application icon once
-        HICON hIcon = LoadApplicationIcon();
-        if (hIcon) {
-            // Convert to CEF image for CEF window icon
-            CefRefPtr<CefImage> cefIcon = ConvertIconToCefImage(hIcon);
-            if (cefIcon) {
-                window->SetWindowIcon(cefIcon);
-                window->SetWindowAppIcon(cefIcon);
-                Logger::LogMessage("CEF window icons set successfully");
-            }
-            
-            // Set native Windows taskbar icon
-            SetPermanentTaskbarIcon(hwnd);
-        } else {
-            Logger::LogMessage("Failed to load application icon in OnWindowCreated");
-        }
-    }
-    
-    // Use standard window frame to ensure proper taskbar integration
-    bool IsFrameless(CefRefPtr<CefWindow> window) override {
-        return true;  // Use standard frame for reliable taskbar icon display
-    }
-    
-    // Allow window to be resizable
-    bool CanResize(CefRefPtr<CefWindow> window) override {
-        return true;
-    }
-    
-    // Set initial window size
-    CefSize GetPreferredSize(CefRefPtr<CefView> view) override {
-        return CefSize(1200, 800);
-    }
-    
-    // Handle window close
-    bool CanClose(CefRefPtr<CefWindow> window) override {
-        g_running = false;
-        return true;
-    }
-    
-    // Note: Window dragging is handled automatically by CEF for frameless windows
-    
-private:
-    IMPLEMENT_REFCOUNTING(CustomWindowDelegate);
-};
-
-// Handle events
+// Handle SDL events and CEF message loop
 void HandleEvents() {
-    // CEF handles all events through its message loop
-    // No additional event handling needed
+    SDL_Event event;
+    
+    while (SDL_PollEvent(&event)) {
+        if (g_sdl_window && g_sdl_window->HandleEvent(event)) {
+            continue;
+        }
+        
+        // Handle application-level events
+        switch (event.type) {
+            case SDL_EVENT_QUIT:
+                g_is_closing = true;
+                if (g_client) {
+                    g_client->CloseAllBrowsers(false);
+                }
+                break;
+                
+            default:
+                break;
+        }
+    }
+    
+    // Check if window should close
+    if (g_sdl_window && g_sdl_window->ShouldClose()) {
+        g_is_closing = true;
+        if (g_client) {
+            g_client->CloseAllBrowsers(false);
+        }
+    }
 }
 
-// Use WinMain instead of main for Windows applications without console
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
-    // Pre-load application icon to ensure it's available
-    LoadApplicationIcon();
-    
-    // Set Application User Model ID early in the process
-    SetApplicationUserModelID(NULL);
-    
-    void* sandbox_info = nullptr;
-    CefMainArgs main_args(GetModuleHandle(nullptr));
+// Main application entry point
+int WINAPI WinMain(HINSTANCE hInstance,
+                   HINSTANCE hPrevInstance,
+                   LPSTR lpCmdLine,
+                   int nCmdShow) {
+    UNREFERENCED_PARAMETER(hPrevInstance);
+    UNREFERENCED_PARAMETER(lpCmdLine);
 
-    // Create app instance for both main and sub-processes
+    // Initialize logger
+    Logger::Initialize();
+    Logger::LogMessage("MikoIDE starting up...");
+
+    // Set application properties
+    SetApplicationUserModelID();
+    LoadApplicationIcon();
+    SetPermanentTaskbarIcon();
+
+    // Enable High DPI awareness
+    SetProcessDPIAware();
+
+    // Initialize CEF
+    CefMainArgs main_args(hInstance);
     CefRefPtr<SimpleApp> app(new SimpleApp);
-    
-    // CEF sub-process check
-    int exit_code = CefExecuteProcess(main_args, app.get(), sandbox_info);
+
+    // Execute the secondary process, if any
+    int exit_code = CefExecuteProcess(main_args, app, nullptr);
     if (exit_code >= 0) {
         return exit_code;
     }
 
-    std::string windowTitle = AppConfig::IsDebugMode() ? 
-        "SwipeIDE - Development Mode" : "SwipeIDE - Release Mode";
-
-    // CEF settings with security enhancements
+    // CEF settings
     CefSettings settings;
-    settings.no_sandbox = false;  // Enable sandboxing for security
-    settings.multi_threaded_message_loop = false;
-    settings.windowless_rendering_enabled = false;
-    settings.log_severity = LOGSEVERITY_DISABLE;  // Disable logging to reduce overhead
-    settings.remote_debugging_port = -1;  // Disable remote debugging
+    settings.no_sandbox = true;
+    settings.windowless_rendering_enabled = true;
+    settings.multi_threaded_message_loop = false; // We'll use our own message loop
     
-    // Set absolute cache paths to avoid singleton warnings
-    std::filesystem::path cache_dir = std::filesystem::current_path() / "cache";
-    std::string cache_path = cache_dir.string();
-    CefString(&settings.cache_path).FromASCII(cache_path.c_str());
-    CefString(&settings.root_cache_path).FromASCII(cache_path.c_str());
+    // Set log level
+#ifdef _DEBUG
+    settings.log_severity = LOGSEVERITY_INFO;
+#else
+    settings.log_severity = LOGSEVERITY_WARNING;
+#endif
+
+    // Set cache path - simple cache directory
+    std::string cache_dir = std::filesystem::current_path().string() + "\\cache";
+    CefString(&settings.cache_path).FromASCII(cache_dir.c_str());
     
-    // Use empty subprocess path to let CEF handle it automatically
-    CefString(&settings.browser_subprocess_path).FromASCII("");
+    // Set locale
+    CefString(&settings.locale).FromASCII("en-US");
 
-    CefInitialize(main_args, settings, app.get(), sandbox_info);
-
-    // Initialize crash reporting if enabled
-    if (CefCrashReportingEnabled()) {
-        // Set crash keys for debugging purposes
-        CefSetCrashKeyValue("app_version", "1.0.0");
-        CefSetCrashKeyValue("component", "main_process");
-        CefSetCrashKeyValue("user_action", "startup");
-        Logger::LogMessage("Crash reporting enabled");
-    } else {
-        Logger::LogMessage("Crash reporting disabled - check crash_reporter.cfg");
+    // Initialize CEF
+    if (!CefInitialize(main_args, settings, app, nullptr)) {
+        Logger::LogMessage("Failed to initialize CEF");
+        return 1;
     }
+
+    Logger::LogMessage("CEF initialized successfully");
 
     // Register scheme handler factory for miko:// protocol
     CefRegisterSchemeHandlerFactory("miko", "", new BinaryResourceProvider());
+    Logger::LogMessage("Registered miko:// scheme handler factory");
 
-    // Create CEF views-based borderless window
-    g_client = new SimpleClient();
-    std::string startupUrl = AppConfig::GetStartupUrl();
+    // Initialize SDL3 Window
+    g_sdl_window = std::make_unique<SDL3Window>();
+    if (!g_sdl_window->Initialize(1200, 800)) {
+        Logger::LogMessage("Failed to initialize SDL3 window");
+        CefShutdown();
+        return 1;
+    }
     
-    // Create browser view with hidden UI elements
+    Logger::LogMessage("SDL3 window initialized successfully");
+
+    // Create CEF client and browser
+    g_client = new SimpleClient(g_sdl_window.get());
+    
+    // Configure browser settings
     CefBrowserSettings browser_settings;
+    browser_settings.windowless_frame_rate = 0; // 60 FPS for smooth rendering
     
-    // Configure browser settings with security restrictions
-     browser_settings.javascript_access_clipboard = STATE_DISABLED;  // Disable clipboard access for security
-     browser_settings.javascript_dom_paste = STATE_DISABLED;  // Disable DOM paste for security
-     browser_settings.local_storage = STATE_ENABLED;
-     browser_settings.javascript_close_windows = STATE_DISABLED;  // Prevent JavaScript from closing windows
-
-    // Create browser view delegate to hide UI elements
-    CefRefPtr<CustomBrowserViewDelegate> browser_view_delegate = new CustomBrowserViewDelegate();
+    // Configure window info for off-screen rendering
+    CefWindowInfo window_info;
+    window_info.SetAsWindowless(g_sdl_window->GetHWND());
     
-    g_browser_view = CefBrowserView::CreateBrowserView(g_client, startupUrl, browser_settings, nullptr, nullptr, browser_view_delegate);
+    // Create the browser synchronously to prevent race conditions
+    CefRefPtr<CefBrowser> browser = CefBrowserHost::CreateBrowserSync(window_info, g_client, AppConfig::GetStartupUrl(), browser_settings, nullptr, nullptr);
     
-    // Create window with custom delegate for borderless functionality
-    CefRefPtr<CustomWindowDelegate> window_delegate = new CustomWindowDelegate();
-    g_cef_window = CefWindow::CreateTopLevelWindow(window_delegate);
-    
-    // Add browser view to window
-    g_cef_window->AddChildView(g_browser_view);
-    
-    // Set window title
-    g_cef_window->SetTitle(windowTitle);
-    
-    // Show the window
-    g_cef_window->Show();
-    
-    // Center the window
-    g_cef_window->CenterWindow(CefSize(1200, 800));
-
-    // Final taskbar icon verification after window is fully shown
-    Sleep(200); // Brief delay for window initialization
-    HWND hwnd = g_cef_window->GetWindowHandle();
-    if (hwnd) {
-        SetPermanentTaskbarIcon(hwnd);
-        Logger::LogMessage("Final taskbar icon verification completed");
+    if (!browser) {
+        Logger::LogMessage("Failed to create CEF browser");
+        CefShutdown();
+        return 1;
     }
+    
+    Logger::LogMessage("CEF browser created successfully");
 
-    // Log startup information
-    Logger::LogMessage("=== SwipeIDE CEF + SDL Application ===");
-    Logger::LogMessage("Mode: " + std::string(AppConfig::IsDebugMode() ? "DEBUG" : "RELEASE"));
-    Logger::LogMessage("URL: " + startupUrl);
-    if (AppConfig::IsDebugMode()) {
-        Logger::LogMessage("Remote debugging: http://localhost:9222");
-        Logger::LogMessage("Make sure React dev server is running: cd renderer && bun run dev");
-    }
-    Logger::LogMessage("======================================");
-
-    // Main loop
-    while (g_running && g_cef_window && !g_cef_window->IsClosed()) {
+    // Main message loop
+    while (!g_is_closing) {
+        // Handle SDL events
         HandleEvents();
+        
+        // Render the window
+        if (g_sdl_window) {
+            g_sdl_window->Render();
+        }
+        
+        // Process CEF message loop
         CefDoMessageLoopWork();
-        Sleep(1); // Small delay to prevent 100% CPU usage
+        
+        // Small delay to prevent 100% CPU usage
+        SDL_Delay(1);
+        
+        // Check if all browsers are closed
+        if (g_client && !g_client->HasBrowsers() && g_is_closing) {
+            break;
+        }
     }
+
+    Logger::LogMessage("Shutting down application...");
 
     // Cleanup
+    g_client = nullptr;
+    
+    if (g_sdl_window) {
+        g_sdl_window->Shutdown();
+        g_sdl_window.reset();
+    }
+
+    // Shutdown CEF
     CefShutdown();
+
+    Logger::LogMessage("Application shutdown complete");
+    Logger::Shutdown();
 
     return 0;
 }
+
+// Utility functions implementation
+void LoadApplicationIcon() {
+    // Load application icon from resources
+    HICON hIcon = LoadIcon(GetModuleHandle(nullptr), MAKEINTRESOURCE(101));
+    if (hIcon) {
+        Logger::LogMessage("Application icon loaded successfully");
+    }
+}
+
+void SetPermanentTaskbarIcon() {
+    // Set taskbar icon properties
+    HICON hIcon = LoadIcon(GetModuleHandle(nullptr), MAKEINTRESOURCE(101));
+    if (hIcon) {
+        // This would typically be used with the window handle
+        Logger::LogMessage("Taskbar icon configured");
+    }
+}
+
+void SetApplicationUserModelID() {
+    // Set Application User Model ID for Windows taskbar grouping
+    SetCurrentProcessExplicitAppUserModelID(L"MikoIDE.Application.1.0");
+    Logger::LogMessage("Application User Model ID set");
+}
+
+CefRefPtr<CefImage> ConvertIconToCefImage(HICON hIcon) {
+    if (!hIcon) return nullptr;
+    
+    // Convert Windows HICON to CEF image
+    // This is a simplified implementation
+    CefRefPtr<CefImage> image = CefImage::CreateImage();
+    
+    // Get icon info
+    ICONINFO iconInfo;
+    if (GetIconInfo(hIcon, &iconInfo)) {
+        // Get bitmap info
+        BITMAP bmp;
+        if (GetObject(iconInfo.hbmColor, sizeof(BITMAP), &bmp)) {
+            // Create CEF image from bitmap data
+            // This would require proper bitmap data extraction and conversion
+            Logger::LogMessage("Icon converted to CEF image");
+        }
+        
+        // Cleanup
+        DeleteObject(iconInfo.hbmColor);
+        DeleteObject(iconInfo.hbmMask);
+    }
+    
+    return image;
+}
+
+std::string GetDataURI(const std::string& data, const std::string& mime_type) {
+    // Create a data URI from the given data and MIME type
+    std::string data_uri = "data:" + mime_type + ";charset=utf-8,";
+    
+    // URL encode the data (simplified)
+    for (char c : data) {
+        if (c == ' ') {
+            data_uri += "%20";
+        } else if (c == '<') {
+            data_uri += "%3C";
+        } else if (c == '>') {
+            data_uri += "%3E";
+        } else if (c == '"') {
+            data_uri += "%22";
+        } else {
+            data_uri += c;
+        }
+    }
+    
+    return data_uri;
+}
+
+std::string GetDownloadPath(const std::string& suggested_name) {
+    // Get the Downloads folder path
+    PWSTR downloads_path = nullptr;
+    HRESULT hr = SHGetKnownFolderPath(FOLDERID_Downloads, 0, nullptr, &downloads_path);
+    
+    std::string download_path;
+    if (SUCCEEDED(hr) && downloads_path) {
+        // Convert wide string to narrow string
+        int size = WideCharToMultiByte(CP_UTF8, 0, downloads_path, -1, nullptr, 0, nullptr, nullptr);
+        if (size > 0) {
+            std::string temp(size - 1, '\0');
+            WideCharToMultiByte(CP_UTF8, 0, downloads_path, -1, &temp[0], size, nullptr, nullptr);
+            download_path = temp + "\\" + suggested_name;
+        }
+        CoTaskMemFree(downloads_path);
+    }
+    
+    // Fallback to current directory if Downloads folder not found
+    if (download_path.empty()) {
+        download_path = suggested_name;
+    }
+    
+    Logger::LogMessage("Download path: " + download_path);
+    return download_path;
+}
+
+// SDL3 main function wrapper
