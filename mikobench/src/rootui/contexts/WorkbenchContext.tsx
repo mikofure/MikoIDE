@@ -1,21 +1,21 @@
-import { createContext, useContext, createSignal, type Component, type JSX } from 'solid-js';
-import type { TabData } from '../editor';
+import { createContext, useContext, useState, type ReactNode } from 'react';
+import type { TabData } from '../editor/tabbar/TabBar';
 
-interface FileTab extends TabData {
+export interface FileTab extends TabData {
   content: string;
   language: string;
   filePath?: string;
 }
 
 interface WorkbenchContextType {
-  tabs: () => FileTab[];
-  activeTab: () => FileTab | undefined;
-  activeTabId: () => string;
+  tabs: FileTab[];
+  activeTab: FileTab | undefined;
+  activeTabId: string;
   setTabs: (tabs: FileTab[]) => void;
   setActiveTabId: (id: string) => void;
 }
 
-const WorkbenchContext = createContext<WorkbenchContextType>();
+const WorkbenchContext = createContext<WorkbenchContextType | undefined>(undefined);
 
 export const useWorkbench = () => {
   const context = useContext(WorkbenchContext);
@@ -26,17 +26,17 @@ export const useWorkbench = () => {
 };
 
 interface WorkbenchProviderProps {
-  children: JSX.Element;
+  children: ReactNode;
 }
 
-export const WorkbenchProvider: Component<WorkbenchProviderProps> = (props) => {
-  const [tabs, setTabs] = createSignal<FileTab[]>([
+export const WorkbenchProvider = ({ children }: WorkbenchProviderProps) => {
+  const [tabs, setTabs] = useState<FileTab[]>([
     {
       id: 'welcome',
       title: 'Welcome.md',
       content: `# Welcome to MikoIDE
 
-This is a Monaco Editor based code editor built with SolidJS.
+This is a Monaco Editor based code editor built with React.
 
 ## Features
 - Syntax highlighting
@@ -55,9 +55,9 @@ Enjoy coding! 🚀`,
     }
   ]);
   
-  const [activeTabId, setActiveTabId] = createSignal('welcome');
+  const [activeTabId, setActiveTabId] = useState('welcome');
   
-  const activeTab = () => tabs().find(tab => tab.id === activeTabId());
+  const activeTab = tabs.find(tab => tab.id === activeTabId);
 
   const contextValue: WorkbenchContextType = {
     tabs,
@@ -69,9 +69,9 @@ Enjoy coding! 🚀`,
 
   return (
     <WorkbenchContext.Provider value={contextValue}>
-      {props.children}
+      {children}
     </WorkbenchContext.Provider>
   );
 };
 
-export type { FileTab };
+export type { WorkbenchContextType };

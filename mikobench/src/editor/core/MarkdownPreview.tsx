@@ -1,5 +1,4 @@
-import type { Component } from 'solid-js';
-import { createEffect, createSignal, onMount } from 'solid-js';
+import React, { useEffect, useState, useRef } from 'react';
 
 interface MarkdownPreviewProps {
   content?: string;
@@ -60,20 +59,20 @@ const parseMarkdown = (markdown: string): string => {
   return html;
 };
 
-const MarkdownPreview: Component<MarkdownPreviewProps> = (props) => {
-  const [parsedContent, setParsedContent] = createSignal('');
-  let containerRef: HTMLDivElement | undefined;
+const MarkdownPreview: React.FC<MarkdownPreviewProps> = (props) => {
+  const [parsedContent, setParsedContent] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Parse markdown content when it changes
-  createEffect(() => {
+  useEffect(() => {
     const content = props.content || '';
     setParsedContent(parseMarkdown(content));
-  });
+  }, [props.content]);
 
-  onMount(() => {
+  useEffect(() => {
     // Add syntax highlighting for code blocks if needed
     // This could be enhanced with libraries like Prism.js or highlight.js
-  });
+  }, []);
 
   const getThemeClasses = () => {
     const isDark = props.theme === 'dark';
@@ -169,12 +168,12 @@ const MarkdownPreview: Component<MarkdownPreviewProps> = (props) => {
       <style>{getContentStyles()}</style>
       <div
         ref={containerRef}
-        class={`markdown-preview ${getThemeClasses()} ${props.className || ''}`}
+        className={`markdown-preview ${getThemeClasses()} ${props.className || ''}`}
         style={{
           width: typeof props.width === 'number' ? `${props.width}px` : props.width,
           height: typeof props.height === 'number' ? `${props.height}px` : props.height
         }}
-        innerHTML={parsedContent()}
+        dangerouslySetInnerHTML={{ __html: parsedContent }}
       />
     </>
   );

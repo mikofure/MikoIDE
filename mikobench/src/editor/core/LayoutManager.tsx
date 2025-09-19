@@ -1,202 +1,247 @@
-import type { Component, JSX } from 'solid-js';
-import { createSignal, createEffect, Switch, Match } from 'solid-js';
+import React, { useState, useRef, useCallback } from 'react';
 import MonacoEditor from './MonacoEditor';
 import DiffEditor from './DiffEditor';
 import MarkdownPreview from './MarkdownPreview';
-import SplitLayout from './SplitLayout';
+import type { MonacoEditorProps } from './MonacoEditor';
 
-export type ViewMode = 'code' | 'diff' | 'markdown' | 'split-horizontal' | 'split-vertical' | 'markdown-split';
+export type ViewMode = 
+  | 'code' 
+  | 'diff' 
+  | 'markdown' 
+  | 'split-horizontal' 
+  | 'split-vertical' 
+  | 'markdown-split';
 
-interface LayoutManagerProps {
-  // Content props
-  value?: string;
-  originalValue?: string; // For diff mode
-  language?: string;
-  theme?: string;
-  
-  // Layout props
-  viewMode?: ViewMode;
-  splitRatio?: number;
-  
-  // Editor props
-  onChange?: (value: string) => void;
-  onViewModeChange?: (mode: ViewMode) => void;
-  onSplitChange?: (ratio: number) => void;
-  
-  // Monaco editor options
-  editorOptions?: any;
-  
-  // Styling
-  width?: string | number;
-  height?: string | number;
-  className?: string;
-  style?: JSX.CSSProperties;
+interface SplitLayoutProps {
+  leftContent: React.ReactNode;
+  rightContent: React.ReactNode;
+  direction: 'horizontal' | 'vertical';
+  ratio: number;
+  onRatioChange?: (ratio: number) => void;
+  minPaneSize?: number;
+  maxPaneSize?: number;
 }
 
-const LayoutManager: Component<LayoutManagerProps> = (props) => {
-  const [currentViewMode, setCurrentViewMode] = createSignal<ViewMode>(props.viewMode || 'code');
-  const [splitRatio, setSplitRatio] = createSignal(props.splitRatio || 50);
-  const [editorValue, setEditorValue] = createSignal(props.value || '');
+const SplitLayout: React.FC<SplitLayoutProps> = (props) => {
+  const [isDragging, setIsDragging] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Update internal state when props change
-  createEffect(() => {
-    if (props.viewMode !== undefined) {
-      setCurrentViewMode(props.viewMode);
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDragging || !containerRef.current) return;
+
+    const container = containerRef.current;
+    const rect = container.getBoundingClientRect();
+    
+    let ratio: number;
+    if (props.direction === 'horizontal') {
+      ratio = (e.clientX - rect.left) / rect.width;
+    } else {
+      ratio = (e.clientY - rect.top) / rect.height;
     }
-  });
 
-  createEffect(() => {
-    if (props.splitRatio !== undefined) {
-      setSplitRatio(props.splitRatio);
+    // Apply constraints
+    const minRatio = (props.minPaneSize || 100) / (props.direction === 'horizontal' ? rect.width : rect.height);
+    const maxRatio = 1 - (props.minPaneSize || 100) / (props.direction === 'horizontal' ? rect.width : rect.height);
+    
+    ratio = Math.max(minRatio, Math.min(maxRatio, ratio));
+    props.onRatioChange?.(ratio);
+  }, [isDragging, props.direction, props.minPaneSize, props.onRatioChange]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  React.useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
     }
-  });
+  }, [isDragging, handleMouseMove, handleMouseUp]);
 
-  createEffect(() => {
-    if (props.value !== undefined) {
-      setEditorValue(props.value);
-    }
-  });
-
-  const handleEditorChange = (value: string) => {
-    setEditorValue(value);
-    props.onChange?.(value);
-  };
-  //@ts-expect-error
-  const handleViewModeChange = (mode: ViewMode) => {
-    setCurrentViewMode(mode);
-    props.onViewModeChange?.(mode);
-  };
-
-  const handleSplitChange = (ratio: number) => {
-    setSplitRatio(ratio);
-    props.onSplitChange?.(ratio);
-  };
-   //@ts-expect-error
-  const isMarkdownFile = () => {
-    const lang = props.language?.toLowerCase();
-    return lang === 'markdown' || lang === 'md';
-  };
-
-  const getTheme = () => props.theme || 'vs-code-dark';
-  const isDarkTheme = () => getTheme().includes('dark');
-
-  const getContainerClasses = () => {
-    return 'relative flex flex-col overflow-hidden w-full h-full';
-  };
-
-  const getContainerStyle = (): JSX.CSSProperties => ({
-    width: typeof props.width === 'number' ? `${props.width}px` : props.width,
-    height: typeof props.height === 'number' ? `${props.height}px` : props.height,
-    ...props.style
-  });
-
-
-
-  const getContentClasses = () => {
-    return 'flex-1 relative overflow-hidden';
-  };
-
-
+  const flexDirection = props.direction === 'horizontal' ? 'row' : 'column';
+  const leftSize = `${props.ratio * 100}%`;
+  const rightSize = `${(1 - props.ratio) * 100}%`;
 
   return (
-    <div class={`layout-manager ${getContainerClasses()} ${props.className || ''}`} style={getContainerStyle()}>
-      <div class={getContentClasses()}>
-        <Switch>
-          <Match when={currentViewMode() === 'code'}>
-            <MonacoEditor
-              value={editorValue()}
-              language={props.language}
-              theme={getTheme()}
-              onChange={handleEditorChange}
-              options={props.editorOptions}
-            />
-          </Match>
-          
-          <Match when={currentViewMode() === 'diff'}>
-            <DiffEditor
-              original={props.originalValue || ''}
-              modified={editorValue()}
-              language={props.language}
-              theme={getTheme()}
-              options={props.editorOptions}
-            />
-          </Match>
-          
-          <Match when={currentViewMode() === 'markdown'}>
-            <MarkdownPreview
-              content={editorValue()}
-              theme={isDarkTheme() ? 'dark' : 'light'}
-            />
-          </Match>
-          
-          <Match when={currentViewMode() === 'split-horizontal'}>
-            <SplitLayout
-              direction="horizontal"
-              initialSplit={splitRatio()}
-              onSplitChange={handleSplitChange}
-            >
-              <MonacoEditor
-                value={editorValue()}
-                language={props.language}
-                theme={getTheme()}
-                onChange={handleEditorChange}
-                options={props.editorOptions}
-              />
-              <MonacoEditor
-                value={editorValue()}
-                language={props.language}
-                theme={getTheme()}
-                options={{ ...props.editorOptions, readOnly: true }}
-              />
-            </SplitLayout>
-          </Match>
-          
-          <Match when={currentViewMode() === 'split-vertical'}>
-            <SplitLayout
-              direction="vertical"
-              initialSplit={splitRatio()}
-              onSplitChange={handleSplitChange}
-            >
-              <MonacoEditor
-                value={editorValue()}
-                language={props.language}
-                theme={getTheme()}
-                onChange={handleEditorChange}
-                options={props.editorOptions}
-              />
-              <MonacoEditor
-                value={editorValue()}
-                language={props.language}
-                theme={getTheme()}
-                options={{ ...props.editorOptions, readOnly: true }}
-              />
-            </SplitLayout>
-          </Match>
-          
-          <Match when={currentViewMode() === 'markdown-split'}>
-            <SplitLayout
-              direction="horizontal"
-              initialSplit={splitRatio()}
-              onSplitChange={handleSplitChange}
-            >
-              <MonacoEditor
-                value={editorValue()}
-                language={props.language}
-                theme={getTheme()}
-                onChange={handleEditorChange}
-                options={props.editorOptions}
-              />
-              <MarkdownPreview
-                content={editorValue()}
-                theme={isDarkTheme() ? 'dark' : 'light'}
-              />
-            </SplitLayout>
-          </Match>
-        </Switch>
+    <div
+      ref={containerRef}
+      className="split-layout"
+      style={{
+        display: 'flex',
+        flexDirection,
+        width: '100%',
+        height: '100%',
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          [props.direction === 'horizontal' ? 'width' : 'height']: leftSize,
+          overflow: 'hidden',
+        }}
+      >
+        {props.leftContent}
+      </div>
+      
+      <div
+        className="split-divider"
+        style={{
+          [props.direction === 'horizontal' ? 'width' : 'height']: '4px',
+          backgroundColor: '#3e3e42',
+          cursor: props.direction === 'horizontal' ? 'col-resize' : 'row-resize',
+          userSelect: 'none',
+          flexShrink: 0,
+        }}
+        onMouseDown={handleMouseDown}
+      />
+      
+      <div
+        style={{
+          [props.direction === 'horizontal' ? 'width' : 'height']: rightSize,
+          overflow: 'hidden',
+        }}
+      >
+        {props.rightContent}
       </div>
     </div>
   );
 };
 
+export interface LayoutManagerProps extends Omit<MonacoEditorProps, 'onMount'> {
+  viewMode: ViewMode;
+  onViewModeChange?: (mode: ViewMode) => void;
+  allowedViewModes?: ViewMode[];
+  
+  // Split layout props
+  splitRatio: number;
+  onSplitRatioChange?: (ratio: number) => void;
+  minPaneSize?: number;
+  maxPaneSize?: number;
+  
+  // Content props
+  originalContent?: string;
+  
+  // File props
+  fileName?: string;
+  
+  // Editor callbacks
+  onMount?: (editor: any) => void;
+}
+
+const LayoutManager: React.FC<LayoutManagerProps> = (props) => {
+  const getTheme = () => props.theme || 'vs-code-dark';
+
+  const renderEditor = () => (
+    <MonacoEditor
+      value={props.value}
+      language={props.language}
+      theme={getTheme()}
+      options={props.options}
+      onChange={props.onChange}
+      onMount={props.onMount}
+      width="100%"
+      height="100%"
+    />
+  );
+
+  const renderDiffEditor = () => (
+    <DiffEditor
+      original={props.originalContent || ''}
+      modified={props.value || ''}
+      language={props.language}
+      theme={getTheme()}
+      options={props.options}
+      width="100%"
+      height="100%"
+    />
+  );
+
+  const renderMarkdownPreview = () => (
+    <MarkdownPreview
+      content={props.value}
+      theme={getTheme().includes('dark') ? 'dark' : 'light'}
+      width="100%"
+      height="100%"
+    />
+  );
+
+  const renderContent = () => {
+    switch (props.viewMode) {
+      case 'code':
+        return renderEditor();
+        
+      case 'diff':
+        return renderDiffEditor();
+        
+      case 'markdown':
+        return renderMarkdownPreview();
+        
+      case 'split-horizontal':
+        return (
+          <SplitLayout
+            leftContent={renderEditor()}
+            rightContent={renderEditor()}
+            direction="horizontal"
+            ratio={props.splitRatio}
+            onRatioChange={props.onSplitRatioChange}
+            minPaneSize={props.minPaneSize}
+            maxPaneSize={props.maxPaneSize}
+          />
+        );
+        
+      case 'split-vertical':
+        return (
+          <SplitLayout
+            leftContent={renderEditor()}
+            rightContent={renderEditor()}
+            direction="vertical"
+            ratio={props.splitRatio}
+            onRatioChange={props.onSplitRatioChange}
+            minPaneSize={props.minPaneSize}
+            maxPaneSize={props.maxPaneSize}
+          />
+        );
+        
+      case 'markdown-split':
+        return (
+          <SplitLayout
+            leftContent={renderEditor()}
+            rightContent={renderMarkdownPreview()}
+            direction="horizontal"
+            ratio={props.splitRatio}
+            onRatioChange={props.onSplitRatioChange}
+            minPaneSize={props.minPaneSize}
+            maxPaneSize={props.maxPaneSize}
+          />
+        );
+        
+      default:
+        return renderEditor();
+    }
+  };
+
+  return (
+    <div
+      className="layout-manager"
+      style={{
+        width: '100%',
+        height: '100%',
+        overflow: 'hidden',
+        position: 'relative',
+      }}
+    >
+      {renderContent()}
+    </div>
+  );
+};
+
 export default LayoutManager;
-export type { LayoutManagerProps };

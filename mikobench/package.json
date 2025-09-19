@@ -12,15 +12,18 @@
     "@tailwindcss/vite": "^4.1.13",
     "@vscode/codicons": "^0.0.40",
     "developer-icons": "^6.0.4",
-    "lucide-solid": "^0.542.0",
+    "lucide-react": "^0.542.0",
     "monaco-editor": "^0.52.2",
-    "solid-js": "^1.9.8",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "tailwindcss": "^4.1.13",
     "vite-plugin-singlefile": "^2.3.0"
   },
   "devDependencies": {
+    "@types/react": "^18.3.17",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
     "typescript": "~5.8.3",
-    "vite": "^7.1.2",
-    "vite-plugin-solid": "^2.11.8"
+    "vite": "^7.1.2"
   }
 }

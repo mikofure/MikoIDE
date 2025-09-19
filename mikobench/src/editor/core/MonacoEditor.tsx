@@ -1,5 +1,4 @@
-import type { Component } from 'solid-js';
-import { createEffect, createSignal, onCleanup, onMount } from 'solid-js';
+import React, { useEffect, useRef, useState } from 'react';
 import * as monaco from 'monaco-editor';
 
 
@@ -14,13 +13,13 @@ interface MonacoEditorProps {
   height?: string | number;
 }
 
-const MonacoEditor: Component<MonacoEditorProps> = (props) => {
-  let containerRef: HTMLDivElement | undefined;
-  let editor: monaco.editor.IStandaloneCodeEditor | undefined;
-  const [isEditorReady, setIsEditorReady] = createSignal(false);
+const MonacoEditor: React.FC<MonacoEditorProps> = (props) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [editor, setEditor] = useState<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const [isEditorReady, setIsEditorReady] = useState(false);
 
-  onMount(() => {
-    if (containerRef) {
+  useEffect(() => {
+    if (containerRef.current) {
       // Configure Monaco Editor
       monaco.editor.defineTheme('vs-code-dark', {
         base: 'vs-dark',
@@ -36,7 +35,7 @@ const MonacoEditor: Component<MonacoEditorProps> = (props) => {
       });
 
       // Create editor instance
-      editor = monaco.editor.create(containerRef, {
+      const editorInstance = monaco.editor.create(containerRef.current, {
         value: props.value || '',
         language: props.language || 'javascript',
         theme: props.theme || 'vs-code-dark',
@@ -52,10 +51,12 @@ const MonacoEditor: Component<MonacoEditorProps> = (props) => {
         ...props.options
       });
 
+      setEditor(editorInstance);
+
       // Set up change listener
-      editor.onDidChangeModelContent(() => {
-        if (editor && props.onChange) {
-          props.onChange(editor.getValue());
+      const disposable = editorInstance.onDidChangeModelContent(() => {
+        if (editorInstance && props.onChange) {
+          props.onChange(editorInstance.getValue());
         }
       });
 
@@ -66,50 +67,49 @@ const MonacoEditor: Component<MonacoEditorProps> = (props) => {
       
       // Call onMount callback if provided
       if (props.onMount) {
-        props.onMount(editor);
+        props.onMount(editorInstance);
       }
 
       // Initial layout
       requestAnimationFrame(() => {
-        if (editor) {
-          editor.layout();
+        if (editorInstance) {
+          editorInstance.layout();
         }
       });
+
+      return () => {
+        disposable.dispose();
+        editorInstance.dispose();
+      };
     }
-  });
+  }, []);
 
   // Update editor value when props change
-  createEffect(() => {
-    if (editor && isEditorReady() && props.value !== undefined) {
+  useEffect(() => {
+    if (editor && isEditorReady && props.value !== undefined) {
       const currentValue = editor.getValue();
       if (currentValue !== props.value) {
         editor.setValue(props.value);
       }
     }
-  });
+  }, [editor, isEditorReady, props.value]);
 
   // Update editor language when props change
-  createEffect(() => {
-    if (editor && isEditorReady() && props.language) {
+  useEffect(() => {
+    if (editor && isEditorReady && props.language) {
       const model = editor.getModel();
       if (model) {
         monaco.editor.setModelLanguage(model, props.language);
       }
     }
-  });
+  }, [editor, isEditorReady, props.language]);
 
   // Update editor theme when props change
-  createEffect(() => {
-    if (editor && isEditorReady() && props.theme) {
+  useEffect(() => {
+    if (editor && isEditorReady && props.theme) {
       monaco.editor.setTheme(props.theme);
     }
-  });
-
-  onCleanup(() => {
-    if (editor) {
-      editor.dispose();
-    }
-  });
+  }, [editor, isEditorReady, props.theme]);
 
   return (
     <div
@@ -123,7 +123,7 @@ const MonacoEditor: Component<MonacoEditorProps> = (props) => {
         right: '0',
         bottom: '0'
       }}
-      class="monaco-editor-container"
+      className="monaco-editor-container"
     />
   );
 };
