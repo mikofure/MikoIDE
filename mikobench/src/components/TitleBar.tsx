@@ -1,6 +1,6 @@
 import { createSignal, onMount, For, Show } from 'solid-js';
 import { editorMenu, type MenuSection, type MenuItem } from './data/menu';
-import Logo from "../assets/logo.png"
+import Logo from "../assets/logohyperion.png"
 interface WindowControlsAPI {
   minimize(): void;
   maximize(): void;
