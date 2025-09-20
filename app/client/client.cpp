@@ -526,8 +526,8 @@ void SDL3Window::UpdateTexture(const void* buffer, int width, int height) {
         if (!texture_) {
             return;
         }
-        // IMPORTANT: Avoid blending with alpha=0 content from OSR
-        SDL_SetTextureBlendMode(texture_, SDL_BLENDMODE_NONE);
+        // IMPORTANT: Use blend mode to allow editor overlay to render on top
+        SDL_SetTextureBlendMode(texture_, SDL_BLENDMODE_BLEND);
     }
 
     // 🔑 Copy CEF buffer → texture
@@ -567,62 +567,94 @@ void SDL3Window::Resize(int width, int height) {
 }
 
 void SDL3Window::Render() {
-    // Try DX11 rendering first if available and enabled
+    // Debug logging for render state
+    static int render_count = 0;
+    render_count++;
+    
+    Logger::LogMessage("=== RENDER FRAME " + std::to_string(render_count) + " ===");
+    Logger::LogMessage("Render: editor_enabled_=" + std::string(editor_enabled_ ? "true" : "false") + 
+                      ", editor_texture_=" + std::string(editor_texture_ ? "valid" : "null") +
+                      ", editor_browser_=" + std::string(editor_browser_ ? "valid" : "null"));
+    
+    // 1. Main render (DX11 or SDL)
+    bool main_rendered = false;
+
     if (dx11_enabled_ && dx11_renderer_) {
         if (dx11_renderer_->Render()) {
-            // DX11 rendering succeeded
-            return;
-        } else {
-            // Fall back to SDL3 rendering
+            main_rendered = true;
+            Logger::LogMessage("Render: DX11 main rendered");
         }
     }
 
-    // SDL3 fallback rendering
-    if (!renderer_) {
-        return;
-    }
-    
-    if (!texture_) {
-        return;
+    if (!main_rendered) {
+        if (!renderer_ || !texture_) {
+            Logger::LogMessage("Render: Early return - renderer or texture null");
+            return;
+        }
+
+        SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
+        SDL_RenderClear(renderer_);
+
+        if (SDL_RenderTexture(renderer_, texture_, nullptr, nullptr) != 0) {
+            SDL_FRect destRect = {0, 0, (float)width_, (float)height_};
+            SDL_RenderTexture(renderer_, texture_, nullptr, &destRect);
+        }
+        Logger::LogMessage("Render: SDL main rendered (" + std::to_string(width_) + "x" + std::to_string(height_) + ")");
     }
 
-    // Clear the renderer
-    SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
-    if (!SDL_RenderClear(renderer_)) {
-        return;
-    }
-    
-    // Render the texture (cover whole window)
-    if (SDL_RenderTexture(renderer_, texture_, nullptr, nullptr) != 0) {
-        // Try alternative rendering approach
-        SDL_FRect destRect = {0, 0, (float)width_, (float)height_};
-        SDL_RenderTexture(renderer_, texture_, nullptr, &destRect);
-    }
-    
-    // Render editor texture if enabled and available
+    // 2. Editor overlay (always try on top)
     if (editor_enabled_ && editor_texture_) {
+        // Keep the blend mode set in UpdateEditorTexture (SDL_BLENDMODE_BLEND)
+        // Don't override it here to allow proper alpha blending
+        
+        // Check current blend mode
+        SDL_BlendMode current_blend;
+        SDL_GetTextureBlendMode(editor_texture_, &current_blend);
+        Logger::LogMessage("Render: Editor texture blend mode = " + std::to_string(current_blend));
+
         SDL_FRect editorDestRect = {
             (float)editor_rect_.x,
             (float)editor_rect_.y,
             (float)editor_rect_.width,
             (float)editor_rect_.height
         };
-        
-        Logger::LogMessage("Render: Rendering editor texture at (" + 
-                          std::to_string(editor_rect_.x) + "," + std::to_string(editor_rect_.y) + 
-                          ") size " + std::to_string(editor_rect_.width) + "x" + std::to_string(editor_rect_.height));
-        
-        if (SDL_RenderTexture(renderer_, editor_texture_, nullptr, &editorDestRect) != 0) {
-            Logger::LogMessage("Render: Failed to render editor texture: " + std::string(SDL_GetError()));
-        } else {
-            Logger::LogMessage("Render: Successfully rendered editor texture");
+
+        Logger::LogMessage("Render: Attempting to render editor at (" +
+            std::to_string(editor_rect_.x) + "," + std::to_string(editor_rect_.y) +
+            ") size " + std::to_string(editor_rect_.width) + "x" +
+            std::to_string(editor_rect_.height));
+
+        // Get and log texture dimensions
+        float tex_width, tex_height;
+        if (SDL_GetTextureSize(editor_texture_, &tex_width, &tex_height) == 0) {
+            Logger::LogMessage("Render: Editor texture dimensions: " + std::to_string((int)tex_width) + "x" + std::to_string((int)tex_height));
         }
-    } else if (editor_enabled_) {
-        Logger::LogMessage("Render: Editor enabled but texture is null");
+
+        // Check current blend mode (reuse the variable from above)
+        if (SDL_GetTextureBlendMode(editor_texture_, &current_blend) == 0) {
+            Logger::LogMessage("Render: Editor texture blend mode: " + std::to_string(current_blend));
+        }
+
+        if (SDL_RenderTexture(renderer_, editor_texture_, nullptr, &editorDestRect) != 0) {
+            Logger::LogMessage("Render: FAILED editor texture: " + std::string(SDL_GetError()));
+        } else {
+            Logger::LogMessage("Render: SUCCESS - Editor texture rendered!");
+        }
+    } else {
+        if (!editor_enabled_) {
+            Logger::LogMessage("Render: Editor not enabled");
+        }
+        if (!editor_texture_) {
+            Logger::LogMessage("Render: Editor texture is null");
+        }
     }
-    
-    // Present the rendered frame
-    SDL_RenderPresent(renderer_);
+
+    // 3. Present final frame
+    if (renderer_) {
+        SDL_RenderPresent(renderer_);
+        Logger::LogMessage("Render: Frame presented");
+    }
+    Logger::LogMessage("=== END RENDER FRAME " + std::to_string(render_count) + " ===");
 }
 
 // OSRRenderHandler implementation
