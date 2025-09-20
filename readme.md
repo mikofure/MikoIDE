@@ -7,7 +7,7 @@
 ![React](https://img.shields.io/badge/React-18.3-blue.svg)
 ![Bun](https://img.shields.io/badge/Bun-latest-orange.svg)
 
-<img src="docs/resources/app.png">
+<img src="docs/resources/hyperion.png">
 
 A modern, high-performance IDE built with C++ and React/TypeScript, featuring Chromium Embedded Framework (CEF) for seamless web-native integration and Language Server Protocol (LSP) support for multiple programming languages.
 
