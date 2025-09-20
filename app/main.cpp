@@ -39,6 +39,7 @@
 // Global variables
 CefRefPtr<SimpleClient> g_client;
 std::unique_ptr<SDL3Window> g_sdl_window;
+std::unique_ptr<SplashScreen> g_splash_screen;
 bool g_is_closing = false;
 
 // Application settings now come from config.hpp
@@ -111,16 +112,80 @@ int WINAPI WinMain(HINSTANCE hInstance,
     Logger::Initialize();
     Logger::LogMessage("MikoIDE starting up...");
 
+    // Preload splash image for faster display
+    SplashScreen::PreloadSplashImage();
+
+    // Create and show splash screen
+    g_splash_screen = std::make_unique<SplashScreen>();
+    if (g_splash_screen->Create(hInstance, L"MikoIDE")) {
+        g_splash_screen->Show();
+        g_splash_screen->UpdateStatus(L"Initializing application...");
+    }
+
     // Set application properties
     SetApplicationUserModelID();
     LoadApplicationIcon();
     SetPermanentTaskbarIcon();
 
-    // Enable High DPI awareness
-    SetProcessDPIAware();
+    // Enable High DPI awareness with modern Windows 10+ APIs
+    // Try the most modern approach first (Windows 10 1703+)
+    if (g_splash_screen) {
+        g_splash_screen->UpdateStatus(L"Configuring display settings...");
+    }
+    
+    HMODULE user32 = GetModuleHandleW(L"user32.dll");
+    if (user32) {
+        typedef BOOL(WINAPI* SetProcessDpiAwarenessContextProc)(DPI_AWARENESS_CONTEXT);
+        auto pSetProcessDpiAwarenessContext = reinterpret_cast<SetProcessDpiAwarenessContextProc>(
+            GetProcAddress(user32, "SetProcessDpiAwarenessContext"));
+        
+        if (pSetProcessDpiAwarenessContext) {
+            // Use per-monitor DPI awareness v2 for best scaling support
+            if (pSetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)) {
+                Logger::LogMessage("HiDPI: Enabled per-monitor DPI awareness v2");
+            } else if (pSetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)) {
+                Logger::LogMessage("HiDPI: Enabled per-monitor DPI awareness v1");
+            } else {
+                Logger::LogMessage("HiDPI: Failed to set DPI awareness context, falling back");
+                SetProcessDPIAware();
+            }
+        } else {
+            // Fallback to Windows 8.1+ API
+            HMODULE shcore = LoadLibraryW(L"shcore.dll");
+            if (shcore) {
+                typedef HRESULT(WINAPI* SetProcessDpiAwarenessProc)(int);
+                auto pSetProcessDpiAwareness = reinterpret_cast<SetProcessDpiAwarenessProc>(
+                    GetProcAddress(shcore, "SetProcessDpiAwareness"));
+                
+                if (pSetProcessDpiAwareness) {
+                    // PROCESS_PER_MONITOR_DPI_AWARE = 2
+                    if (SUCCEEDED(pSetProcessDpiAwareness(2))) {
+                        Logger::LogMessage("HiDPI: Enabled per-monitor DPI awareness (Windows 8.1)");
+                    } else {
+                        Logger::LogMessage("HiDPI: Failed to set process DPI awareness, using basic");
+                        SetProcessDPIAware();
+                    }
+                } else {
+                    SetProcessDPIAware();
+                }
+                FreeLibrary(shcore);
+            } else {
+                // Final fallback to basic DPI awareness
+                SetProcessDPIAware();
+                Logger::LogMessage("HiDPI: Using basic DPI awareness (legacy)");
+            }
+        }
+    } else {
+        SetProcessDPIAware();
+        Logger::LogMessage("HiDPI: Using basic DPI awareness (fallback)");
+    }
 
     // ---- Set CEF DLL directories ----
     Logger::LogMessage("Setting up CEF paths...");
+    
+    if (g_splash_screen) {
+        g_splash_screen->UpdateStatus(L"Setting up CEF paths...");
+    }
     
     // Compute paths BEFORE CEF
     const auto exeDir = GetExeDir();
@@ -134,6 +199,11 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
     // Bootstrap: Check if CEF helper exists and download if necessary
     Logger::LogMessage("Bootstrap: Checking CEF helper availability...");
+    
+    if (g_splash_screen) {
+        g_splash_screen->UpdateStatus(L"Checking CEF components...");
+    }
+    
     BootstrapResult bootstrapResult = Bootstrap::CheckAndDownloadCEFHelper(hInstance);
     
     switch (bootstrapResult) {
@@ -195,6 +265,10 @@ int WINAPI WinMain(HINSTANCE hInstance,
     CefMainArgs main_args(hInstance);
     CefRefPtr<SimpleApp> app(new SimpleApp);
 
+    if (g_splash_screen) {
+        g_splash_screen->UpdateStatus(L"Initializing CEF framework...");
+    }
+
     // Execute the secondary process, if any
     int exit_code = CefExecuteProcess(main_args, app, nullptr);
     if (exit_code >= 0) {
@@ -241,10 +315,17 @@ int WINAPI WinMain(HINSTANCE hInstance,
     // Initialize CEF
     if (!CefInitialize(main_args, settings, app, nullptr)) {
         Logger::LogMessage("Failed to initialize CEF");
+        if (g_splash_screen) {
+            g_splash_screen->Hide();
+        }
         return 1;
     }
 
     Logger::LogMessage("CEF initialized successfully");
+
+    if (g_splash_screen) {
+        g_splash_screen->UpdateStatus(L"Setting up browser engine...");
+    }
 
     // Register scheme handler factory for miko:// protocol
     CefRegisterSchemeHandlerFactory("miko", "", new BinaryResourceProvider());
@@ -254,15 +335,26 @@ int WINAPI WinMain(HINSTANCE hInstance,
     g_sdl_window = std::make_unique<SDL3Window>();
     if (!g_sdl_window->Initialize(1200, 800)) {
         Logger::LogMessage("Failed to initialize SDL3 window");
+        if (g_splash_screen) {
+            g_splash_screen->Hide();
+        }
         CefShutdown();
         return 1;
     }
     
     Logger::LogMessage("SDL3 window initialized successfully");
 
+    if (g_splash_screen) {
+        g_splash_screen->UpdateStatus(L"Creating application window...");
+    }
+
     // Create CEF client and browser
     g_client = new SimpleClient(g_sdl_window.get());
     
+    if (g_splash_screen) {
+        g_splash_screen->UpdateStatus(L"Loading application...");
+    }
+
     // Configure browser settings
     CefBrowserSettings browser_settings;
     browser_settings.windowless_frame_rate = 0; // 60 FPS for smooth rendering
@@ -281,6 +373,12 @@ int WINAPI WinMain(HINSTANCE hInstance,
     }
     
     Logger::LogMessage("CEF browser created successfully");
+
+    // Hide splash screen once the browser is created and ready
+    if (g_splash_screen) {
+        g_splash_screen->Hide();
+        g_splash_screen.reset();
+    }
 
     // Main message loop
     while (!g_is_closing) {
@@ -313,6 +411,9 @@ int WINAPI WinMain(HINSTANCE hInstance,
         g_sdl_window->Shutdown();
         g_sdl_window.reset();
     }
+
+    // Cleanup preloaded splash image
+    SplashScreen::CleanupPreloadedImage();
 
     // Shutdown CEF
     CefShutdown();

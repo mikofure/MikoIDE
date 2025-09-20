@@ -177,6 +177,7 @@ add_executable(${PROJECT_NAME} WIN32
     app/resources/menuoverlay.cpp
     app/resources/resources.cpp
     app/resources/resourceutil.cpp
+    app/resources/splash.cpp
     app/renderer/dx11_renderer.cpp
     app/internal/simpleipc.cpp
     app/bootstrap/bootstrap.cpp

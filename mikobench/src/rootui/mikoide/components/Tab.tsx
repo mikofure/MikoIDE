@@ -35,7 +35,7 @@ const Tab: React.FC<TabProps> = ({
         display: 'flex',
         alignItems: 'center',
         padding: '8px 16px',
-        background: isActive 
+        background: isActive
           ? 'linear-gradient(180deg, #66c0f4 0%, #417a9b 100%)'
           : 'linear-gradient(180deg, #2a475e 0%, #1b2838 100%)',
         borderRight: '1px solid #171a21',
@@ -71,24 +71,24 @@ const Tab: React.FC<TabProps> = ({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    fontSize: '12px',
+    fontSize: '11px',
     fontFamily: mikoTheme ? 'system-ui, -apple-system, sans-serif' : 'inherit',
   });
 
   const getDirtyIndicatorStyle = (): React.CSSProperties => ({
     marginLeft: '6px',
-    color: mikoTheme 
+    color: mikoTheme
       ? (isActive ? '#171a21' : '#66c0f4')
       : '#f0f0f0',
     fontWeight: 'bold',
-    fontSize: '14px',
+    fontSize: '12px',
   });
 
   const getCloseButtonStyle = (): React.CSSProperties => ({
     marginLeft: '8px',
     background: 'none',
     border: 'none',
-    color: mikoTheme 
+    color: mikoTheme
       ? (isActive ? '#171a21' : '#c7d5e0')
       : '#cccccc',
     cursor: 'pointer',
@@ -128,14 +128,14 @@ const Tab: React.FC<TabProps> = ({
           </span>
         )}
       </span>
-      
+
       {onClose && (
         <button
           onClick={handleClose}
           style={getCloseButtonStyle()}
           onMouseEnter={(e) => {
             if (mikoTheme) {
-              e.currentTarget.style.backgroundColor = isActive 
+              e.currentTarget.style.backgroundColor = isActive
                 ? 'rgba(23, 26, 33, 0.2)'
                 : 'rgba(102, 192, 244, 0.2)';
             } else {

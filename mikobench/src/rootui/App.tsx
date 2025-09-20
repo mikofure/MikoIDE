@@ -9,12 +9,14 @@ import '@fontsource-variable/inter/wght.css';
 
 const AppContent: React.FC = () => {
   const { activeTab, tabs } = useWorkbench();
-  
+
   return (
     <div className="h-screen w-screen flex flex-col bg-[var(--vscode-editor-background)] overflow-hidden">
-      <TitleBar />
-      <div className='flex-1 flex pt-8 pb-6'>
+      <div className='flex flex-col'>
+        <TitleBar />
         <Navbar />
+      </div>
+      <div className='flex-1 flex'>
         <div className='flex-1'>
           <Workbench />
         </div>

@@ -35,4 +35,7 @@ namespace SimpleIPC {
     std::string HandlePing(const std::string& message);
     std::string HandleGetSystemInfo(const std::string& message);
     std::string HandleEcho(const std::string& message);
+    
+    // Window management methods
+    std::string HandleResizeWindow(const std::string& message);
 }

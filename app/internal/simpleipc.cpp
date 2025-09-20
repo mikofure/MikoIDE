@@ -3,6 +3,17 @@
 #include <sstream>
 #include <chrono>
 #include <ctime>
+#include "include/cef_values.h"
+#include "include/cef_parser.h"
+#include "../client/client.hpp"
+#include <iostream>
+#include <string>
+#include <functional>
+#include <unordered_map>
+#include <memory>
+
+// External reference to SDL window
+extern std::unique_ptr<SDL3Window> g_sdl_window;
 
 namespace SimpleIPC {
     
@@ -11,6 +22,7 @@ namespace SimpleIPC {
         RegisterHandler("ping", HandlePing);
         RegisterHandler("getSystemInfo", HandleGetSystemInfo);
         RegisterHandler("echo", HandleEcho);
+        RegisterHandler("resizeWindow", HandleResizeWindow);
     }
     
     std::string IPCHandler::HandleCall(const std::string& method, const std::string& message) {
@@ -94,5 +106,49 @@ namespace SimpleIPC {
     
     std::string HandleEcho(const std::string& message) {
         return "Echo: " + message;
+    }
+    
+    std::string HandleResizeWindow(const std::string& message) {
+        try {
+            // Parse JSON using CEF's native JSON parser
+            CefRefPtr<CefValue> json_value = CefParseJSON(message, JSON_PARSER_ALLOW_TRAILING_COMMAS);
+            
+            if (!json_value || json_value->GetType() != VTYPE_DICTIONARY) {
+                return "Error: Invalid JSON format";
+            }
+            
+            CefRefPtr<CefDictionaryValue> json_dict = json_value->GetDictionary();
+            
+            if (!json_dict->HasKey("width") || !json_dict->HasKey("height")) {
+                return "Error: Missing width or height parameters";
+            }
+            
+            int width = json_dict->GetInt("width");
+            int height = json_dict->GetInt("height");
+            
+            // Validate dimensions
+            if (width < 400 || height < 300 || width > 3840 || height > 2160) {
+                return "Error: Invalid window dimensions";
+            }
+            
+            // Access the global SDL window and resize it
+            if (g_sdl_window) {
+                // Use SDL to resize the window
+                if (auto sdl_window = g_sdl_window->GetSDLWindow()) {
+                    SDL_SetWindowSize(sdl_window, width, height);
+                    
+                    // The CEF browser resize notification will be handled
+                    // automatically by the SDL window event handler
+                    return "Window resized successfully";
+                } else {
+                    return "Error: SDL window not available";
+                }
+            } else {
+                return "Error: Global SDL window not initialized";
+            }
+            
+        } catch (const std::exception& e) {
+            return "Error: " + std::string(e.what());
+        }
     }
 }

@@ -90,6 +90,12 @@ public:
     bool IsMaximized() const { return maximized_; }
     bool ShouldClose() const { return should_close_; }
     
+    // DPI and scaling support
+    float GetDPIScale() const { return dpi_scale_; }
+    void UpdateDPIScale();
+    int GetScaledWidth() const { return static_cast<int>(width_ * dpi_scale_); }
+    int GetScaledHeight() const { return static_cast<int>(height_ * dpi_scale_); }
+    
     // Mouse and keyboard input for CEF
     void SendMouseEvent(const SDL_Event& event);
     void SendKeyEvent(const SDL_Event& event);
@@ -125,6 +131,9 @@ private:
     // DX11 Renderer for performance optimization
     std::unique_ptr<DX11Renderer> dx11_renderer_;
     bool dx11_enabled_;
+    
+    // DPI scaling support
+    float dpi_scale_;
     
     void InitializeDwmApi();
     void UpdateWindowStyle();

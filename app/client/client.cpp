@@ -42,7 +42,8 @@ SDL3Window::SDL3Window()
     , window_start_x_(0)
     , window_start_y_(0)
     , dx11_renderer_(nullptr)
-    , dx11_enabled_(false) {
+    , dx11_enabled_(false)
+    , dpi_scale_(1.0f) {
 }
 
 SDL3Window::~SDL3Window() {
@@ -128,6 +129,9 @@ bool SDL3Window::Initialize(int width, int height) {
         dx11_renderer_.reset();
         Logger::LogMessage("DX11 renderer initialization failed - falling back to SDL3 rendering");
     }
+
+    // Initialize DPI scaling
+    UpdateDPIScale();
 
     Logger::LogMessage("SDL3Window initialized successfully");
     return true;
@@ -245,17 +249,37 @@ void SDL3Window::UpdateWindowStyle() {
 void SDL3Window::InitializeDwmApi() {
     if (!hwnd_) return;
 
-    // Enable DWM composition
-#pragma warning(push)
-#pragma warning(disable: 4995) // Disable deprecation warning for DwmEnableComposition
-    if (DwmEnableComposition(DWM_EC_ENABLECOMPOSITION) != S_OK) {
-        Logger::LogMessage("DwmEnableComposition failed");
-    }
-#pragma warning(pop)
+    // Check DWM composition status (always enabled on Windows 10/11)
+    BOOL composition_enabled = FALSE;
+    DwmIsCompositionEnabled(&composition_enabled);
 
     // Extend frame into client area for better visual effects
     MARGINS margins = { 0, 0, 0, 1 };
     DwmExtendFrameIntoClientArea(hwnd_, &margins);
+}
+
+void SDL3Window::UpdateDPIScale() {
+    if (!hwnd_) {
+        dpi_scale_ = 1.0f;
+        return;
+    }
+
+    // Get DPI for the window's monitor
+    UINT dpi = GetDpiForWindow(hwnd_);
+    dpi_scale_ = static_cast<float>(dpi) / 96.0f; // 96 DPI is the standard baseline
+    
+    Logger::LogMessage("HiDPI: Detected DPI scale factor: " + std::to_string(dpi_scale_) + 
+                      " (DPI: " + std::to_string(dpi) + ")");
+    
+    // Update CEF browser size if client exists
+    if (client_) {
+        auto browser = client_->GetFirstBrowser();
+        if (browser && browser->GetHost()) {
+            // Notify CEF about the DPI change
+            browser->GetHost()->NotifyScreenInfoChanged();
+            browser->GetHost()->WasResized();
+        }
+    }
 }
 
 bool SDL3Window::HandleEvent(const SDL_Event& event) {
@@ -285,6 +309,9 @@ bool SDL3Window::HandleEvent(const SDL_Event& event) {
             
             Logger::LogMessage("Window resized to " + std::to_string(width_) + "x" + std::to_string(height_));
             
+            // Check for DPI changes on resize (common trigger for DPI changes)
+            UpdateDPIScale();
+            
             // Recreate texture with new size
             if (texture_) {
                 SDL_DestroyTexture(texture_);
@@ -304,6 +331,21 @@ bool SDL3Window::HandleEvent(const SDL_Event& event) {
                 if (browser) {
                     browser->GetHost()->WasResized();
                     Logger::LogMessage("Resize: Notified CEF browser of size change");
+                }
+            }
+            return true;
+
+        case SDL_EVENT_WINDOW_DISPLAY_CHANGED:
+            // Handle display change events (monitor switching)
+            Logger::LogMessage("Display changed event detected");
+            UpdateDPIScale();
+            
+            // Notify CEF browser of potential size/scale change
+            if (client_) {
+                auto browser = client_->GetFirstBrowser();
+                if (browser) {
+                    browser->GetHost()->WasResized();
+                    Logger::LogMessage("Display change: Notified CEF browser of scale change");
                 }
             }
             return true;
@@ -555,13 +597,19 @@ void OSRRenderHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect)
         rect.width = 1200; // Default width
         rect.height = 800; // Default height
         
-        // Get actual window size
+        // Get actual window size and apply DPI scaling
         if (window_->GetSDLWindow()) {
             int w, h;
             SDL_GetWindowSize(window_->GetSDLWindow(), &w, &h);
-            rect.width = w;
-            rect.height = h;
-            Logger::LogMessage("GetViewRect: " + std::to_string(w) + "x" + std::to_string(h));
+            
+            // Apply DPI scaling to get logical size for CEF
+            float dpi_scale = window_->GetDPIScale();
+            rect.width = static_cast<int>(w / dpi_scale);
+            rect.height = static_cast<int>(h / dpi_scale);
+            
+            Logger::LogMessage("GetViewRect: Physical size " + std::to_string(w) + "x" + std::to_string(h) + 
+                             ", DPI scale " + std::to_string(dpi_scale) + 
+                             ", Logical size " + std::to_string(rect.width) + "x" + std::to_string(rect.height));
         } else {
             Logger::LogMessage("GetViewRect: Using default size " + std::to_string(rect.width) + "x" + std::to_string(rect.height));
         }
@@ -1182,10 +1230,12 @@ void SimpleClient::SpawnNewWindow() {
 // OSR specific methods
 void SimpleClient::SendMouseClickEvent(int x, int y, CefBrowserHost::MouseButtonType button, bool mouse_up, int click_count) {
     auto browser = GetFirstBrowser();
-    if (browser) {
+    if (browser && window_) {
         CefMouseEvent mouse_event;
-        mouse_event.x = x;
-        mouse_event.y = y;
+        // Apply DPI scaling to mouse coordinates for CEF
+        float dpi_scale = window_->GetDPIScale();
+        mouse_event.x = static_cast<int>(x / dpi_scale);
+        mouse_event.y = static_cast<int>(y / dpi_scale);
         mouse_event.modifiers = 0;
         browser->GetHost()->SendMouseClickEvent(mouse_event, button, mouse_up, click_count);
     }
@@ -1193,10 +1243,12 @@ void SimpleClient::SendMouseClickEvent(int x, int y, CefBrowserHost::MouseButton
 
 void SimpleClient::SendMouseMoveEvent(int x, int y, bool mouse_leave) {
     auto browser = GetFirstBrowser();
-    if (browser) {
+    if (browser && window_) {
         CefMouseEvent mouse_event;
-        mouse_event.x = x;
-        mouse_event.y = y;
+        // Apply DPI scaling to mouse coordinates for CEF
+        float dpi_scale = window_->GetDPIScale();
+        mouse_event.x = static_cast<int>(x / dpi_scale);
+        mouse_event.y = static_cast<int>(y / dpi_scale);
         mouse_event.modifiers = 0;
         browser->GetHost()->SendMouseMoveEvent(mouse_event, mouse_leave);
     }
@@ -1204,10 +1256,12 @@ void SimpleClient::SendMouseMoveEvent(int x, int y, bool mouse_leave) {
 
 void SimpleClient::SendMouseWheelEvent(int x, int y, int delta_x, int delta_y) {
     auto browser = GetFirstBrowser();
-    if (browser) {
+    if (browser && window_) {
         CefMouseEvent mouse_event;
-        mouse_event.x = x;
-        mouse_event.y = y;
+        // Apply DPI scaling to mouse coordinates for CEF
+        float dpi_scale = window_->GetDPIScale();
+        mouse_event.x = static_cast<int>(x / dpi_scale);
+        mouse_event.y = static_cast<int>(y / dpi_scale);
         mouse_event.modifiers = 0;
         browser->GetHost()->SendMouseWheelEvent(mouse_event, delta_x, delta_y);
     }
