@@ -11,7 +11,8 @@ namespace ResourceUtil {
     // Resource path to ID mapping
     static const std::map<std::string, int> resourceMap = {
         {"/index.html", IDR_HTML_INDEX},
-        {"/editor.html", IDR_HTML_EDITOR},
+        {"/monaco/index.html", IDR_HTML_EDITOR},  // Add monaco subdomain mapping to editor resource
+        {"/menuoverlay/index.html", IDR_HTML_MENUOVERLAY},  // Add menuoverlay subdirectory mapping
         {"/main.css", IDR_CSS_MAIN},
         {"/main.js", IDR_JS_MAIN}
     };

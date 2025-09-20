@@ -4,6 +4,7 @@ app/resources/webapp.cpp
 node_modules
 vscode
 out/**
+*.rej
 # ref
 app/resources/editor.cpp
 app/resources/menuoverlay.cpp

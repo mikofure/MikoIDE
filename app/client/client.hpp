@@ -25,6 +25,7 @@
 #include <list>
 #include <memory>
 #include <string>
+#include <mutex>
 
 // Forward declarations
 std::string GetDataURI(const std::string& data, const std::string& mime_type);
@@ -75,11 +76,30 @@ public:
     SDL_Renderer* GetRenderer() const { return renderer_; }
     SDL_Texture* GetTexture() const { return texture_; }
     HWND GetHWND() const;
+    int GetWidth() const { return width_; }
+    int GetHeight() const { return height_; }
     
     // CEF OSR integration
     void UpdateTexture(const void* buffer, int width, int height);
     void Resize(int width, int height);
     void SetClient(CefRefPtr<SimpleClient> client) { client_ = client; }
+    
+    // Menu overlay management
+    void ShowMenuOverlay(const std::string& section, int x, int y);
+    void HideMenuOverlay();
+    bool IsMenuOverlayVisible() const;
+    
+    // Editor sublayer management
+    void EnableEditor(bool enable);
+    void SetEditorPosition(int x, int y, int width, int height);
+    void SetEditorBrowser(CefRefPtr<CefBrowser> browser);
+    bool IsEditorEnabled() const { return editor_enabled_; }
+    CefRect GetEditorRect() const { return editor_rect_; }
+    CefRefPtr<CefBrowser> GetEditorBrowser() const { return editor_browser_; }
+    void UpdateEditorTexture(const void* buffer, int width, int height);
+    
+    // Thread safety for editor texture updates
+    std::mutex editor_texture_mutex_;
     
     // DX11 Renderer integration
     bool IsDX11Available() const { return dx11_renderer_ && dx11_renderer_->IsInitialized(); }
@@ -135,6 +155,19 @@ private:
     
     // DPI scaling support
     float dpi_scale_;
+    
+    // Menu overlay state
+    bool menu_overlay_visible_;
+    std::string current_menu_section_;
+    int menu_overlay_x_;
+    int menu_overlay_y_;
+    
+    // Editor sublayer management
+    bool editor_enabled_;
+    CefRect editor_rect_;
+    CefRefPtr<CefBrowser> editor_browser_;
+    SDL_Texture* editor_texture_;
+    bool editor_texture_locked_;
     
     void InitializeDwmApi();
     void UpdateWindowStyle();
@@ -312,6 +345,17 @@ public:
     void SendMouseWheelEvent(int x, int y, int delta_x, int delta_y);
     void SendKeyEvent(const CefKeyEvent& event);
     void SendFocusEvent(bool set_focus);
+    
+    // Menu overlay management
+    void OpenMenuOverlay(const std::string& section, int x, int y);
+    void CloseMenuOverlay();
+    
+    // Editor management
+    void OpenEditor(int x, int y, int width, int height);
+    void CloseEditor();
+    
+    std::string GetMenuOverlayHTML(const std::string& section);
+    std::string BuildOverlayURL(const std::string& section, int x, int y, int width, int height);
 
 private:
     typedef std::list<CefRefPtr<CefBrowser>> BrowserList;

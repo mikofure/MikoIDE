@@ -2,6 +2,7 @@
 #include "../utils/config.hpp"
 #include "../utils/logger.hpp"
 #include "../internal/simpleipc.hpp"
+#include "../resources/resourceutil.hpp"
 #include "include/wrapper/cef_helpers.h"
 #include "include/cef_app.h"
 #include <SDL3/SDL.h>
@@ -27,8 +28,8 @@ SDL3Window::SDL3Window()
     , texture_(nullptr)
     , hwnd_(nullptr)
     , client_(nullptr)
-    , width_(1200)
-    , height_(800)
+    , width_(DEFAULT_WINDOW_WIDTH)
+, height_(DEFAULT_WINDOW_HEIGHT)
     , minimized_(false)
     , maximized_(false)
     , should_close_(false)
@@ -43,7 +44,14 @@ SDL3Window::SDL3Window()
     , window_start_y_(0)
     , dx11_renderer_(nullptr)
     , dx11_enabled_(false)
-    , dpi_scale_(1.0f) {
+    , dpi_scale_(1.0f)
+    , menu_overlay_visible_(false)
+    , menu_overlay_x_(0)
+    , menu_overlay_y_(0)
+    , editor_enabled_(false)
+    , editor_rect_({0, 0, 0, 0})
+    , editor_browser_(nullptr)
+    , editor_texture_(nullptr) {
 }
 
 SDL3Window::~SDL3Window() {
@@ -127,6 +135,10 @@ void SDL3Window::Shutdown() {
         dx11_enabled_ = false;
     }
     
+    if (editor_texture_) {
+        SDL_DestroyTexture(editor_texture_);
+        editor_texture_ = nullptr;
+    }
     if (texture_) {
         SDL_DestroyTexture(texture_);
         texture_ = nullptr;
@@ -339,7 +351,14 @@ bool SDL3Window::HandleEvent(const SDL_Event& event) {
             if (HandleWindowDragging(event)) {
                 return true;
             }
-            SendMouseEvent(event);
+            // Only send to CEF if the event wasn't consumed by dragging
+            try {
+                SendMouseEvent(event);
+            } catch (const std::exception& ex) {
+                Logger::LogMessage("HandleEvent: Exception in SendMouseEvent - " + std::string(ex.what()));
+            } catch (...) {
+                Logger::LogMessage("HandleEvent: Unknown exception in SendMouseEvent");
+            }
             return true;
 
         case SDL_EVENT_MOUSE_WHEEL:
@@ -357,39 +376,69 @@ bool SDL3Window::HandleEvent(const SDL_Event& event) {
 }
 
 void SDL3Window::SendMouseEvent(const SDL_Event& event) {
-    if (!client_) return;
+    if (!client_) {
+        Logger::LogMessage("SendMouseEvent: Client is null");
+        return;
+    }
 
     auto browser = client_->GetFirstBrowser();
-    if (!browser) return;
+    if (!browser) {
+        Logger::LogMessage("SendMouseEvent: Browser is null");
+        return;
+    }
+
+    auto host = browser->GetHost();
+    if (!host) {
+        Logger::LogMessage("SendMouseEvent: Browser host is null");
+        return;
+    }
 
     CefMouseEvent mouse_event;
     mouse_event.x = event.button.x;
     mouse_event.y = event.button.y;
     mouse_event.modifiers = 0; // TODO: Handle modifiers
 
+    // Validate coordinates are within reasonable bounds
+    if (mouse_event.x < 0 || mouse_event.y < 0 || 
+        mouse_event.x > width_ || mouse_event.y > height_) {
+        Logger::LogMessage("SendMouseEvent: Mouse coordinates out of bounds (" + 
+                          std::to_string(mouse_event.x) + ", " + std::to_string(mouse_event.y) + ")");
+        return;
+    }
+
     last_mouse_x_ = event.button.x;
     last_mouse_y_ = event.button.y;
 
-    switch (event.type) {
-        case SDL_EVENT_MOUSE_MOTION:
-            browser->GetHost()->SendMouseMoveEvent(mouse_event, false);
-            break;
+    try {
+        switch (event.type) {
+            case SDL_EVENT_MOUSE_MOTION:
+                host->SendMouseMoveEvent(mouse_event, false);
+                break;
 
-        case SDL_EVENT_MOUSE_BUTTON_DOWN:
-        case SDL_EVENT_MOUSE_BUTTON_UP: {
-            CefBrowserHost::MouseButtonType button_type = MBT_LEFT;
-            if (event.button.button == SDL_BUTTON_RIGHT) {
-                button_type = MBT_RIGHT;
-            } else if (event.button.button == SDL_BUTTON_MIDDLE) {
-                button_type = MBT_MIDDLE;
+            case SDL_EVENT_MOUSE_BUTTON_DOWN:
+            case SDL_EVENT_MOUSE_BUTTON_UP: {
+                CefBrowserHost::MouseButtonType button_type = MBT_LEFT;
+                if (event.button.button == SDL_BUTTON_RIGHT) {
+                    button_type = MBT_RIGHT;
+                } else if (event.button.button == SDL_BUTTON_MIDDLE) {
+                    button_type = MBT_MIDDLE;
+                }
+
+                bool mouse_up = (event.type == SDL_EVENT_MOUSE_BUTTON_UP);
+                int click_count = event.button.clicks;
+                
+                Logger::LogMessage("SendMouseEvent: Sending click event at (" + 
+                                  std::to_string(mouse_event.x) + ", " + std::to_string(mouse_event.y) + 
+                                  ") button=" + std::to_string(button_type) + " up=" + std::to_string(mouse_up));
+                
+                host->SendMouseClickEvent(mouse_event, button_type, mouse_up, click_count);
+                break;
             }
-
-            bool mouse_up = (event.type == SDL_EVENT_MOUSE_BUTTON_UP);
-            int click_count = event.button.clicks;
-            
-            browser->GetHost()->SendMouseClickEvent(mouse_event, button_type, mouse_up, click_count);
-            break;
         }
+    } catch (const std::exception& ex) {
+        Logger::LogMessage("SendMouseEvent: Exception caught - " + std::string(ex.what()));
+    } catch (...) {
+        Logger::LogMessage("SendMouseEvent: Unknown exception caught");
     }
 }
 
@@ -550,6 +599,28 @@ void SDL3Window::Render() {
         SDL_RenderTexture(renderer_, texture_, nullptr, &destRect);
     }
     
+    // Render editor texture if enabled and available
+    if (editor_enabled_ && editor_texture_) {
+        SDL_FRect editorDestRect = {
+            (float)editor_rect_.x,
+            (float)editor_rect_.y,
+            (float)editor_rect_.width,
+            (float)editor_rect_.height
+        };
+        
+        Logger::LogMessage("Render: Rendering editor texture at (" + 
+                          std::to_string(editor_rect_.x) + "," + std::to_string(editor_rect_.y) + 
+                          ") size " + std::to_string(editor_rect_.width) + "x" + std::to_string(editor_rect_.height));
+        
+        if (SDL_RenderTexture(renderer_, editor_texture_, nullptr, &editorDestRect) != 0) {
+            Logger::LogMessage("Render: Failed to render editor texture: " + std::string(SDL_GetError()));
+        } else {
+            Logger::LogMessage("Render: Successfully rendered editor texture");
+        }
+    } else if (editor_enabled_) {
+        Logger::LogMessage("Render: Editor enabled but texture is null");
+    }
+    
     // Present the rendered frame
     SDL_RenderPresent(renderer_);
 }
@@ -560,10 +631,29 @@ OSRRenderHandler::OSRRenderHandler(SDL3Window* window) : window_(window) {
 
 void OSRRenderHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect) {
     if (window_) {
+        // Check if this is the editor browser by URL
+        std::string url = browser->GetMainFrame()->GetURL().ToString();
+        if (url.find("miko://monaco/") == 0) {
+            // This is the editor browser - use editor rect dimensions
+            CefRect editor_rect = window_->GetEditorRect();
+            if (editor_rect.width > 0 && editor_rect.height > 0) {
+                rect.x = 0;
+                rect.y = 0;
+                rect.width = editor_rect.width;
+                rect.height = editor_rect.height;
+                Logger::LogMessage("GetViewRect: Editor browser using editor rect " + 
+                                 std::to_string(rect.width) + "x" + std::to_string(rect.height));
+                return;
+            } else {
+                Logger::LogMessage("GetViewRect: Editor rect has invalid dimensions, using default");
+            }
+        }
+        
+        // For main browser or if editor rect is invalid, use full window size
         rect.x = 0;
         rect.y = 0;
-        rect.width = 1200; // Default width
-        rect.height = 800; // Default height
+        rect.width = DEFAULT_WINDOW_WIDTH; // Default width
+        rect.height = DEFAULT_WINDOW_HEIGHT; // Default height
         
         // Get actual window size and apply DPI scaling
         if (window_->GetSDLWindow()) {
@@ -575,18 +665,18 @@ void OSRRenderHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect)
             rect.width = static_cast<int>(w / dpi_scale);
             rect.height = static_cast<int>(h / dpi_scale);
             
-            Logger::LogMessage("GetViewRect: Physical size " + std::to_string(w) + "x" + std::to_string(h) + 
+            Logger::LogMessage("GetViewRect: Main browser - Physical size " + std::to_string(w) + "x" + std::to_string(h) + 
                              ", DPI scale " + std::to_string(dpi_scale) + 
                              ", Logical size " + std::to_string(rect.width) + "x" + std::to_string(rect.height));
         } else {
             Logger::LogMessage("GetViewRect: Using default size " + std::to_string(rect.width) + "x" + std::to_string(rect.height));
         }
     } else {
-        Logger::LogMessage("GetViewRect: Window is null, using default 1200x800");
+        Logger::LogMessage("GetViewRect: Window is null, using default " + std::to_string(DEFAULT_WINDOW_WIDTH) + "x" + std::to_string(DEFAULT_WINDOW_HEIGHT));
         rect.x = 0;
         rect.y = 0;
-        rect.width = 1200;
-        rect.height = 800;
+        rect.width = DEFAULT_WINDOW_WIDTH;
+        rect.height = DEFAULT_WINDOW_HEIGHT;
     }
 }
 
@@ -603,8 +693,17 @@ void OSRRenderHandler::OnPaint(CefRefPtr<CefBrowser> browser,
     
     Logger::LogMessage("OnPaint: Received paint event " + std::to_string(width) + "x" + std::to_string(height) + ", dirty rects=" + std::to_string(dirtyRects.size()));
 
-    // UpdateTexture now handles create/recreate + copy
-    window_->UpdateTexture(buffer, width, height);
+    // Check if this is the editor browser by URL
+    std::string url = browser->GetMainFrame()->GetURL().ToString();
+    if (url.find("miko://monaco/") == 0) {
+        // This is the editor browser - route to editor texture
+        Logger::LogMessage("OnPaint: Routing editor browser content to UpdateEditorTexture");
+        window_->UpdateEditorTexture(buffer, width, height);
+    } else {
+        // This is the main browser - route to main texture
+        Logger::LogMessage("OnPaint: Routing main browser content to UpdateTexture");
+        window_->UpdateTexture(buffer, width, height);
+    }
 }
 
 bool SimpleClient::OnCursorChange(CefRefPtr<CefBrowser> browser,
@@ -732,6 +831,272 @@ bool SimpleClient::OnQuery(CefRefPtr<CefBrowser> browser,
     CEF_REQUIRE_UI_THREAD();
     
     std::string request_str = request.ToString();
+    
+    // Handle JSON-based menu overlay requests
+    if (request_str.find("{") == 0) {
+        try {
+            // Parse JSON request
+            size_t type_pos = request_str.find("\"type\":");
+            if (type_pos != std::string::npos) {
+                size_t type_start = request_str.find("\"", type_pos + 7) + 1;
+                size_t type_end = request_str.find("\"", type_start);
+                std::string type = request_str.substr(type_start, type_end - type_start);
+                
+                if (type == "open_menu_overlay") {
+                    Logger::LogMessage("DEBUG: Starting open_menu_overlay handler");
+                    Logger::LogMessage("DEBUG: Request string: " + request_str);
+                    
+                    try {
+                        Logger::LogMessage("DEBUG: Extracting JSON fields");
+                        // Extract section, x, y from JSON
+                        size_t section_pos = request_str.find("\"section\":");
+                        size_t x_pos = request_str.find("\"x\":");
+                        size_t y_pos = request_str.find("\"y\":");
+                        
+                        Logger::LogMessage("DEBUG: Found positions - section: " + std::to_string(section_pos) + 
+                                         ", x: " + std::to_string(x_pos) + ", y: " + std::to_string(y_pos));
+                        
+                        if (section_pos != std::string::npos && x_pos != std::string::npos && y_pos != std::string::npos) {
+                            Logger::LogMessage("DEBUG: Extracting section");
+                            // Extract section
+                            size_t section_start = request_str.find("\"", section_pos + 10) + 1;
+                            size_t section_end = request_str.find("\"", section_start);
+                            std::string section = request_str.substr(section_start, section_end - section_start);
+                            Logger::LogMessage("DEBUG: Extracted section: " + section);
+                            
+                            Logger::LogMessage("DEBUG: Extracting x coordinate");
+                            // Extract x coordinate (handle numeric values without quotes)
+                            size_t x_colon = request_str.find(":", x_pos);
+                            size_t x_start = x_colon + 1;
+                            // Skip any whitespace
+                            while (x_start < request_str.length() && (request_str[x_start] == ' ' || request_str[x_start] == '\t')) {
+                                x_start++;
+                            }
+                            size_t x_end = request_str.find(",", x_start);
+                            if (x_end == std::string::npos) x_end = request_str.find("}", x_start);
+                            std::string x_str = request_str.substr(x_start, x_end - x_start);
+                            // Trim whitespace
+                            x_str.erase(0, x_str.find_first_not_of(" \t"));
+                            x_str.erase(x_str.find_last_not_of(" \t") + 1);
+                            Logger::LogMessage("DEBUG: x_str before conversion: '" + x_str + "'");
+                            int x = static_cast<int>(std::stod(x_str));
+                            Logger::LogMessage("DEBUG: Extracted x: " + std::to_string(x));
+                            
+                            Logger::LogMessage("DEBUG: Extracting y coordinate");
+                            // Extract y coordinate (handle numeric values without quotes)
+                            size_t y_colon = request_str.find(":", y_pos);
+                            size_t y_start = y_colon + 1;
+                            // Skip any whitespace
+                            while (y_start < request_str.length() && (request_str[y_start] == ' ' || request_str[y_start] == '\t')) {
+                                y_start++;
+                            }
+                            size_t y_end = request_str.find("}", y_start);
+                            if (y_end == std::string::npos) y_end = request_str.find(",", y_start);
+                            std::string y_str = request_str.substr(y_start, y_end - y_start);
+                            // Trim whitespace
+                            y_str.erase(0, y_str.find_first_not_of(" \t"));
+                            y_str.erase(y_str.find_last_not_of(" \t") + 1);
+                            Logger::LogMessage("DEBUG: y_str before conversion: '" + y_str + "'");
+                            int y = static_cast<int>(std::stod(y_str));
+                            Logger::LogMessage("DEBUG: Extracted y: " + std::to_string(y));
+                            
+                            Logger::LogMessage("Processing menu overlay request for section: " + section + " at (" + std::to_string(x) + ", " + std::to_string(y) + ")");
+                            
+                            Logger::LogMessage("DEBUG: About to call OpenMenuOverlay or CloseMenuOverlay");
+                            // Handle menu overlay opening
+                            if (section == "close") {
+                                Logger::LogMessage("DEBUG: Calling CloseMenuOverlay");
+                                CloseMenuOverlay();
+                            } else {
+                                Logger::LogMessage("DEBUG: Calling OpenMenuOverlay");
+                                OpenMenuOverlay(section, x, y);
+                            }
+                            Logger::LogMessage("DEBUG: Successfully completed menu overlay operation");
+                        } else {
+                            Logger::LogMessage("DEBUG: Missing required JSON fields");
+                        }
+                        
+                        callback->Success("success");
+                        return true;
+                    } catch (const std::exception& ex) {
+                        Logger::LogMessage("Exception in open_menu_overlay handler: " + std::string(ex.what()));
+                        callback->Failure(500, "Internal error in menu overlay");
+                        return true;
+                    } catch (...) {
+                        Logger::LogMessage("Unknown exception in open_menu_overlay handler (possibly 0xe06d7363)");
+                        callback->Failure(500, "Unknown error in menu overlay");
+                        return true;
+                    }
+                }
+                else if (type == "menu_item_click") {
+                    try {
+                        // Extract section and action from JSON
+                        size_t section_pos = request_str.find("\"section\":");
+                        size_t action_pos = request_str.find("\"action\":");
+                        
+                        if (section_pos != std::string::npos && action_pos != std::string::npos) {
+                            // Extract section
+                            size_t section_start = request_str.find("\"", section_pos + 10) + 1;
+                            size_t section_end = request_str.find("\"", section_start);
+                            std::string section = request_str.substr(section_start, section_end - section_start);
+                            
+                            // Extract action
+                            size_t action_start = request_str.find("\"", action_pos + 9) + 1;
+                            size_t action_end = request_str.find("\"", action_start);
+                            std::string action = request_str.substr(action_start, action_end - action_start);
+                            
+                            // Log menu item click for debugging
+                            Logger::LogMessage("Menu item clicked - Section: " + section + ", Action: " + action);
+                            
+                            // Close menu overlay after click
+                            CloseMenuOverlay();
+                            
+                            callback->Success("success");
+                            return true;
+                        } else {
+                            Logger::LogMessage("Invalid menu item click parameters");
+                            callback->Failure(400, "Invalid parameters");
+                            return true;
+                        }
+                    } catch (const std::exception& ex) {
+                        Logger::LogMessage("Exception in menu_item_click handler: " + std::string(ex.what()));
+                        callback->Failure(500, "Internal error in menu item click");
+                        return true;
+                    } catch (...) {
+                        Logger::LogMessage("Unknown exception in menu_item_click handler (possibly 0xe06d7363)");
+                        callback->Failure(500, "Unknown error in menu item click");
+                        return true;
+                    }
+                }
+                else if (type == "open_editor") {
+                    try {
+                        // Extract position and dimensions from JSON
+                        size_t x_pos = request_str.find("\"x\":");
+                        size_t y_pos = request_str.find("\"y\":");
+                        size_t width_pos = request_str.find("\"width\":");
+                        size_t height_pos = request_str.find("\"height\":");
+                        
+                        if (x_pos != std::string::npos && y_pos != std::string::npos && 
+                            width_pos != std::string::npos && height_pos != std::string::npos) {
+                            
+                            // Extract x coordinate
+                            size_t x_start = request_str.find(":", x_pos) + 1;
+                            size_t x_end = request_str.find_first_of(",}", x_start);
+                            int x = std::stoi(request_str.substr(x_start, x_end - x_start));
+                            
+                            // Extract y coordinate
+                            size_t y_start = request_str.find(":", y_pos) + 1;
+                            size_t y_end = request_str.find_first_of(",}", y_start);
+                            int y = std::stoi(request_str.substr(y_start, y_end - y_start));
+                            
+                            // Extract width
+                            size_t width_start = request_str.find(":", width_pos) + 1;
+                            size_t width_end = request_str.find_first_of(",}", width_start);
+                            int width = std::stoi(request_str.substr(width_start, width_end - width_start));
+                            
+                            // Extract height
+                            size_t height_start = request_str.find(":", height_pos) + 1;
+                            size_t height_end = request_str.find_first_of(",}", height_start);
+                            int height = std::stoi(request_str.substr(height_start, height_end - height_start));
+                            
+                            Logger::LogMessage("Opening editor at position: " + std::to_string(x) + "," + std::to_string(y) + 
+                                             " with size: " + std::to_string(width) + "x" + std::to_string(height));
+                            
+                            // Open editor using the same technique as menu overlay
+                            OpenEditor(x, y, width, height);
+                            
+                            callback->Success("success");
+                            return true;
+                        } else {
+                            Logger::LogMessage("DEBUG: Missing required JSON fields for editor");
+                            callback->Failure(400, "Missing required parameters");
+                            return true;
+                        }
+                    } catch (const std::exception& ex) {
+                        Logger::LogMessage("Exception in open_editor handler: " + std::string(ex.what()));
+                        callback->Failure(500, "Internal error in editor");
+                        return true;
+                    } catch (...) {
+                        Logger::LogMessage("Unknown exception in open_editor handler (possibly 0xe06d7363)");
+                        callback->Failure(500, "Unknown error in editor");
+                        return true;
+                    }
+                }
+                else if (type == "close_editor") {
+                    try {
+                        Logger::LogMessage("Closing editor");
+                        CloseEditor();
+                        callback->Success("success");
+                        return true;
+                    } catch (const std::exception& ex) {
+                        Logger::LogMessage("Exception in close_editor handler: " + std::string(ex.what()));
+                        callback->Failure(500, "Internal error closing editor");
+                        return true;
+                    } catch (...) {
+                        Logger::LogMessage("Unknown exception in close_editor handler (possibly 0xe06d7363)");
+                        callback->Failure(500, "Unknown error closing editor");
+                        return true;
+                    }
+                }
+                else if (type == "editor_position_update") {
+                    try {
+                        // Extract new position and dimensions from JSON
+                        size_t x_pos = request_str.find("\"x\":");
+                        size_t y_pos = request_str.find("\"y\":");
+                        size_t width_pos = request_str.find("\"width\":");
+                        size_t height_pos = request_str.find("\"height\":");
+                        
+                        if (x_pos != std::string::npos && y_pos != std::string::npos && 
+                            width_pos != std::string::npos && height_pos != std::string::npos) {
+                            
+                            // Extract coordinates and dimensions
+                            size_t x_start = request_str.find(":", x_pos) + 1;
+                            size_t x_end = request_str.find_first_of(",}", x_start);
+                            int x = std::stoi(request_str.substr(x_start, x_end - x_start));
+                            
+                            size_t y_start = request_str.find(":", y_pos) + 1;
+                            size_t y_end = request_str.find_first_of(",}", y_start);
+                            int y = std::stoi(request_str.substr(y_start, y_end - y_start));
+                            
+                            size_t width_start = request_str.find(":", width_pos) + 1;
+                            size_t width_end = request_str.find_first_of(",}", width_start);
+                            int width = std::stoi(request_str.substr(width_start, width_end - width_start));
+                            
+                            size_t height_start = request_str.find(":", height_pos) + 1;
+                            size_t height_end = request_str.find_first_of(",}", height_start);
+                            int height = std::stoi(request_str.substr(height_start, height_end - height_start));
+                            
+                            Logger::LogMessage("Updating editor position to: " + std::to_string(x) + "," + std::to_string(y) + 
+                                             " with size: " + std::to_string(width) + "x" + std::to_string(height));
+                            
+                            // Update editor position using window method
+                            if (window_) {
+                                window_->SetEditorPosition(x, y, width, height);
+                            }
+                            
+                            callback->Success("success");
+                            return true;
+                        } else {
+                            Logger::LogMessage("DEBUG: Missing required JSON fields for editor position update");
+                            callback->Failure(400, "Missing required parameters");
+                            return true;
+                        }
+                    } catch (const std::exception& ex) {
+                        Logger::LogMessage("Exception in editor_position_update handler: " + std::string(ex.what()));
+                        callback->Failure(500, "Internal error updating editor position");
+                        return true;
+                    } catch (...) {
+                        Logger::LogMessage("Unknown exception in editor_position_update handler (possibly 0xe06d7363)");
+                        callback->Failure(500, "Unknown error updating editor position");
+                        return true;
+                    }
+                }
+            }
+        } catch (const std::exception&) {
+            callback->Failure(-1, "Failed to parse menu overlay request");
+            return true;
+        }
+    }
     
     // Handle IPC calls
     if (request_str.find("ipc_call:") == 0) {
@@ -1017,6 +1382,32 @@ void SimpleClient::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
     if (browser_list_.size() == 1) {
         // First CEF browser created
         Logger::LogMessage("First CEF browser created");
+    } else {
+        // Check if this is a menu overlay browser and apply transparency
+        std::string url = browser->GetMainFrame()->GetURL().ToString();
+        Logger::LogMessage("OnAfterCreated: Checking URL: " + url);
+        if (url.find("miko://menuoverlay/") == 0) {
+            // Get the native window handle for the overlay
+            HWND overlay_hwnd = browser->GetHost()->GetWindowHandle();
+            if (overlay_hwnd) {
+                // Apply transparency settings to the overlay window
+                SetLayeredWindowAttributes(overlay_hwnd, RGB(0, 0, 0), 240, LWA_COLORKEY | LWA_ALPHA);
+                Logger::LogMessage("Applied transparency to menu overlay window");
+                
+                // Ensure the window stays on top
+                SetWindowPos(overlay_hwnd, HWND_TOPMOST, 0, 0, 0, 0, 
+                           SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                Logger::LogMessage("Set menu overlay window to stay on top");
+            } else {
+                Logger::LogMessage("Failed to get overlay window handle for transparency");
+            }
+        } else if (url.find("miko://monaco/") == 0) {
+            // This is the editor browser - store reference for OSR
+            if (window_) {
+                window_->SetEditorBrowser(browser);
+                Logger::LogMessage("Editor browser created and stored for OSR rendering");
+            }
+        }
     }
 }
 
@@ -1141,7 +1532,7 @@ bool SimpleClient::OnPreKeyEvent(CefRefPtr<CefBrowser> browser,
             windowInfo.SetAsPopup(nullptr, "DevTools");
             windowInfo.bounds.x = 100;
             windowInfo.bounds.y = 100;
-            windowInfo.bounds.width = 800;
+            windowInfo.bounds.width = MIN_WINDOW_WIDTH;
             windowInfo.bounds.height = 600;
             
             browser->GetHost()->ShowDevTools(windowInfo, this, settings, CefPoint());
@@ -1233,5 +1624,368 @@ void SimpleClient::SendMouseWheelEvent(int x, int y, int delta_x, int delta_y) {
         mouse_event.modifiers = 0;
         browser->GetHost()->SendMouseWheelEvent(mouse_event, delta_x, delta_y);
     }
+}
+
+// Editor sublayer management methods
+void SDL3Window::EnableEditor(bool enable) {
+    editor_enabled_ = enable;
+    Logger::LogMessage("Editor sublayer " + std::string(enable ? "enabled" : "disabled"));
+}
+
+void SDL3Window::SetEditorPosition(int x, int y, int width, int height) {
+    editor_rect_.x = x;
+    editor_rect_.y = y;
+    editor_rect_.width = width;
+    editor_rect_.height = height;
+    Logger::LogMessage("Editor position set to (" + std::to_string(x) + ", " + std::to_string(y) + 
+                      ") with size " + std::to_string(width) + "x" + std::to_string(height));
+}
+
+void SDL3Window::SetEditorBrowser(CefRefPtr<CefBrowser> browser) {
+    editor_browser_ = browser;
+    Logger::LogMessage("Editor browser reference set");
+}
+
+void SDL3Window::UpdateEditorTexture(const void* buffer, int width, int height) {
+    Logger::LogMessage("UpdateEditorTexture called: " + std::to_string(width) + "x" + std::to_string(height) + 
+                      ", editor_enabled_=" + (editor_enabled_ ? "true" : "false") + 
+                      ", editor_browser_=" + (editor_browser_ ? "valid" : "null"));
+    
+    if (!editor_enabled_ || !editor_browser_) {
+        Logger::LogMessage("UpdateEditorTexture: Early return - editor not enabled or browser null");
+        return;
+    }
+    
+    if (!renderer_) {
+        Logger::LogMessage("UpdateEditorTexture: Renderer is null!");
+        return;
+    }
+    
+    // Store current texture dimensions for comparison
+    static int current_texture_width = 0;
+    static int current_texture_height = 0;
+    
+    // Create or recreate editor texture if dimensions changed
+    if (!editor_texture_ || 
+        current_texture_width != width || 
+        current_texture_height != height) {
+        
+        Logger::LogMessage("UpdateEditorTexture: Creating new texture (old: " + 
+                          std::to_string(current_texture_width) + "x" + std::to_string(current_texture_height) + 
+                          ", new: " + std::to_string(width) + "x" + std::to_string(height) + ")");
+        
+        if (editor_texture_) {
+            SDL_DestroyTexture(editor_texture_);
+            Logger::LogMessage("UpdateEditorTexture: Destroyed old texture");
+        }
+        
+        editor_texture_ = SDL_CreateTexture(renderer_, 
+                                          SDL_PIXELFORMAT_BGRA32, 
+                                          SDL_TEXTUREACCESS_STREAMING, 
+                                          width, height);
+        
+        if (!editor_texture_) {
+            Logger::LogMessage("UpdateEditorTexture: Failed to create editor texture: " + std::string(SDL_GetError()));
+            return;
+        }
+        
+        // Enable alpha blending for the editor texture
+        if (SDL_SetTextureBlendMode(editor_texture_, SDL_BLENDMODE_BLEND) != 0) {
+            Logger::LogMessage("UpdateEditorTexture: Failed to set blend mode: " + std::string(SDL_GetError()));
+        }
+        
+        // Update stored dimensions
+        current_texture_width = width;
+        current_texture_height = height;
+        
+        Logger::LogMessage("UpdateEditorTexture: Successfully created editor texture: " + std::to_string(width) + "x" + std::to_string(height));
+    }
+    
+    // Update texture with CEF buffer data
+    void* pixels;
+    int pitch;
+    if (SDL_LockTexture(editor_texture_, nullptr, &pixels, &pitch) == 0) {
+        memcpy(pixels, buffer, width * height * 4); // 4 bytes per pixel (BGRA)
+        SDL_UnlockTexture(editor_texture_);
+        Logger::LogMessage("UpdateEditorTexture: Successfully updated texture data");
+    } else {
+        Logger::LogMessage("UpdateEditorTexture: Failed to lock editor texture: " + std::string(SDL_GetError()));
+    }
+}
+
+// Menu overlay management methods
+void SimpleClient::OpenEditor(int x, int y, int width, int height) {
+    CEF_REQUIRE_UI_THREAD();
+    
+    try {
+        Logger::LogMessage("OpenEditor called - x: " + std::to_string(x) + ", y: " + std::to_string(y) + 
+                          ", width: " + std::to_string(width) + ", height: " + std::to_string(height));
+        
+        if (window_) {
+            Logger::LogMessage("Creating OSR editor browser");
+            
+            // Enable editor in the window
+            window_->EnableEditor(true);
+            window_->SetEditorPosition(x, y, width, height);
+            
+            // Create OSR browser for the editor
+            CefWindowInfo window_info;
+            window_info.SetAsWindowless(nullptr); // Use OSR mode
+            
+            Logger::LogMessage("Editor OSR bounds - x: " + std::to_string(x) + 
+                             ", y: " + std::to_string(y) + ", w: " + std::to_string(width) + 
+                             ", h: " + std::to_string(height));
+            
+            CefBrowserSettings browser_settings;
+            browser_settings.javascript_close_windows = STATE_ENABLED;
+            browser_settings.background_color = 0x00FFFFFF; // White background for editor
+            
+            // Create editor URL using monaco resource
+            std::string editor_url = "miko://monaco/index.html";
+            Logger::LogMessage("Editor URL: " + editor_url);
+            
+            // Create OSR render handler for the editor
+            CefRefPtr<OSRRenderHandler> render_handler = new OSRRenderHandler(window_);
+            
+            bool browser_created = CefBrowserHost::CreateBrowser(window_info, this, editor_url, browser_settings, nullptr, nullptr);
+            Logger::LogMessage("CreateBrowser result: " + std::string(browser_created ? "true" : "false"));
+            
+            Logger::LogMessage("Monaco editor opened with OSR at position (" + std::to_string(x) + ", " + std::to_string(y) + ") " +
+                             "with size (" + std::to_string(width) + "x" + std::to_string(height) + 
+                             ") and URL: " + editor_url);
+        } else {
+            Logger::LogMessage("Failed to open editor: window is null");
+        }
+    } catch (const std::exception& ex) {
+        Logger::LogMessage("Exception in OpenEditor: " + std::string(ex.what()));
+    } catch (...) {
+        Logger::LogMessage("Unknown exception in OpenEditor");
+    }
+}
+
+void SimpleClient::CloseEditor() {
+    CEF_REQUIRE_UI_THREAD();
+    
+    try {
+        // Find and close any editor browsers
+        for (auto it = browser_list_.begin(); it != browser_list_.end(); ++it) {
+            CefRefPtr<CefBrowser> browser = *it;
+            if (browser && browser->GetHost()) {
+                std::string url = browser->GetMainFrame()->GetURL().ToString();
+                // Check for miko:// protocol URLs with monaco
+                if (url.find("miko://monaco/") == 0) {
+                    browser->GetHost()->CloseBrowser(true);
+                    if (window_) {
+                        window_->EnableEditor(false);
+                    }
+                    Logger::LogMessage("Monaco editor closed");
+                    break;
+                }
+            }
+        }
+    } catch (const std::exception& ex) {
+        Logger::LogMessage("Exception in CloseEditor: " + std::string(ex.what()));
+    } catch (...) {
+        Logger::LogMessage("Unknown exception in CloseEditor");
+    }
+}
+
+void SimpleClient::OpenMenuOverlay(const std::string& section, int x, int y) {
+    CEF_REQUIRE_UI_THREAD();
+    
+    try {
+        Logger::LogMessage("OpenMenuOverlay called - section: " + section + ", x: " + std::to_string(x) + ", y: " + std::to_string(y));
+        
+        if (!browser_list_.empty()) {
+            CefRefPtr<CefBrowser> browser = browser_list_.front();
+            if (browser && browser->GetHost()) {
+                Logger::LogMessage("Browser available, creating overlay window");
+                
+                // Get screen dimensions for positioning calculations
+                int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+                int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+                
+                // Get current cursor position for smart positioning
+                POINT cursor_pos;
+                GetCursorPos(&cursor_pos);
+                
+                // Auto-size based on content type and screen size
+                int overlayWidth, overlayHeight;
+                if (section == "file" || section == "edit" || section == "view") {
+                    // Larger size for main menu sections
+                    overlayWidth = std::min(400, screenWidth / 3);
+                    overlayHeight = std::min(500, screenHeight / 2);
+                } else if (section == "tools" || section == "help") {
+                    // Medium size for secondary sections
+                    overlayWidth = std::min(350, screenWidth / 4);
+                    overlayHeight = std::min(400, screenHeight / 3);
+                } else {
+                    // Default compact size for other sections
+                    overlayWidth = std::min(300, screenWidth / 5);
+                    overlayHeight = std::min(350, screenHeight / 4);
+                }
+                
+                // Smart positioning relative to cursor with fallback to provided coordinates
+                int overlayX, overlayY;
+                if (x == 0 && y == 0) {
+                    // Use cursor position if no specific coordinates provided
+                    overlayX = cursor_pos.x + 10; // Offset slightly from cursor
+                    overlayY = cursor_pos.y + 10;
+                } else {
+                    // Use provided coordinates
+                    overlayX = x;
+                    overlayY = y;
+                }
+                
+                // Adjust X position if overlay would go off-screen
+                if (overlayX + overlayWidth > screenWidth) {
+                    if (x == 0 && y == 0) {
+                        overlayX = cursor_pos.x - overlayWidth - 10; // Position to the left of cursor
+                    } else {
+                        overlayX = screenWidth - overlayWidth - 10; // 10px margin
+                    }
+                }
+                if (overlayX < 0) {
+                    overlayX = 10; // 10px margin from left
+                }
+                
+                // Adjust Y position if overlay would go off-screen
+                if (overlayY + overlayHeight > screenHeight) {
+                    if (x == 0 && y == 0) {
+                        overlayY = cursor_pos.y - overlayHeight - 10; // Position above cursor
+                    } else {
+                        overlayY = screenHeight - overlayHeight - 10; // 10px margin
+                    }
+                }
+                if (overlayY < 0) {
+                    overlayY = 10; // 10px margin from top
+                }
+                
+                // Create a new browser window for the menu overlay
+                CefWindowInfo window_info;
+                window_info.SetAsPopup(window_->GetHWND(), "MenuOverlay");
+                
+                // Set window style for transparency and layered window
+                window_info.ex_style = WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW;
+                window_info.style = WS_POPUP | WS_VISIBLE;
+                
+                // Position the overlay window with calculated bounds
+                window_info.bounds.x = overlayX;
+                window_info.bounds.y = overlayY;
+                window_info.bounds.width = overlayWidth;
+                window_info.bounds.height = overlayHeight;
+                
+                Logger::LogMessage("Auto-sized window bounds - x: " + std::to_string(overlayX) + 
+                                 ", y: " + std::to_string(overlayY) + 
+                                 ", w: " + std::to_string(overlayWidth) + 
+                                 ", h: " + std::to_string(overlayHeight));
+                
+                CefBrowserSettings browser_settings;
+                browser_settings.javascript_close_windows = STATE_ENABLED;
+                browser_settings.background_color = 0x00000000; // Transparent background
+                
+                // Create Steam-like overlay routing URL
+                std::string overlay_url = BuildOverlayURL(section, overlayX, overlayY, overlayWidth, overlayHeight);
+                Logger::LogMessage("Overlay URL created, length: " + std::to_string(overlay_url.length()));
+                Logger::LogMessage("URL preview (first 200 chars): " + overlay_url.substr(0, 200));
+                
+                bool browser_created = CefBrowserHost::CreateBrowser(window_info, this, overlay_url, browser_settings, nullptr, nullptr);
+                Logger::LogMessage("CreateBrowser result: " + std::string(browser_created ? "true" : "false"));
+                
+                Logger::LogMessage("Menu overlay opened for section: " + section + 
+                                 " at auto-positioned (" + std::to_string(overlayX) + ", " + std::to_string(overlayY) + 
+                                 ") with size (" + std::to_string(overlayWidth) + "x" + std::to_string(overlayHeight) + 
+                                 ") and URL: " + overlay_url);
+            } else {
+                Logger::LogMessage("Failed to open menu overlay: browser or host is null");
+            }
+        } else {
+            Logger::LogMessage("Failed to open menu overlay: no browsers available");
+        }
+    } catch (const std::exception& ex) {
+        Logger::LogMessage("Exception in OpenMenuOverlay: " + std::string(ex.what()));
+    } catch (...) {
+        Logger::LogMessage("Unknown exception in OpenMenuOverlay (possibly 0xe06d7363)");
+    }
+}
+
+void SimpleClient::CloseMenuOverlay() {
+    CEF_REQUIRE_UI_THREAD();
+    
+    try {
+        // Find and close any overlay browsers
+        for (auto it = browser_list_.begin(); it != browser_list_.end(); ++it) {
+            CefRefPtr<CefBrowser> browser = *it;
+            if (browser && browser->GetHost()) {
+                std::string url = browser->GetMainFrame()->GetURL().ToString();
+                // Check for miko:// protocol URLs with menuoverlay
+                if (url.find("miko://menuoverlay/") == 0) {
+                    browser->GetHost()->CloseBrowser(true);
+                    Logger::LogMessage("Menu overlay closed");
+                    break;
+                }
+            }
+        }
+    } catch (const std::exception& ex) {
+        Logger::LogMessage("Exception in CloseMenuOverlay: " + std::string(ex.what()));
+    } catch (...) {
+        Logger::LogMessage("Unknown exception in CloseMenuOverlay (possibly 0xe06d7363)");
+    }
+}
+
+
+
+std::string SimpleClient::GetMenuOverlayHTML(const std::string& section) {
+    Logger::LogMessage("GetMenuOverlayHTML called for section: " + section);
+    
+    // Use embedded HTML resource from resourceutil
+    std::vector<uint8_t> html_data = ResourceUtil::LoadBinaryResource(ResourceUtil::IDR_HTML_MENUOVERLAY);
+    Logger::LogMessage("LoadBinaryResource returned " + std::to_string(html_data.size()) + " bytes");
+    
+    if (!html_data.empty()) {
+        std::string html_content(html_data.begin(), html_data.end());
+        Logger::LogMessage("HTML content converted to string, length: " + std::to_string(html_content.length()));
+        Logger::LogMessage("HTML preview (first 100 chars): " + html_content.substr(0, 100));
+        return html_content;
+    }
+    
+    // Fallback if resource is not available
+    Logger::LogMessage("WARNING: Using fallback HTML - resource not available");
+    return "<html><body>Menu overlay not available</body></html>";
+}
+
+std::string SimpleClient::BuildOverlayURL(const std::string& section, int x, int y, int width, int height) {
+    Logger::LogMessage("BuildOverlayURL called - section: " + section);
+    
+    // Get current process ID and other parameters for URL parameters
+    DWORD pid = GetCurrentProcessId();
+    int browser_id = -1;
+    if (!browser_list_.empty()) {
+        browser_id = browser_list_.front()->GetIdentifier();
+    }
+    
+    // Get screen dimensions
+    int screen_width = GetSystemMetrics(SM_CXSCREEN);
+    int screen_height = GetSystemMetrics(SM_CYSCREEN);
+    int create_flags = 4538634;
+    
+    Logger::LogMessage("Building miko:// URL with parameters - pid: " + std::to_string(pid) + ", browser_id: " + std::to_string(browser_id));
+    
+    // Use miko:// protocol to serve HTML directly from binary resources with parameters
+    std::string overlay_url = "miko://menuoverlay/index.html"
+        "?createflags=" + std::to_string(create_flags) +
+        "&pid=" + std::to_string(pid) +
+        "&browser=" + std::to_string(browser_id) +
+        "&screenavailwidth=" + std::to_string(screen_width) +
+        "&screenavailheight=" + std::to_string(screen_height) +
+        "&section=" + section +
+        "&x=" + std::to_string(x) +
+        "&y=" + std::to_string(y) +
+        "&width=" + std::to_string(width) +
+        "&height=" + std::to_string(height);
+    
+    Logger::LogMessage("Miko URL created: " + overlay_url);
+    
+    return overlay_url;
 }
 

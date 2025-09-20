@@ -18,6 +18,7 @@
 #include "include/cef_frame.h"
 #include "include/wrapper/cef_helpers.h"
 #include "include/wrapper/cef_closure_task.h"
+#include "utils/config.hpp"
 #include "include/base/cef_bind.h"
 
 #include "client/client.hpp"
@@ -55,35 +56,52 @@ std::string GetDownloadPath(const std::string& suggested_name);
 // Simple CEF App implementation for OSR
 
 
-// Handle SDL events and CEF message loop
 void HandleEvents() {
     SDL_Event event;
     
-    while (SDL_PollEvent(&event)) {
-        if (g_sdl_window && g_sdl_window->HandleEvent(event)) {
-            continue;
+    try {
+        while (SDL_PollEvent(&event)) {
+            if (g_sdl_window && g_sdl_window->HandleEvent(event)) {
+                continue;
+            }
+            
+            // Handle application-level events
+            switch (event.type) {
+                case SDL_EVENT_QUIT:
+                    g_is_closing = true;
+                    if (g_client) {
+                        try {
+                            g_client->CloseAllBrowsers(false);
+                        } catch (const std::exception& ex) {
+                            Logger::LogMessage("Exception during browser close: " + std::string(ex.what()));
+                        } catch (...) {
+                            Logger::LogMessage("Unknown exception during browser close");
+                        }
+                    }
+                    break;
+                    
+                default:
+                    break;
+            }
         }
         
-        // Handle application-level events
-        switch (event.type) {
-            case SDL_EVENT_QUIT:
-                g_is_closing = true;
-                if (g_client) {
+        // Check if window should close
+        if (g_sdl_window && g_sdl_window->ShouldClose()) {
+            g_is_closing = true;
+            if (g_client) {
+                try {
                     g_client->CloseAllBrowsers(false);
+                } catch (const std::exception& ex) {
+                    Logger::LogMessage("Exception during window close: " + std::string(ex.what()));
+                } catch (...) {
+                    Logger::LogMessage("Unknown exception during window close");
                 }
-                break;
-                
-            default:
-                break;
+            }
         }
-    }
-    
-    // Check if window should close
-    if (g_sdl_window && g_sdl_window->ShouldClose()) {
-        g_is_closing = true;
-        if (g_client) {
-            g_client->CloseAllBrowsers(false);
-        }
+    } catch (const std::exception& ex) {
+        Logger::LogMessage("Exception in HandleEvents: " + std::string(ex.what()));
+    } catch (...) {
+        Logger::LogMessage("Unknown exception in HandleEvents");
     }
 }
 
@@ -295,6 +313,24 @@ int WINAPI WinMain(HINSTANCE hInstance,
     
     // Set locale
     CefString(&settings.locale).FromASCII("en-US");
+    
+    // Enable remote debugging on port 9222
+    settings.remote_debugging_port = 9222;
+    
+    // Additional settings for remote debugging to work properly
+    CefString(&settings.user_agent).FromASCII("MikoIDE/1.0 Chrome");
+    
+    // Enable debugging features and prevent connection drops
+    // Note: Certificate error handling is managed through CEF command line switches
+    
+    // Ensure debugging works by disabling sandbox (already set above)
+    // and enabling logging for debugging
+    settings.log_severity = LOGSEVERITY_INFO;
+    
+    // Set command line switches for better debugging stability
+    CefString(&settings.javascript_flags).FromASCII("--expose-gc --allow-natives-syntax");
+    
+    Logger::LogMessage("Remote debugging enabled on port 9222 with enhanced stability settings");
 
     // Debug output for paths
     Logger::LogMessage("exeDir=" + exeDir.string());
@@ -333,7 +369,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
     // Initialize SDL3 Window
     g_sdl_window = std::make_unique<SDL3Window>();
-    if (!g_sdl_window->Initialize(1200, 800)) {
+    if (!g_sdl_window->Initialize(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT)) {
         Logger::LogMessage("Failed to initialize SDL3 window");
         if (g_splash_screen) {
             g_splash_screen->Hide();
@@ -348,31 +384,71 @@ int WINAPI WinMain(HINSTANCE hInstance,
         g_splash_screen->UpdateStatus(L"Creating application window...");
     }
 
-    // Create CEF client and browser
-    g_client = new SimpleClient(g_sdl_window.get());
-    
-    if (g_splash_screen) {
-        g_splash_screen->UpdateStatus(L"Loading application...");
-    }
+    // Create CEF client and browser with exception handling
+    try {
+        g_client = new SimpleClient(g_sdl_window.get());
+        
+        if (g_splash_screen) {
+            g_splash_screen->UpdateStatus(L"Loading application...");
+        }
 
-    // Configure browser settings
-    CefBrowserSettings browser_settings;
-    browser_settings.windowless_frame_rate = 0; // 60 FPS for smooth rendering
-    
-    // Configure window info for off-screen rendering
-    CefWindowInfo window_info;
-    window_info.SetAsWindowless(g_sdl_window->GetHWND());
-    
-    // Create the browser synchronously to prevent race conditions
-    CefRefPtr<CefBrowser> browser = CefBrowserHost::CreateBrowserSync(window_info, g_client, AppConfig::GetStartupUrl(), browser_settings, nullptr, nullptr);
-    
-    if (!browser) {
-        Logger::LogMessage("Failed to create CEF browser");
+        // Configure browser settings
+        CefBrowserSettings browser_settings;
+        browser_settings.windowless_frame_rate = 0; // 60 FPS for smooth rendering
+        
+        // Enable debugging features for better remote debugging stability
+        browser_settings.javascript = STATE_ENABLED;
+        browser_settings.javascript_close_windows = STATE_ENABLED;
+        browser_settings.javascript_access_clipboard = STATE_ENABLED;
+        browser_settings.javascript_dom_paste = STATE_ENABLED;
+        
+        // Configure window info for off-screen rendering
+        CefWindowInfo window_info;
+        window_info.SetAsWindowless(g_sdl_window->GetHWND());
+
+        // Create the browser synchronously to prevent race conditions
+        CefRefPtr<CefBrowser> browser = CefBrowserHost::CreateBrowserSync(window_info, g_client, AppConfig::GetStartupUrl(), browser_settings, nullptr, nullptr);
+        
+        if (!browser) {
+            Logger::LogMessage("Failed to create CEF browser");
+            CefShutdown();
+            return 1;
+        }
+        
+        Logger::LogMessage("CEF browser created successfully");
+        
+        // Automatically open editor in the black screen area
+        // Y: 124 to end - 24, full width
+        if (g_client && g_sdl_window) {
+            int window_width = g_sdl_window->GetWidth();
+            int window_height = g_sdl_window->GetHeight();
+            
+            int editor_x = 0;                    // Start at left edge (full width)
+            int editor_y = 124;                 // Start at Y: 124
+            int editor_width = window_width;    // Full width
+            int editor_height = window_height - 124 - 24;  // From Y:124 to end-24
+            
+            Logger::LogMessage("Auto-opening editor at position (" + std::to_string(editor_x) + ", " + 
+                             std::to_string(editor_y) + ") with size (" + std::to_string(editor_width) + 
+                             "x" + std::to_string(editor_height) + ")");
+            
+            g_client->OpenEditor(editor_x, editor_y, editor_width, editor_height);
+        }
+    } catch (const std::exception& ex) {
+        Logger::LogMessage("Exception during CEF browser creation: " + std::string(ex.what()));
+        if (g_splash_screen) {
+            g_splash_screen->Hide();
+        }
+        CefShutdown();
+        return 1;
+    } catch (...) {
+        Logger::LogMessage("Unknown exception during CEF browser creation (possibly 0xe06d7363)");
+        if (g_splash_screen) {
+            g_splash_screen->Hide();
+        }
         CefShutdown();
         return 1;
     }
-    
-    Logger::LogMessage("CEF browser created successfully");
 
     // Hide splash screen once the browser is created and ready
     if (g_splash_screen) {
@@ -380,25 +456,41 @@ int WINAPI WinMain(HINSTANCE hInstance,
         g_splash_screen.reset();
     }
 
-    // Main message loop
+    // Main message loop with exception handling
     while (!g_is_closing) {
-        // Handle SDL events
-        HandleEvents();
-        
-        // Render the window
-        if (g_sdl_window) {
-            g_sdl_window->Render();
-        }
-        
-        // Process CEF message loop
-        CefDoMessageLoopWork();
-        
-        // Small delay to prevent 100% CPU usage
-        SDL_Delay(1);
-        
-        // Check if all browsers are closed
-        if (g_client && !g_client->HasBrowsers() && g_is_closing) {
-            break;
+        try {
+            // Handle SDL events
+            HandleEvents();
+            
+            // Render the window
+            if (g_sdl_window) {
+                g_sdl_window->Render();
+            }
+            
+            // Process CEF message loop with exception handling
+            try {
+                CefDoMessageLoopWork();
+            } catch (const std::exception& ex) {
+                Logger::LogMessage("CEF message loop exception: " + std::string(ex.what()));
+                // Continue running to maintain stability
+            } catch (...) {
+                Logger::LogMessage("Unknown CEF message loop exception caught (possibly 0xe06d7363)");
+                // Continue running to maintain stability
+            }
+            
+            // Small delay to prevent 100% CPU usage
+            SDL_Delay(1);
+            
+            // Check if all browsers are closed
+            if (g_client && !g_client->HasBrowsers() && g_is_closing) {
+                break;
+            }
+        } catch (const std::exception& ex) {
+            Logger::LogMessage("Main loop exception: " + std::string(ex.what()));
+            // Continue running unless it's a critical error
+        } catch (...) {
+            Logger::LogMessage("Unknown main loop exception caught - continuing execution");
+            // Continue running to maintain stability
         }
     }
 
