@@ -424,9 +424,9 @@ int WINAPI WinMain(HINSTANCE hInstance,
             int window_height = g_sdl_window->GetHeight();
             
             int editor_x = 0;                    // Start at left edge (full width)
-            int editor_y = 124;                 // Start at Y: 124
+            int editor_y = 32 + 92;             // Title bar (32px) + navbar (96px) = 128px
             int editor_width = window_width;    // Full width
-            int editor_height = window_height - 124 - 24;  // From Y:124 to end-24
+            int editor_height = window_height - editor_y - 24;  // From Y:128 to end-24 (status bar)
             
             Logger::LogMessage("Auto-opening editor at position (" + std::to_string(editor_x) + ", " + 
                              std::to_string(editor_y) + ") with size (" + std::to_string(editor_width) + 

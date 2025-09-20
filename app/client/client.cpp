@@ -290,11 +290,50 @@ bool SDL3Window::HandleEvent(const SDL_Event& event) {
         case SDL_EVENT_WINDOW_MAXIMIZED:
             maximized_ = true;
             minimized_ = false;
+            
+            // Update editor size to match maximized window
+            if (editor_enabled_ && editor_browser_) {
+                // Calculate new editor dimensions based on maximized window size
+                int new_width = width_;
+                int new_height = height_;
+                
+                // Account for UI elements: title bar (32px) + navbar (96px) + status bar (24px)
+                int margin_x = 0;
+                int margin_y = 32 + 96;  // Title bar + navbar at top
+                int margin_bottom = 24;  // Status bar at bottom
+                
+                SetEditorPosition(margin_x, margin_y, new_width - margin_x, new_height - margin_y - margin_bottom);
+                
+                // Notify editor browser of size change
+                editor_browser_->GetHost()->WasResized();
+                
+                Logger::LogMessage("Maximized: Updated editor size to " + 
+                                 std::to_string(new_width - margin_x) + "x" + 
+                                 std::to_string(new_height - margin_y - margin_bottom));
+            }
             return true;
 
         case SDL_EVENT_WINDOW_RESTORED:
             minimized_ = false;
             maximized_ = false;
+            
+            // Update editor size to match restored window
+            if (editor_enabled_ && editor_browser_) {
+                // Calculate new editor dimensions based on restored window size
+                // Account for UI elements: title bar (32px) + navbar (96px) + status bar (24px)
+                int margin_x = 0;
+                int margin_y = 32 + 92;  // Title bar + navbar at top
+                int margin_bottom = 24;  // Status bar at bottom
+                
+                SetEditorPosition(margin_x, margin_y, width_ - margin_x, height_ - margin_y - margin_bottom);
+                
+                // Notify editor browser of size change
+                editor_browser_->GetHost()->WasResized();
+                
+                Logger::LogMessage("Restored: Updated editor size to " + 
+                                 std::to_string(width_ - margin_x) + "x" + 
+                                 std::to_string(height_ - margin_y - margin_bottom));
+            }
             return true;
 
         case SDL_EVENT_WINDOW_RESIZED:
@@ -317,6 +356,24 @@ bool SDL3Window::HandleEvent(const SDL_Event& event) {
                     SDL_SetTextureBlendMode(texture_, SDL_BLENDMODE_NONE);
                     Logger::LogMessage("Resize: Texture recreated successfully");
                 }
+            }
+            
+            // Update editor size to match new window dimensions
+            if (editor_enabled_ && editor_browser_) {
+                // Calculate new editor dimensions based on resized window
+                // Account for UI elements: title bar (32px) + navbar (96px) + status bar (24px)
+                int margin_x = 0;
+                int margin_y = 32 + 92;  // Title bar + navbar at top
+                int margin_bottom = 24;  // Status bar at bottom
+                
+                SetEditorPosition(margin_x, margin_y, width_ - margin_x, height_ - margin_y - margin_bottom);
+                
+                // Notify editor browser of size change
+                editor_browser_->GetHost()->WasResized();
+                
+                Logger::LogMessage("Resized: Updated editor size to " + 
+                                 std::to_string(width_ - margin_x) + "x" + 
+                                 std::to_string(height_ - margin_y - margin_bottom));
             }
             
             // Notify CEF browser of size change
@@ -526,8 +583,8 @@ void SDL3Window::UpdateTexture(const void* buffer, int width, int height) {
         if (!texture_) {
             return;
         }
-        // IMPORTANT: Use blend mode to allow editor overlay to render on top
-        SDL_SetTextureBlendMode(texture_, SDL_BLENDMODE_BLEND);
+        // IMPORTANT: Use NONE blend mode for main texture to avoid interference with editor overlay
+        SDL_SetTextureBlendMode(texture_, SDL_BLENDMODE_NONE);
     }
 
     // 🔑 Copy CEF buffer → texture
@@ -604,8 +661,8 @@ void SDL3Window::Render() {
 
     // 2. Editor overlay (always try on top)
     if (editor_enabled_ && editor_texture_) {
-        // Keep the blend mode set in UpdateEditorTexture (SDL_BLENDMODE_BLEND)
-        // Don't override it here to allow proper alpha blending
+        // Ensure editor texture has proper alpha blending enabled
+        SDL_SetTextureBlendMode(editor_texture_, SDL_BLENDMODE_BLEND);
         
         // Check current blend mode
         SDL_BlendMode current_blend;
@@ -628,11 +685,6 @@ void SDL3Window::Render() {
         float tex_width, tex_height;
         if (SDL_GetTextureSize(editor_texture_, &tex_width, &tex_height) == 0) {
             Logger::LogMessage("Render: Editor texture dimensions: " + std::to_string((int)tex_width) + "x" + std::to_string((int)tex_height));
-        }
-
-        // Check current blend mode (reuse the variable from above)
-        if (SDL_GetTextureBlendMode(editor_texture_, &current_blend) == 0) {
-            Logger::LogMessage("Render: Editor texture blend mode: " + std::to_string(current_blend));
         }
 
         if (SDL_RenderTexture(renderer_, editor_texture_, nullptr, &editorDestRect) != 0) {
@@ -1414,10 +1466,16 @@ void SimpleClient::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
     if (browser_list_.size() == 1) {
         // First CEF browser created
         Logger::LogMessage("First CEF browser created");
+    } else if (browser_list_.size() == 2) {
+        // Second browser is the editor browser (created by OpenEditor)
+        if (window_) {
+            window_->SetEditorBrowser(browser);
+            Logger::LogMessage("Editor browser (2nd browser) created and stored for OSR rendering");
+        }
     } else {
-        // Check if this is a menu overlay browser and apply transparency
+        // Third+ browser - check if this is a menu overlay browser and apply transparency
         std::string url = browser->GetMainFrame()->GetURL().ToString();
-        Logger::LogMessage("OnAfterCreated: Checking URL: " + url);
+        Logger::LogMessage("OnAfterCreated: Checking URL for browser #" + std::to_string(browser_list_.size()) + ": " + url);
         if (url.find("miko://menuoverlay/") == 0) {
             // Get the native window handle for the overlay
             HWND overlay_hwnd = browser->GetHost()->GetWindowHandle();
@@ -1432,12 +1490,6 @@ void SimpleClient::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
                 Logger::LogMessage("Set menu overlay window to stay on top");
             } else {
                 Logger::LogMessage("Failed to get overlay window handle for transparency");
-            }
-        } else if (url.find("miko://monaco/") == 0) {
-            // This is the editor browser - store reference for OSR
-            if (window_) {
-                window_->SetEditorBrowser(browser);
-                Logger::LogMessage("Editor browser created and stored for OSR rendering");
             }
         }
     }
@@ -1683,6 +1735,16 @@ void SDL3Window::UpdateEditorTexture(const void* buffer, int width, int height) 
                       ", editor_enabled_=" + (editor_enabled_ ? "true" : "false") + 
                       ", editor_browser_=" + (editor_browser_ ? "valid" : "null"));
     
+    if (!buffer) {
+        Logger::LogMessage("UpdateEditorTexture: Buffer is null!");
+        return;
+    }
+    
+    if (width <= 0 || height <= 0) {
+        Logger::LogMessage("UpdateEditorTexture: Invalid dimensions - width: " + std::to_string(width) + ", height: " + std::to_string(height));
+        return;
+    }
+    
     if (!editor_enabled_ || !editor_browser_) {
         Logger::LogMessage("UpdateEditorTexture: Early return - editor not enabled or browser null");
         return;
@@ -1711,19 +1773,34 @@ void SDL3Window::UpdateEditorTexture(const void* buffer, int width, int height) 
             Logger::LogMessage("UpdateEditorTexture: Destroyed old texture");
         }
         
+        // Try RGBA32 format first, then fallback to BGRA32
         editor_texture_ = SDL_CreateTexture(renderer_, 
-                                          SDL_PIXELFORMAT_BGRA32, 
+                                          SDL_PIXELFORMAT_BGRA32,
                                           SDL_TEXTUREACCESS_STREAMING, 
                                           width, height);
         
         if (!editor_texture_) {
-            Logger::LogMessage("UpdateEditorTexture: Failed to create editor texture: " + std::string(SDL_GetError()));
+            Logger::LogMessage("UpdateEditorTexture: RGBA32 failed, trying BGRA32");
+            editor_texture_ = SDL_CreateTexture(renderer_, 
+                                              SDL_PIXELFORMAT_BGRA32, 
+                                              SDL_TEXTUREACCESS_STREAMING, 
+                                              width, height);
+        }
+        
+        if (!editor_texture_) {
+            const char* error = SDL_GetError();
+            Logger::LogMessage("UpdateEditorTexture: Failed to create editor texture with both formats: " + std::string(error ? error : "Unknown error"));
             return;
         }
         
         // Enable alpha blending for the editor texture
-        if (SDL_SetTextureBlendMode(editor_texture_, SDL_BLENDMODE_BLEND) != 0) {
-            Logger::LogMessage("UpdateEditorTexture: Failed to set blend mode: " + std::string(SDL_GetError()));
+        int blend_result = SDL_SetTextureBlendMode(editor_texture_, SDL_BLENDMODE_BLEND);
+        if (blend_result != 0) {
+            const char* error = SDL_GetError();
+            Logger::LogMessage("UpdateEditorTexture: Failed to set blend mode (result=" + std::to_string(blend_result) + "): " + std::string(error ? error : "Unknown error"));
+            // Continue anyway - blend mode failure is not critical
+        } else {
+            Logger::LogMessage("UpdateEditorTexture: Successfully set blend mode");
         }
         
         // Update stored dimensions
@@ -1736,12 +1813,74 @@ void SDL3Window::UpdateEditorTexture(const void* buffer, int width, int height) 
     // Update texture with CEF buffer data
     void* pixels;
     int pitch;
-    if (SDL_LockTexture(editor_texture_, nullptr, &pixels, &pitch) == 0) {
-        memcpy(pixels, buffer, width * height * 4); // 4 bytes per pixel (BGRA)
+    
+    // Clear any previous SDL errors
+    SDL_ClearError();
+    
+    bool lock_success = SDL_LockTexture(editor_texture_, nullptr, &pixels, &pitch);
+    if (lock_success) {
+        Logger::LogMessage("UpdateEditorTexture: Successfully locked texture - pitch=" + std::to_string(pitch) + 
+                          ", expected_row_bytes=" + std::to_string(width * 4));
+        
+        if (!pixels) {
+            Logger::LogMessage("UpdateEditorTexture: Locked texture but pixels pointer is null");
+            SDL_UnlockTexture(editor_texture_);
+            return;
+        }
+        
+        // Copy row by row to handle potential pitch differences
+        const uint8_t* src = static_cast<const uint8_t*>(buffer);
+        uint8_t* dst = static_cast<uint8_t*>(pixels);
+        const int rowBytes = width * 4; // 4 bytes per pixel (BGRA)
+        
+        if (pitch < rowBytes) {
+            Logger::LogMessage("UpdateEditorTexture: Invalid pitch " + std::to_string(pitch) + " < " + std::to_string(rowBytes));
+            SDL_UnlockTexture(editor_texture_);
+            return;
+        }
+        
+        for (int y = 0; y < height; y++) {
+            memcpy(dst + y * pitch, src + y * rowBytes, rowBytes);
+        }
+        
         SDL_UnlockTexture(editor_texture_);
         Logger::LogMessage("UpdateEditorTexture: Successfully updated texture data");
     } else {
-        Logger::LogMessage("UpdateEditorTexture: Failed to lock editor texture: " + std::string(SDL_GetError()));
+        const char* error = SDL_GetError();
+        Logger::LogMessage("UpdateEditorTexture: Failed to lock editor texture: " + std::string(error ? error : "Unknown error"));
+        
+        // If texture is already locked, this might be a threading issue
+        // Try to unlock it first and then retry once
+        if (error && std::string(error).find("already locked") != std::string::npos) {
+            Logger::LogMessage("UpdateEditorTexture: Texture already locked, attempting to unlock and retry");
+            SDL_UnlockTexture(editor_texture_);
+            SDL_ClearError();
+            
+            // Retry lock once
+            lock_success = SDL_LockTexture(editor_texture_, nullptr, &pixels, &pitch);
+            if (lock_success) {
+                Logger::LogMessage("UpdateEditorTexture: Retry lock successful - pitch=" + std::to_string(pitch));
+                
+                if (pixels) {
+                    const uint8_t* src = static_cast<const uint8_t*>(buffer);
+                    uint8_t* dst = static_cast<uint8_t*>(pixels);
+                    const int rowBytes = width * 4;
+                    
+                    if (pitch >= rowBytes) {
+                        for (int y = 0; y < height; y++) {
+                            memcpy(dst + y * pitch, src + y * rowBytes, rowBytes);
+                        }
+                        Logger::LogMessage("UpdateEditorTexture: Successfully updated texture data on retry");
+                    } else {
+                        Logger::LogMessage("UpdateEditorTexture: Invalid pitch on retry " + std::to_string(pitch) + " < " + std::to_string(rowBytes));
+                    }
+                }
+                SDL_UnlockTexture(editor_texture_);
+            } else {
+                const char* retry_error = SDL_GetError();
+                Logger::LogMessage("UpdateEditorTexture: Retry lock also failed: " + std::string(retry_error ? retry_error : "Unknown error"));
+            }
+        }
     }
 }
 

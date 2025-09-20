@@ -9,3 +9,5 @@ out/**
 app/resources/editor.cpp
 app/resources/menuoverlay.cpp
 app/resources/splash.cpp
+
+patch
