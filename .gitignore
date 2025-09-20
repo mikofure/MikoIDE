@@ -6,3 +6,4 @@ vscode
 out/**
 # ref
 app/resources/editor.cpp
+app/resources/menuoverlay.cpp

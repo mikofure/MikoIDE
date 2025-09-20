@@ -4,6 +4,8 @@ import Navbar from './components/navbar';
 import Statusbar from './components/statusbar';
 import Workbench from './mikoide/workbench';
 import { WorkbenchProvider, useWorkbench } from './contexts/WorkbenchContext';
+// Supports weights 100-900
+import '@fontsource-variable/inter/wght.css';
 
 const AppContent: React.FC = () => {
   const { activeTab, tabs } = useWorkbench();

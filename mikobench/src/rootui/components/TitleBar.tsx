@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { editorMenu, type MenuSection, type MenuItem } from './data/menu';
+import { editorMenu, type MenuSection} from '../../shared/menu';
 import Logo from "../../assets/logo.png"
+// import { ChevronRight } from 'lucide-react';
+
 interface WindowControlsAPI {
   minimize(): void;
   maximize(): void;
@@ -157,26 +159,35 @@ export default function TitleBar() {
     }
   };
 
-  const handleMenuClick = (sectionTitle: string, event: React.MouseEvent<HTMLDivElement>) => {
-    const rect = (event.target as HTMLElement).getBoundingClientRect();
-    setMenuPosition({ x: rect.left, y: rect.bottom });
-    setActiveMenu(activeMenu === sectionTitle ? null : sectionTitle);
-  };
+  // const handleMenuClick = (sectionTitle: string, event: React.MouseEvent<HTMLDivElement>) => {
+  //   const rect = (event.target as HTMLElement).getBoundingClientRect();
+  //   setMenuPosition({ x: rect.left, y: rect.bottom });
+  //   setActiveMenu(activeMenu === sectionTitle ? null : sectionTitle);
+  // };
 
-  const handleMenuItemClick = (item: MenuItem) => {
-    if (item.action) {
-      console.log('Menu action:', item.action);
-      // TODO: Implement menu action handlers
+  // const handleMenuItemClick = (item: MenuItem) => {
+  //   if (item.action) {
+  //     console.log('Menu action:', item.action);
+  //     // TODO: Implement menu action handlers
+  //   }
+  //   setActiveMenu(null);
+  // };
+
+  const openMenuOverlay = (section: string, x: number, y: number) => {
+    if ((window as any).cefQuery) {
+      (window as any).cefQuery({
+        request: JSON.stringify({
+          type: "open_menu_overlay",
+          section,
+          x,
+          y
+        }),
+      });
     }
-    setActiveMenu(null);
-  };
-
-  const closeMenu = () => {
-    setActiveMenu(null);
   };
 
   return (
-    <div className="fixed top-0 left-0 right-0 h-8 bg-[#2d2d30] border-b border-[#454545] flex items-center justify-between z-50 select-none"
+    <div className="fixed top-0 left-0 right-0 h-8 bg-[#141414] border-b border-[#454545] flex items-center justify-between z-50 select-none"
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
 
       {/* App Title and Menu */}
@@ -197,9 +208,19 @@ export default function TitleBar() {
           {editorMenu.map((section: MenuSection) => (
             <div
               key={section.title}
-              className={`px-2 py-1 hover:bg-[#404040] cursor-pointer transition-colors relative ${activeMenu === section.title ? 'bg-[#404040]' : ''
-                }`}
-              onClick={(e) => handleMenuClick(section.title, e)}
+              className={`px-2 py-1 hover:bg-[#404040] cursor-pointer transition-colors relative ${activeMenu === section.title ? 'bg-[#404040]' : ''}`}
+              onClick={(e) => {
+                const rect = (e.target as HTMLElement).getBoundingClientRect();
+                setMenuPosition({ x: rect.left, y: rect.bottom });
+
+                if (activeMenu === section.title) {
+                  setActiveMenu(null);
+                  openMenuOverlay("close", 0, 0);
+                } else {
+                  setActiveMenu(section.title);
+                  openMenuOverlay(section.title, rect.left, rect.bottom);
+                }
+              }}
             >
               {section.title}
             </div>
@@ -209,6 +230,9 @@ export default function TitleBar() {
 
       {/* Window Controls */}
       <div className="flex h-full" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+        <div>
+
+        </div>
         <button
           className="w-12 h-full border-none bg-transparent text-[#cccccc] text-xs cursor-pointer flex items-center justify-center hover:bg-[#404040] transition-colors"
           onClick={handleMinimize}
@@ -249,10 +273,10 @@ export default function TitleBar() {
         </button>
       </div>
 
-      {/* Dropdown Menu */}
-      {activeMenu && (
+      {/* Dropdown Menu Internal */}
+      {/* {activeMenu && (
         <div
-          className="fixed bg-[#2d2d30] border border-[#454545] shadow-lg z-[100] min-w-[200px] py-1"
+          className="fixed bg-[#141414] border border-[#454545] shadow-lg rounded-md z-[100] min-w-[200px] py-1"
           style={{
             left: `${menuPosition.x}px`,
             top: `${menuPosition.y}px`,
@@ -272,7 +296,7 @@ export default function TitleBar() {
                   <span className="text-[#888888] ml-4">{item.shortcut}</span>
                 )}
                 {item.submenu && (
-                  <span className="text-[#888888] ml-2">▶</span>
+                  <ChevronRight size={12} color="#888888" className="ml-4" />
                 )}
               </div>
             ) : (
@@ -280,14 +304,13 @@ export default function TitleBar() {
             )
           ))}
         </div>
-      )}
+      )} */}
 
       {/* Click outside to close menu */}
       {activeMenu && (
-        <div
-          className="fixed inset-0 z-[99]"
-          onClick={closeMenu}
-        />
+        <>
+          {openMenuOverlay(activeMenu, menuPosition.x, menuPosition.y)}
+        </>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import React from 'react';
 import Tab from './Tab';
 import type { ViewMode } from '../../../store/editorSlice';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 export interface TabData {
   id: string;
@@ -61,7 +62,7 @@ const TabBar: React.FC<TabBarProps> = ({
     position: 'relative',
   } : {
     display: 'flex',
-    backgroundColor: '#1e1e1e',
+    backgroundColor: '#141414',
     borderBottom: '1px solid #3e3e42',
     overflow: 'hidden',
     height: '35px',
@@ -72,8 +73,17 @@ const TabBar: React.FC<TabBarProps> = ({
       className={`tab-bar ${className}`}
       style={tabBarStyle}
     >
+
+      <div className="flex items-center px-1 space-x-1" style={{ borderRight: mikoTheme ? '1px solid #3e5c73' : '1px solid #3e3e42', height: '100%' }}>
+        <button className='w-6 flex items-center justify-center hover:opacity-60 duration-200'>
+          <ArrowLeft size={16} color={mikoTheme ? '#171a21' : '#c7d5e0'} />
+        </button>
+        <button className='w-6 flex items-center justify-center hover:opacity-60 duration-200'>
+          <ArrowRight size={16} color={mikoTheme ? '#171a21' : '#c7d5e0'} />
+        </button>
+      </div>
       {/* Tab container with scroll */}
-      <div 
+      <div
         style={{
           display: 'flex',
           flex: 1,
@@ -101,7 +111,7 @@ const TabBar: React.FC<TabBarProps> = ({
           onClick={handleNewTab}
           className="new-tab-button"
           style={{
-            background: mikoTheme 
+            background: mikoTheme
               ? 'linear-gradient(180deg, #66c0f4 0%, #417a9b 100%)'
               : '#3e3e42',
             border: 'none',

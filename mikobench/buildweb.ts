@@ -21,6 +21,11 @@ const buildTargets: BuildTarget[] = [
     name: 'rootui', 
     input: resolve(__dirname, 'src/rootui/index.html'),
     output: 'index.html'
+  },
+  {
+    name: 'menu', 
+    input: resolve(__dirname, 'src/overlays/menu/index.html'),
+    output: 'menu.html'
   }
 ]
 

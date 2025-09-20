@@ -12,6 +12,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'src/rootui/index.html'),
         editor: resolve(__dirname, 'src/editor/index.html'),
+        menu: resolve(__dirname, 'src/overlays/menu/index.html'),
       },
     },
     outDir: '../dist',

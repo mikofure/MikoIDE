@@ -1,6 +1,7 @@
 #include "resourceutil.hpp"
 #include "webapp.hpp"
 #include "editor.hpp"
+#include "menuoverlay.hpp"
 #include <map>
 #include <algorithm>
 #include "include/cef_stream.h"
@@ -41,7 +42,16 @@ namespace ResourceUtil {
             std::vector<uint8_t> data(html_content, html_content + html_size);
             return data;
         }
-        
+
+        // Load HTML content from menuoverlay.hpp
+        if (resource_id == IDR_HTML_MENUOVERLAY) {
+            const char* html_content = GetMenuOverlayHTML();
+            unsigned int html_size = GetMenuOverlayHTMLSize();
+
+            std::vector<uint8_t> data(html_content, html_content + html_size);
+            return data;
+        }
+
         // Return empty vector for unknown resources
         return std::vector<uint8_t>();
     }

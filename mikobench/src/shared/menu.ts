@@ -1,4 +1,3 @@
-// TypeScript interfaces and data for editor menu structure
 
 interface MenuItem {
     label: string;
@@ -13,6 +12,8 @@ interface MenuSection {
     title: string;
     items: MenuItem[];
 }
+
+
 
 // Main menu data structure
 const editorMenu: MenuSection[] = [

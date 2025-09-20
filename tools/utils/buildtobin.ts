@@ -75,6 +75,7 @@ function main(): void {
     // Input file paths
     const rootuiHtmlFile = join(projectRoot, 'mikobench', 'dist', 'rootui', 'index.html');
     const editorHtmlFile = join(projectRoot, 'mikobench', 'dist', 'editor', 'index.html');
+    const menuHtmlFile = join(projectRoot, 'mikobench', 'dist', 'overlays', 'menu', 'index.html');
     
     // Output file paths
     const appDir = join(projectRoot, 'app', 'resources');
@@ -82,6 +83,8 @@ function main(): void {
     const webappHppFile = join(appDir, 'webapp.hpp');
     const editorCppFile = join(appDir, 'editor.cpp');
     const editorHppFile = join(appDir, 'editor.hpp');
+    const menuCppFile = join(appDir, 'menuoverlay.cpp');
+    const menuHppFile = join(appDir, 'menuoverlay.hpp');
     
     // Check if input files exist
     if (!existsSync(rootuiHtmlFile)) {
@@ -120,16 +123,29 @@ function main(): void {
     
     console.log(`Generating editor implementation file: ${editorCppFile}`);
     generateCppFile(editorHtmlData, editorCppFile, 'editor.hpp', 'editor', 'Editor', 'editor_html');
-    
+
+    // Process menu overlay files
+    console.log(`Reading menu overlay HTML file: ${menuHtmlFile}`);
+    const menuHtmlData = readBinaryFile(menuHtmlFile);
+
+    console.log(`Generating menu overlay header file: ${menuHppFile}`);
+    generateHeaderFile(menuHppFile, 'menuoverlay', 'MenuOverlay');
+
+    console.log(`Generating menu overlay implementation file: ${menuCppFile}`);
+    generateCppFile(menuHtmlData, menuCppFile, 'menuoverlay.hpp', 'menuoverlay', 'MenuOverlay', 'menuoverlay_html');
+
     console.log('\nConversion completed successfully!');
     console.log('Generated files:');
     console.log(`  - ${webappHppFile} (${statSync(webappHppFile).size} bytes)`);
     console.log(`  - ${webappCppFile} (${statSync(webappCppFile).size} bytes)`);
     console.log(`  - ${editorHppFile} (${statSync(editorHppFile).size} bytes)`);
     console.log(`  - ${editorCppFile} (${statSync(editorCppFile).size} bytes)`);
+    console.log(`  - ${menuHppFile} (${statSync(menuHppFile).size} bytes)`);
+    console.log(`  - ${menuCppFile} (${statSync(menuCppFile).size} bytes)`);
     console.log(`\nRootUI HTML data size: ${rootuiHtmlData.length} bytes`);
     console.log(`Editor HTML data size: ${editorHtmlData.length} bytes`);
-    
+    console.log(`Menu Overlay HTML data size: ${menuHtmlData.length} bytes`);
+
     console.log('\nTo use in your C++ code:');
     console.log('For rootUI:');
     console.log('  #include "webapp.hpp"');

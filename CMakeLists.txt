@@ -174,6 +174,7 @@ add_executable(${PROJECT_NAME} WIN32
     app/client/app.cpp
     app/resources/webapp.cpp
     app/resources/editor.cpp
+    app/resources/menuoverlay.cpp
     app/resources/resources.cpp
     app/resources/resourceutil.cpp
     app/renderer/dx11_renderer.cpp
