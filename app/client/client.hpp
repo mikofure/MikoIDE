@@ -78,6 +78,7 @@ public:
     
     // CEF OSR integration
     void UpdateTexture(const void* buffer, int width, int height);
+    void Resize(int width, int height);
     void SetClient(CefRefPtr<SimpleClient> client) { client_ = client; }
     
     // DX11 Renderer integration

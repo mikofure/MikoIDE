@@ -57,20 +57,8 @@ bool SDL3Window::Initialize(int width, int height) {
     // Initialize SDL3 with video subsystem directly
     SDL_ClearError();
     if (!SDL_Init(SDL_INIT_VIDEO)) {
-        const char* error = SDL_GetError();
-        Logger::LogMessage("SDL3 initialization failed: " + std::string(error ? error : "No error message"));
         return false;
     }
-    
-    Logger::LogMessage("SDL initialization successful with driver: " + std::string(SDL_GetCurrentVideoDriver()));
-    
-    // Check available video drivers for debugging
-    int numDrivers = SDL_GetNumVideoDrivers();
-    std::string driversInfo = "Available video drivers (" + std::to_string(numDrivers) + "):";
-    for (int i = 0; i < numDrivers; i++) {
-        driversInfo += "\n  " + std::to_string(i) + ": " + std::string(SDL_GetVideoDriver(i));
-    }
-    Logger::LogMessage(driversInfo);
 
     // Create borderless window
     Uint32 window_flags = SDL_WINDOW_RESIZABLE;
@@ -85,7 +73,6 @@ bool SDL3Window::Initialize(int width, int height) {
     );
 
     if (!window_) {
-        Logger::LogMessage("SDL3 window creation failed: " + std::string(SDL_GetError()));
         SDL_Quit();
         return false;
     }
@@ -93,7 +80,6 @@ bool SDL3Window::Initialize(int width, int height) {
     // Create renderer (SDL3 uses different flags)
     renderer_ = SDL_CreateRenderer(window_, nullptr);
     if (!renderer_) {
-        Logger::LogMessage("SDL3 renderer creation failed: " + std::string(SDL_GetError()));
         SDL_DestroyWindow(window_);
         SDL_Quit();
         return false;
@@ -102,7 +88,6 @@ bool SDL3Window::Initialize(int width, int height) {
     // Create texture for CEF rendering
     texture_ = SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_BGRA32, SDL_TEXTUREACCESS_STREAMING, width_, height_);
     if (!texture_) {
-        Logger::LogMessage("SDL3 texture creation failed: " + std::string(SDL_GetError()));
         SDL_DestroyRenderer(renderer_);
         SDL_DestroyWindow(window_);
         SDL_Quit();
@@ -123,17 +108,14 @@ bool SDL3Window::Initialize(int width, int height) {
     dx11_renderer_ = std::make_unique<DX11Renderer>();
     if (dx11_renderer_->Initialize(hwnd_, width_, height_)) {
         dx11_enabled_ = true;
-        Logger::LogMessage("DX11 renderer initialized successfully - performance mode enabled");
     } else {
         dx11_enabled_ = false;
         dx11_renderer_.reset();
-        Logger::LogMessage("DX11 renderer initialization failed - falling back to SDL3 rendering");
     }
 
     // Initialize DPI scaling
     UpdateDPIScale();
 
-    Logger::LogMessage("SDL3Window initialized successfully");
     return true;
 }
 
@@ -450,46 +432,35 @@ void SDL3Window::SendScrollEvent(const SDL_Event& event) {
 
 void SDL3Window::UpdateTexture(const void* buffer, int width, int height) {
     if (!buffer) {
-        Logger::LogMessage("UpdateTexture: Buffer is null");
         return;
     }
-
-    Logger::LogMessage("UpdateTexture: Received buffer " + std::to_string(width) + "x" + std::to_string(height));
 
     // Try DX11 texture update first if available and enabled
     if (dx11_enabled_ && dx11_renderer_) {
         if (dx11_renderer_->UpdateTexture(buffer, width, height)) {
-            Logger::LogMessage("UpdateTexture: DX11 texture update succeeded");
             return;
         } else {
-            Logger::LogMessage("UpdateTexture: DX11 texture update failed, falling back to SDL3");
             // Fall back to SDL3 texture update
         }
     }
 
     // SDL3 fallback texture update
     if (!renderer_) {
-        Logger::LogMessage("UpdateTexture: Renderer is null");
         return;
     }
-
-    Logger::LogMessage("UpdateTexture: Using SDL3 texture update pipeline");
 
     // Check if we need to create or recreate the texture
     bool needNewTexture = false;
     
     if (!texture_) {
         needNewTexture = true;
-        Logger::LogMessage("UpdateTexture: Creating initial texture " + std::to_string(width) + "x" + std::to_string(height));
     } else {
         // Check if texture dimensions match the incoming data (use float types for SDL3)
         float tex_width = 0.0f, tex_height = 0.0f;
         if (SDL_GetTextureSize(texture_, &tex_width, &tex_height) != 0) {
-            Logger::LogMessage("UpdateTexture: Failed to get texture size - " + std::string(SDL_GetError()));
             // Assume we need a new texture if we can't get the size
             needNewTexture = true;
         } else if ((int)tex_width != width || (int)tex_height != height) {
-            Logger::LogMessage("UpdateTexture: Recreating texture from " + std::to_string((int)tex_width) + "x" + std::to_string((int)tex_height) + " to " + std::to_string(width) + "x" + std::to_string(height));
             needNewTexture = true;
         }
     }
@@ -499,27 +470,21 @@ void SDL3Window::UpdateTexture(const void* buffer, int width, int height) {
         if (texture_) {
             SDL_DestroyTexture(texture_);
             texture_ = nullptr;
-            Logger::LogMessage("UpdateTexture: Destroyed old texture");
         }
         
         texture_ = SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_BGRA32, SDL_TEXTUREACCESS_STREAMING, width, height);
         
         if (!texture_) {
-            Logger::LogMessage("UpdateTexture: Failed to create texture - " + std::string(SDL_GetError()));
             return;
         }
         // IMPORTANT: Avoid blending with alpha=0 content from OSR
         SDL_SetTextureBlendMode(texture_, SDL_BLENDMODE_NONE);
-
-        Logger::LogMessage("UpdateTexture: Successfully created texture " + std::to_string(width) + "x" + std::to_string(height));
     }
 
     // 🔑 Copy CEF buffer → texture
     void* pixels = nullptr;
     int pitch = 0;
     if (SDL_LockTexture(texture_, nullptr, &pixels, &pitch)) {
-        Logger::LogMessage("UpdateTexture: Locked texture, pitch=" + std::to_string(pitch) + ", expected=" + std::to_string(width * 4));
-        
         const uint8_t* src = static_cast<const uint8_t*>(buffer);
         const int rowBytes = width * 4; // BGRA32
         for (int y = 0; y < height; y++) {
@@ -528,9 +493,27 @@ void SDL3Window::UpdateTexture(const void* buffer, int width, int height) {
                         rowBytes);
         }
         SDL_UnlockTexture(texture_);
-        Logger::LogMessage("UpdateTexture: Successfully updated texture with buffer data");
-    } else {
-        Logger::LogMessage("UpdateTexture: Failed to lock texture - " + std::string(SDL_GetError()));
+    }
+}
+
+void SDL3Window::Resize(int width, int height) {
+    width_ = width;
+    height_ = height;
+
+    // Recreate texture with new dimensions
+    if (texture_) {
+        SDL_DestroyTexture(texture_);
+        texture_ = nullptr;
+    }
+
+    // Notify CEF browser of size change
+    if (client_ && client_->GetFirstBrowser()) {
+        client_->GetFirstBrowser()->GetHost()->WasResized();
+    }
+
+    // Trigger display change event
+    if (client_ && client_->GetFirstBrowser()) {
+        client_->GetFirstBrowser()->GetHost()->NotifyScreenInfoChanged();
     }
 }
 
@@ -541,49 +524,34 @@ void SDL3Window::Render() {
             // DX11 rendering succeeded
             return;
         } else {
-            Logger::LogMessage("Render: DX11 rendering failed, falling back to SDL3");
             // Fall back to SDL3 rendering
         }
     }
 
     // SDL3 fallback rendering
     if (!renderer_) {
-        Logger::LogMessage("Render: Renderer is null");
         return;
     }
     
     if (!texture_) {
-        Logger::LogMessage("Render: Texture is null");
         return;
     }
-
-    Logger::LogMessage("Render: Using SDL3 rendering pipeline");
 
     // Clear the renderer
     SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
     if (!SDL_RenderClear(renderer_)) {
-        Logger::LogMessage("Render: Failed to clear renderer - " + std::string(SDL_GetError()));
         return;
     }
     
     // Render the texture (cover whole window)
     if (SDL_RenderTexture(renderer_, texture_, nullptr, nullptr) != 0) {
-        Logger::LogMessage("Render: Failed to render texture - " + std::string(SDL_GetError()));
-        
         // Try alternative rendering approach
         SDL_FRect destRect = {0, 0, (float)width_, (float)height_};
-        if (SDL_RenderTexture(renderer_, texture_, nullptr, &destRect) != 0) {
-            Logger::LogMessage("Render: Alternative render also failed - " + std::string(SDL_GetError()));
-        } else {
-            Logger::LogMessage("Render: Alternative render succeeded");
-        }
-    } else {
-        Logger::LogMessage("Render: Successfully rendered texture");
+        SDL_RenderTexture(renderer_, texture_, nullptr, &destRect);
     }
     
     // Present the rendered frame
     SDL_RenderPresent(renderer_);
-    Logger::LogMessage("Render: Presented frame");
 }
 
 // OSRRenderHandler implementation

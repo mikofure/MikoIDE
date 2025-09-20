@@ -27,7 +27,7 @@ export const WorkbenchProvider = ({ children }: WorkbenchProviderProps) => {
   const [tabs, setTabs] = useState<FileTab[]>([
     {
       id: 'welcome',
-      title: 'Welcome.md',
+      title: 'TabBar.tsx',
       content: `# Welcome to MikoIDE
 
 This is a Monaco Editor based code editor built with React.

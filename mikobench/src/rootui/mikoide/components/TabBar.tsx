@@ -160,7 +160,7 @@ const TabBar: React.FC<TabBarProps> = ({
           <span className='text-xs text-[#c7d5e0] hover:text-[#66c0f4] cursor-pointer transition-colors'>Project</span>
           <ChevronRight size={12} className='text-[#666] flex-shrink-0' />
           <File size={14} className='text-[#66c0f4] flex-shrink-0' />
-          <span className='text-xs text-[#ffffff] font-medium'>Welcome.md</span>
+          <span className='text-xs text-[#ffffff] font-medium'>TabBar.tsx</span>
         </div>
         
         {/* Right side - control buttons */}
