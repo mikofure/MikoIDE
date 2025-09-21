@@ -394,7 +394,9 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
         // Configure browser settings
         CefBrowserSettings browser_settings;
-        browser_settings.windowless_frame_rate = 0; // 60 FPS for smooth rendering
+        browser_settings.windowless_frame_rate = 0; // 60 FPS for smooth rendering (0 means unlimited, which can cause issues)
+        browser_settings.background_color = CefColorSetARGB(0, 0, 0, 0); // Fully transparent background (ARGB format)
+        
         
         // Enable debugging features for better remote debugging stability
         browser_settings.javascript = STATE_ENABLED;
@@ -424,9 +426,9 @@ int WINAPI WinMain(HINSTANCE hInstance,
             int window_height = g_sdl_window->GetHeight();
             
             int editor_x = 0;                    // Start at left edge (full width)
-            int editor_y = 32 + 92;             // Title bar (32px) + navbar (96px) = 128px
+            int editor_y = 32 + 91;             // Title bar (32px) + navbar (96px) = 128px
             int editor_width = window_width;    // Full width
-            int editor_height = window_height - editor_y - 24;  // From Y:128 to end-24 (status bar)
+            int editor_height = window_height - editor_y - 23;  // From Y:128 to end-24 (status bar)
             
             Logger::LogMessage("Auto-opening editor at position (" + std::to_string(editor_x) + ", " + 
                              std::to_string(editor_y) + ") with size (" + std::to_string(editor_width) + 

@@ -7,6 +7,8 @@ import './menu.css';
 export default function MenuOverlay() {
   const params = new URLSearchParams(window.location.search);
   const section = params.get("section");
+  const width = params.get("width");
+  const height = params.get("height");
 
   const items = editorMenu.find(s => s.title === section)?.items || [];
 
@@ -22,8 +24,20 @@ export default function MenuOverlay() {
     }
   };
 
+  // Create dynamic style based on URL parameters
+  const overlayStyle: React.CSSProperties = {
+    width: width ? `${width}px` : undefined,
+    height: height ? `${height}px` : undefined,
+    maxWidth: width ? `${width}px` : '14rem', // fallback to max-w-sm (14rem)
+    maxHeight: height ? `${height}px` : undefined,
+    overflow: 'auto'
+  };
+
   return (
-    <div className="bg-[#141414] border border-[#454545] shadow-lg rounded-md w-[200px] py-1">
+    <div 
+      className="bg-[#141414] border border-[#454545] shadow-lg rounded-md min-w-fit py-1"
+      style={overlayStyle}
+    >
       {items.map((item, i) => !item.separator ? (
         <div
           key={i}

@@ -322,8 +322,8 @@ bool SDL3Window::HandleEvent(const SDL_Event& event) {
                 // Calculate new editor dimensions based on restored window size
                 // Account for UI elements: title bar (32px) + navbar (96px) + status bar (24px)
                 int margin_x = 0;
-                int margin_y = 32 + 92;  // Title bar + navbar at top
-                int margin_bottom = 24;  // Status bar at bottom
+                int margin_y = 32 + 91;  // Title bar + navbar at top
+                int margin_bottom = 23;  // Status bar at bottom
                 
                 SetEditorPosition(margin_x, margin_y, width_ - margin_x, height_ - margin_y - margin_bottom);
                 
@@ -363,8 +363,8 @@ bool SDL3Window::HandleEvent(const SDL_Event& event) {
                 // Calculate new editor dimensions based on resized window
                 // Account for UI elements: title bar (32px) + navbar (96px) + status bar (24px)
                 int margin_x = 0;
-                int margin_y = 32 + 92;  // Title bar + navbar at top
-                int margin_bottom = 24;  // Status bar at bottom
+                int margin_y = 32 + 91;  // Title bar + navbar at top
+                int margin_bottom = 23;  // Status bar at bottom
                 
                 SetEditorPosition(margin_x, margin_y, width_ - margin_x, height_ - margin_y - margin_bottom);
                 
@@ -624,28 +624,17 @@ void SDL3Window::Resize(int width, int height) {
 }
 
 void SDL3Window::Render() {
-    // Debug logging for render state
-    static int render_count = 0;
-    render_count++;
-    
-    Logger::LogMessage("=== RENDER FRAME " + std::to_string(render_count) + " ===");
-    Logger::LogMessage("Render: editor_enabled_=" + std::string(editor_enabled_ ? "true" : "false") + 
-                      ", editor_texture_=" + std::string(editor_texture_ ? "valid" : "null") +
-                      ", editor_browser_=" + std::string(editor_browser_ ? "valid" : "null"));
-    
     // 1. Main render (DX11 or SDL)
     bool main_rendered = false;
 
     if (dx11_enabled_ && dx11_renderer_) {
         if (dx11_renderer_->Render()) {
             main_rendered = true;
-            Logger::LogMessage("Render: DX11 main rendered");
         }
     }
 
     if (!main_rendered) {
         if (!renderer_ || !texture_) {
-            Logger::LogMessage("Render: Early return - renderer or texture null");
             return;
         }
 
@@ -656,18 +645,12 @@ void SDL3Window::Render() {
             SDL_FRect destRect = {0, 0, (float)width_, (float)height_};
             SDL_RenderTexture(renderer_, texture_, nullptr, &destRect);
         }
-        Logger::LogMessage("Render: SDL main rendered (" + std::to_string(width_) + "x" + std::to_string(height_) + ")");
     }
 
     // 2. Editor overlay (always try on top)
     if (editor_enabled_ && editor_texture_) {
         // Ensure editor texture has proper alpha blending enabled
         SDL_SetTextureBlendMode(editor_texture_, SDL_BLENDMODE_BLEND);
-        
-        // Check current blend mode
-        SDL_BlendMode current_blend;
-        SDL_GetTextureBlendMode(editor_texture_, &current_blend);
-        Logger::LogMessage("Render: Editor texture blend mode = " + std::to_string(current_blend));
 
         SDL_FRect editorDestRect = {
             (float)editor_rect_.x,
@@ -676,37 +659,13 @@ void SDL3Window::Render() {
             (float)editor_rect_.height
         };
 
-        Logger::LogMessage("Render: Attempting to render editor at (" +
-            std::to_string(editor_rect_.x) + "," + std::to_string(editor_rect_.y) +
-            ") size " + std::to_string(editor_rect_.width) + "x" +
-            std::to_string(editor_rect_.height));
-
-        // Get and log texture dimensions
-        float tex_width, tex_height;
-        if (SDL_GetTextureSize(editor_texture_, &tex_width, &tex_height) == 0) {
-            Logger::LogMessage("Render: Editor texture dimensions: " + std::to_string((int)tex_width) + "x" + std::to_string((int)tex_height));
-        }
-
-        if (SDL_RenderTexture(renderer_, editor_texture_, nullptr, &editorDestRect) != 0) {
-            Logger::LogMessage("Render: FAILED editor texture: " + std::string(SDL_GetError()));
-        } else {
-            Logger::LogMessage("Render: SUCCESS - Editor texture rendered!");
-        }
-    } else {
-        if (!editor_enabled_) {
-            Logger::LogMessage("Render: Editor not enabled");
-        }
-        if (!editor_texture_) {
-            Logger::LogMessage("Render: Editor texture is null");
-        }
+        SDL_RenderTexture(renderer_, editor_texture_, nullptr, &editorDestRect);
     }
 
     // 3. Present final frame
     if (renderer_) {
         SDL_RenderPresent(renderer_);
-        Logger::LogMessage("Render: Frame presented");
     }
-    Logger::LogMessage("=== END RENDER FRAME " + std::to_string(render_count) + " ===");
 }
 
 // OSRRenderHandler implementation
@@ -774,18 +733,14 @@ void OSRRenderHandler::OnPaint(CefRefPtr<CefBrowser> browser,
         Logger::LogMessage("OnPaint: Invalid parameters - type=" + std::to_string(type) + ", window=" + (window_ ? "valid" : "null") + ", buffer=" + (buffer ? "valid" : "null"));
         return;
     }
-    
-    Logger::LogMessage("OnPaint: Received paint event " + std::to_string(width) + "x" + std::to_string(height) + ", dirty rects=" + std::to_string(dirtyRects.size()));
 
     // Check if this is the editor browser by URL
     std::string url = browser->GetMainFrame()->GetURL().ToString();
     if (url.find("miko://monaco/") == 0) {
         // This is the editor browser - route to editor texture
-        Logger::LogMessage("OnPaint: Routing editor browser content to UpdateEditorTexture");
         window_->UpdateEditorTexture(buffer, width, height);
     } else {
         // This is the main browser - route to main texture
-        Logger::LogMessage("OnPaint: Routing main browser content to UpdateTexture");
         window_->UpdateTexture(buffer, width, height);
     }
 }
@@ -852,7 +807,7 @@ void OSRRenderHandler::UpdateDragCursor(CefRefPtr<CefBrowser> browser,
 }
 
 // SimpleClient implementation
-SimpleClient::SimpleClient(SDL3Window* window) : window_(window) {
+SimpleClient::SimpleClient(SDL3Window* window) : window_(window), menu_overlay_active_(false), menu_overlay_browser_(nullptr) {
     // Create message router for JavaScript-to-C++ communication
     CefMessageRouterConfig config;
     message_router_ = CefMessageRouterBrowserSide::Create(config);
@@ -1480,9 +1435,10 @@ void SimpleClient::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
             // Get the native window handle for the overlay
             HWND overlay_hwnd = browser->GetHost()->GetWindowHandle();
             if (overlay_hwnd) {
-                // Apply transparency settings to the overlay window
-                SetLayeredWindowAttributes(overlay_hwnd, RGB(0, 0, 0), 240, LWA_COLORKEY | LWA_ALPHA);
-                Logger::LogMessage("Applied transparency to menu overlay window");
+                // Apply full transparency settings to the overlay window
+                // Use RGB(0,0,0) as transparent color key and set alpha to 0 for full transparency
+                SetLayeredWindowAttributes(overlay_hwnd, RGB(0, 0, 0), 0, LWA_COLORKEY | LWA_ALPHA);
+                Logger::LogMessage("Applied full transparency to menu overlay window (alpha=0)");
                 
                 // Ensure the window stays on top
                 SetWindowPos(overlay_hwnd, HWND_TOPMOST, 0, 0, 0, 0, 
@@ -1502,6 +1458,13 @@ bool SimpleClient::DoClose(CefRefPtr<CefBrowser> browser) {
 
 void SimpleClient::OnBeforeClose(CefRefPtr<CefBrowser> browser) {
     CEF_REQUIRE_UI_THREAD();
+    
+    // Check if this is the menu overlay browser being closed
+    if (menu_overlay_browser_ && menu_overlay_browser_->IsSame(browser)) {
+        menu_overlay_active_ = false;
+        menu_overlay_browser_ = nullptr;
+        Logger::LogMessage("Menu overlay browser closed, tracking reset");
+    }
     
     // Remove from the list of existing browsers
     BrowserList::iterator bit = browser_list_.begin();
@@ -1909,7 +1872,7 @@ void SimpleClient::OpenEditor(int x, int y, int width, int height) {
             
             CefBrowserSettings browser_settings;
             browser_settings.javascript_close_windows = STATE_ENABLED;
-            browser_settings.background_color = 0x00FFFFFF; // White background for editor
+            browser_settings.background_color = CefColorSetARGB(0, 0, 0, 0); // Fully transparent background for consistency
             
             // Create editor URL using monaco resource
             std::string editor_url = "miko://monaco/index.html";
@@ -1965,6 +1928,12 @@ void SimpleClient::OpenMenuOverlay(const std::string& section, int x, int y) {
     CEF_REQUIRE_UI_THREAD();
     
     try {
+        // Check if menu overlay is already active
+        if (menu_overlay_active_) {
+            Logger::LogMessage("Menu overlay already active, ignoring request");
+            return;
+        }
+
         Logger::LogMessage("OpenMenuOverlay called - section: " + section + ", x: " + std::to_string(x) + ", y: " + std::to_string(y));
         
         if (!browser_list_.empty()) {
@@ -1980,56 +1949,51 @@ void SimpleClient::OpenMenuOverlay(const std::string& section, int x, int y) {
                 POINT cursor_pos;
                 GetCursorPos(&cursor_pos);
                 
-                // Auto-size based on content type and screen size
-                int overlayWidth, overlayHeight;
-                if (section == "file" || section == "edit" || section == "view") {
-                    // Larger size for main menu sections
-                    overlayWidth = std::min(400, screenWidth / 3);
-                    overlayHeight = std::min(500, screenHeight / 2);
-                } else if (section == "tools" || section == "help") {
-                    // Medium size for secondary sections
-                    overlayWidth = std::min(350, screenWidth / 4);
-                    overlayHeight = std::min(400, screenHeight / 3);
-                } else {
-                    // Default compact size for other sections
-                    overlayWidth = std::min(300, screenWidth / 5);
-                    overlayHeight = std::min(350, screenHeight / 4);
-                }
+                // Use truly free size - remove fixed dimensions
+                // Let the browser content determine its own size
+                int overlayWidth = 0;   // No fixed width - let content decide
+                int overlayHeight = 0;  // No fixed height - let content decide
                 
-                // Smart positioning relative to cursor with fallback to provided coordinates
+                // Smart positioning - use provided coordinates directly if given
                 int overlayX, overlayY;
-                if (x == 0 && y == 0) {
+                if (x != 0 || y != 0) {
+                    // Use provided coordinates directly
+                    overlayX = x;
+                    overlayY = y;
+                    Logger::LogMessage("Using provided coordinates - x: " + std::to_string(x) + ", y: " + std::to_string(y));
+                } else {
                     // Use cursor position if no specific coordinates provided
                     overlayX = cursor_pos.x + 10; // Offset slightly from cursor
                     overlayY = cursor_pos.y + 10;
-                } else {
-                    // Use provided coordinates
-                    overlayX = x;
-                    overlayY = y;
+                    Logger::LogMessage("Using cursor position - cursor_x: " + std::to_string(cursor_pos.x) + ", cursor_y: " + std::to_string(cursor_pos.y));
                 }
                 
-                // Adjust X position if overlay would go off-screen
+                // Adjust position if overlay would go off-screen (but respect provided coordinates)
                 if (overlayX + overlayWidth > screenWidth) {
                     if (x == 0 && y == 0) {
+                        // Only adjust for cursor positioning
                         overlayX = cursor_pos.x - overlayWidth - 10; // Position to the left of cursor
                     } else {
-                        overlayX = screenWidth - overlayWidth - 10; // 10px margin
+                        // For provided coordinates, just ensure it fits on screen
+                        overlayX = std::max(0, screenWidth - overlayWidth);
                     }
                 }
                 if (overlayX < 0) {
-                    overlayX = 10; // 10px margin from left
+                    overlayX = 0; // Align to left edge
                 }
                 
-                // Adjust Y position if overlay would go off-screen
+                // Adjust Y position if overlay would go off-screen (but respect provided coordinates)
                 if (overlayY + overlayHeight > screenHeight) {
                     if (x == 0 && y == 0) {
+                        // Only adjust for cursor positioning
                         overlayY = cursor_pos.y - overlayHeight - 10; // Position above cursor
                     } else {
-                        overlayY = screenHeight - overlayHeight - 10; // 10px margin
+                        // For provided coordinates, just ensure it fits on screen
+                        overlayY = std::max(0, screenHeight - overlayHeight);
                     }
                 }
                 if (overlayY < 0) {
-                    overlayY = 10; // 10px margin from top
+                    overlayY = 0; // Align to top edge
                 }
                 
                 // Create a new browser window for the menu overlay
@@ -2037,7 +2001,7 @@ void SimpleClient::OpenMenuOverlay(const std::string& section, int x, int y) {
                 window_info.SetAsPopup(window_->GetHWND(), "MenuOverlay");
                 
                 // Set window style for transparency and layered window
-                window_info.ex_style = WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW;
+                window_info.ex_style = WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT;
                 window_info.style = WS_POPUP | WS_VISIBLE;
                 
                 // Position the overlay window with calculated bounds
@@ -2046,14 +2010,15 @@ void SimpleClient::OpenMenuOverlay(const std::string& section, int x, int y) {
                 window_info.bounds.width = overlayWidth;
                 window_info.bounds.height = overlayHeight;
                 
-                Logger::LogMessage("Auto-sized window bounds - x: " + std::to_string(overlayX) + 
+                Logger::LogMessage("Free-sized window bounds - x: " + std::to_string(overlayX) + 
                                  ", y: " + std::to_string(overlayY) + 
                                  ", w: " + std::to_string(overlayWidth) + 
                                  ", h: " + std::to_string(overlayHeight));
                 
                 CefBrowserSettings browser_settings;
                 browser_settings.javascript_close_windows = STATE_ENABLED;
-                browser_settings.background_color = 0x00000000; // Transparent background
+                // Set transparent background using BGRA format (Alpha = 0 for transparency)
+                browser_settings.background_color = CefColorSetARGB(0, 0, 0, 0); // Fully transparent BGRA
                 
                 // Create Steam-like overlay routing URL
                 std::string overlay_url = BuildOverlayURL(section, overlayX, overlayY, overlayWidth, overlayHeight);
@@ -2062,6 +2027,12 @@ void SimpleClient::OpenMenuOverlay(const std::string& section, int x, int y) {
                 
                 bool browser_created = CefBrowserHost::CreateBrowser(window_info, this, overlay_url, browser_settings, nullptr, nullptr);
                 Logger::LogMessage("CreateBrowser result: " + std::string(browser_created ? "true" : "false"));
+                
+                // Mark overlay as active if browser creation was successful
+                if (browser_created) {
+                    menu_overlay_active_ = true;
+                    Logger::LogMessage("Menu overlay marked as active");
+                }
                 
                 Logger::LogMessage("Menu overlay opened for section: " + section + 
                                  " at auto-positioned (" + std::to_string(overlayX) + ", " + std::to_string(overlayY) + 
@@ -2083,24 +2054,47 @@ void SimpleClient::OpenMenuOverlay(const std::string& section, int x, int y) {
 void SimpleClient::CloseMenuOverlay() {
     CEF_REQUIRE_UI_THREAD();
     
+    // Check if there's an active overlay to close
+    if (!menu_overlay_active_) {
+        Logger::LogMessage("No active menu overlay to close");
+        return;
+    }
+    
     try {
-        // Find and close any overlay browsers
-        for (auto it = browser_list_.begin(); it != browser_list_.end(); ++it) {
-            CefRefPtr<CefBrowser> browser = *it;
-            if (browser && browser->GetHost()) {
-                std::string url = browser->GetMainFrame()->GetURL().ToString();
-                // Check for miko:// protocol URLs with menuoverlay
-                if (url.find("miko://menuoverlay/") == 0) {
-                    browser->GetHost()->CloseBrowser(true);
-                    Logger::LogMessage("Menu overlay closed");
-                    break;
+        // Close the tracked overlay browser if it exists
+        if (menu_overlay_browser_ && menu_overlay_browser_->GetHost()) {
+            menu_overlay_browser_->GetHost()->CloseBrowser(true);
+            Logger::LogMessage("Menu overlay closed");
+        } else {
+            // Fallback: Find and close any overlay browsers
+            for (auto it = browser_list_.begin(); it != browser_list_.end(); ++it) {
+                CefRefPtr<CefBrowser> browser = *it;
+                if (browser && browser->GetHost()) {
+                    std::string url = browser->GetMainFrame()->GetURL().ToString();
+                    // Check for miko:// protocol URLs with menuoverlay
+                    if (url.find("miko://menuoverlay/") == 0) {
+                        browser->GetHost()->CloseBrowser(true);
+                        Logger::LogMessage("Menu overlay closed (fallback)");
+                        break;
+                    }
                 }
             }
         }
+        
+        // Reset tracking variables
+        menu_overlay_active_ = false;
+        menu_overlay_browser_ = nullptr;
+        
     } catch (const std::exception& ex) {
         Logger::LogMessage("Exception in CloseMenuOverlay: " + std::string(ex.what()));
+        // Reset tracking variables even on exception
+        menu_overlay_active_ = false;
+        menu_overlay_browser_ = nullptr;
     } catch (...) {
         Logger::LogMessage("Unknown exception in CloseMenuOverlay (possibly 0xe06d7363)");
+        // Reset tracking variables even on exception
+        menu_overlay_active_ = false;
+        menu_overlay_browser_ = nullptr;
     }
 }
 

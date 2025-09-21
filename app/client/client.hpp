@@ -361,6 +361,9 @@ private:
     typedef std::list<CefRefPtr<CefBrowser>> BrowserList;
     BrowserList browser_list_;
     
+    // SDL3 window reference
+    SDL3Window* window_;
+    
     // Message router for handling JavaScript queries
     CefRefPtr<CefMessageRouterBrowserSide> message_router_;
     
@@ -370,10 +373,11 @@ private:
     // OSR render handler
     CefRefPtr<OSRRenderHandler> render_handler_;
     
-    // SDL3 window reference
-    SDL3Window* window_;
+    // Menu overlay tracking to prevent duplicates
+    bool menu_overlay_active_;
+    CefRefPtr<CefBrowser> menu_overlay_browser_;
     
-    // Draggable regions for window movement
+    // Draggable regions for window dragging
     std::vector<CefDraggableRegion> draggable_regions_;
 
     IMPLEMENT_REFCOUNTING(SimpleClient);
