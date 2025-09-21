@@ -1,0 +1,370 @@
+# VSCode Keyboard Shortcuts for Hyperion IDE
+# Emulates Visual Studio Code keyboard shortcuts
+# Version: 1.0.0
+
+name: "VSCode Style"
+description: "Keyboard shortcuts based on Visual Studio Code"
+version: "1.0.0"
+platform: "cross-platform"
+
+# File Operations (VSCode style)
+file:
+  new_file: "Ctrl+N"
+  new_window: "Ctrl+Shift+N"
+  open_file: "Ctrl+O"
+  open_folder: "Ctrl+K Ctrl+O"
+  open_workspace: "Ctrl+K Ctrl+O"
+  save: "Ctrl+S"
+  save_as: "Ctrl+Shift+S"
+  save_all: "Ctrl+K S"
+  close_file: "Ctrl+W"
+  close_folder: "Ctrl+K F"
+  close_window: "Ctrl+Shift+W"
+  reopen_closed_file: "Ctrl+Shift+T"
+  
+  # Recent files
+  recent_files: "Ctrl+R"
+  quick_open: "Ctrl+P"
+
+# Edit Operations (VSCode style)
+edit:
+  undo: "Ctrl+Z"
+  redo: "Ctrl+Y"
+  cut: "Ctrl+X"
+  copy: "Ctrl+C"
+  paste: "Ctrl+V"
+  
+  # Selection
+  select_all: "Ctrl+A"
+  select_line: "Ctrl+L"
+  select_word: "Ctrl+D"
+  select_all_occurrences: "Ctrl+Shift+L"
+  add_cursor_above: "Ctrl+Alt+Up"
+  add_cursor_below: "Ctrl+Alt+Down"
+  add_cursor_to_line_ends: "Shift+Alt+I"
+  
+  # Line operations
+  copy_line_up: "Shift+Alt+Up"
+  copy_line_down: "Shift+Alt+Down"
+  move_line_up: "Alt+Up"
+  move_line_down: "Alt+Down"
+  delete_line: "Ctrl+Shift+K"
+  insert_line_below: "Ctrl+Enter"
+  insert_line_above: "Ctrl+Shift+Enter"
+  
+  # Text manipulation
+  toggle_comment: "Ctrl+/"
+  toggle_block_comment: "Shift+Alt+A"
+  format_document: "Shift+Alt+F"
+  format_selection: "Ctrl+K Ctrl+F"
+  
+  # Indentation
+  indent: "Ctrl+]"
+  outdent: "Ctrl+["
+  
+  # Case conversion
+  transform_to_uppercase: "Ctrl+K Ctrl+U"
+  transform_to_lowercase: "Ctrl+K Ctrl+L"
+
+# Navigation (VSCode style)
+navigation:
+  go_to_line: "Ctrl+G"
+  go_to_file: "Ctrl+P"
+  go_to_symbol: "Ctrl+Shift+O"
+  go_to_definition: "F12"
+  peek_definition: "Alt+F12"
+  go_to_declaration: "Ctrl+F12"
+  go_to_type_definition: "Ctrl+Shift+F12"
+  go_to_implementation: "Ctrl+Shift+I"
+  go_to_references: "Shift+F12"
+  
+  # Editor navigation
+  switch_editor: "Ctrl+Tab"
+  previous_editor: "Ctrl+Shift+Tab"
+  close_editor: "Ctrl+W"
+  
+  # Cursor movement
+  cursor_home: "Home"
+  cursor_end: "End"
+  cursor_top: "Ctrl+Home"
+  cursor_bottom: "Ctrl+End"
+  cursor_word_left: "Ctrl+Left"
+  cursor_word_right: "Ctrl+Right"
+  cursor_page_up: "Page Up"
+  cursor_page_down: "Page Down"
+  
+  # Bracket navigation
+  go_to_bracket: "Ctrl+Shift+\\"
+  
+  # History
+  navigate_back: "Alt+Left"
+  navigate_forward: "Alt+Right"
+
+# Search and Replace (VSCode style)
+search:
+  find: "Ctrl+F"
+  find_next: "F3"
+  find_previous: "Shift+F3"
+  find_in_files: "Ctrl+Shift+F"
+  replace: "Ctrl+H"
+  replace_in_files: "Ctrl+Shift+H"
+  
+  # Search options
+  toggle_case_sensitive: "Alt+C"
+  toggle_regex: "Alt+R"
+  toggle_whole_word: "Alt+W"
+
+# View and Layout (VSCode style)
+view:
+  command_palette: "Ctrl+Shift+P"
+  quick_open: "Ctrl+P"
+  toggle_sidebar: "Ctrl+B"
+  toggle_panel: "Ctrl+J"
+  toggle_terminal: "Ctrl+`"
+  
+  # Explorer
+  show_explorer: "Ctrl+Shift+E"
+  focus_files: "Ctrl+Shift+E"
+  
+  # Zoom
+  zoom_in: "Ctrl+="
+  zoom_out: "Ctrl+-"
+  zoom_reset: "Ctrl+0"
+  
+  # Split editor
+  split_editor: "Ctrl+\\"
+  split_editor_orthogonal: "Ctrl+K Ctrl+\\"
+  close_editor_group: "Ctrl+K W"
+  
+  # Focus groups
+  focus_first_group: "Ctrl+1"
+  focus_second_group: "Ctrl+2"
+  focus_third_group: "Ctrl+3"
+  
+  # Move editor
+  move_editor_left: "Ctrl+Shift+Page Up"
+  move_editor_right: "Ctrl+Shift+Page Down"
+
+# Debug (VSCode style)
+debug:
+  start_debugging: "F5"
+  start_without_debugging: "Ctrl+F5"
+  stop_debugging: "Shift+F5"
+  restart_debugging: "Ctrl+Shift+F5"
+  step_over: "F10"
+  step_into: "F11"
+  step_out: "Shift+F11"
+  continue: "F5"
+  toggle_breakpoint: "F9"
+  conditional_breakpoint: "Shift+F9"
+  
+  # Debug console
+  debug_console: "Ctrl+Shift+Y"
+
+# Terminal (VSCode style)
+terminal:
+  new_terminal: "Ctrl+Shift+`"
+  toggle_terminal: "Ctrl+`"
+  kill_terminal: "Ctrl+Shift+K"
+  split_terminal: "Ctrl+Shift+5"
+  
+  # Terminal navigation
+  focus_terminal: "Ctrl+`"
+  focus_next_terminal: "Ctrl+Page Down"
+  focus_previous_terminal: "Ctrl+Page Up"
+
+# Source Control (VSCode style)
+source_control:
+  show_source_control: "Ctrl+Shift+G"
+  git_commit: "Ctrl+Enter"
+  git_refresh: "Ctrl+R"
+  git_pull: "Ctrl+Shift+P"
+  git_push: "Ctrl+Shift+U"
+  
+  # Git operations
+  git_stage: "Ctrl+K Ctrl+S"
+  git_unstage: "Ctrl+K Ctrl+U"
+  git_clean: "Ctrl+K Ctrl+C"
+
+# Extensions (VSCode style)
+extensions:
+  show_extensions: "Ctrl+Shift+X"
+  install_extension: "Ctrl+Shift+P"
+  disable_extension: "Ctrl+Shift+P"
+
+# Refactoring (VSCode style)
+refactor:
+  rename_symbol: "F2"
+  extract_method: "Ctrl+Shift+R"
+  quick_fix: "Ctrl+."
+  refactor: "Ctrl+Shift+R"
+  
+  # Code actions
+  code_action: "Ctrl+."
+  source_action: "Ctrl+Shift+A"
+
+# IntelliSense (VSCode style)
+intellisense:
+  trigger_suggest: "Ctrl+Space"
+  trigger_parameter_hints: "Ctrl+Shift+Space"
+  accept_suggestion: "Tab"
+  accept_suggestion_with_commit: "Enter"
+  
+  # Peek
+  peek_definition: "Alt+F12"
+  peek_declaration: "Ctrl+Shift+F10"
+  peek_type_definition: "Ctrl+Shift+F12"
+  peek_implementation: "Ctrl+Shift+F12"
+
+# Workspace (VSCode style)
+workspace:
+  new_workspace: "Ctrl+Shift+N"
+  open_workspace: "Ctrl+K Ctrl+O"
+  save_workspace: "Ctrl+K S"
+  close_workspace: "Ctrl+K F"
+  
+  # Multi-root workspace
+  add_folder_to_workspace: "Ctrl+K Ctrl+A"
+  remove_folder_from_workspace: "Ctrl+K Ctrl+R"
+
+# Settings (VSCode style)
+settings:
+  open_settings: "Ctrl+,"
+  open_keyboard_shortcuts: "Ctrl+K Ctrl+S"
+  open_user_settings: "Ctrl+Shift+P"
+  open_workspace_settings: "Ctrl+K Ctrl+S"
+
+# Tasks (VSCode style)
+tasks:
+  run_task: "Ctrl+Shift+P"
+  run_build_task: "Ctrl+Shift+B"
+  run_test_task: "Ctrl+Shift+T"
+  terminate_task: "Ctrl+Shift+P"
+
+# Problems (VSCode style)
+problems:
+  show_problems: "Ctrl+Shift+M"
+  next_problem: "F8"
+  previous_problem: "Shift+F8"
+  
+  # Quick fix
+  quick_fix_problem: "Ctrl+."
+
+# Output (VSCode style)
+output:
+  show_output: "Ctrl+Shift+U"
+  clear_output: "Ctrl+K"
+
+# Markdown (VSCode style)
+markdown:
+  toggle_preview: "Ctrl+Shift+V"
+  open_preview_to_side: "Ctrl+K V"
+
+# Emmet (VSCode style)
+emmet:
+  expand_abbreviation: "Tab"
+  wrap_with_abbreviation: "Ctrl+Shift+P"
+  remove_tag: "Ctrl+Shift+;"
+  update_tag: "Ctrl+Shift+U"
+  
+  # Navigation
+  next_edit_point: "Ctrl+Alt+Right"
+  previous_edit_point: "Ctrl+Alt+Left"
+
+# Snippets (VSCode style)
+snippets:
+  insert_snippet: "Ctrl+Shift+P"
+  next_placeholder: "Tab"
+  previous_placeholder: "Shift+Tab"
+
+# Folding (VSCode style)
+folding:
+  fold: "Ctrl+Shift+["
+  unfold: "Ctrl+Shift+]"
+  fold_all: "Ctrl+K Ctrl+0"
+  unfold_all: "Ctrl+K Ctrl+J"
+  fold_level_1: "Ctrl+K Ctrl+1"
+  fold_level_2: "Ctrl+K Ctrl+2"
+  fold_level_3: "Ctrl+K Ctrl+3"
+  fold_level_4: "Ctrl+K Ctrl+4"
+  fold_level_5: "Ctrl+K Ctrl+5"
+  
+  # Region folding
+  fold_recursively: "Ctrl+K Ctrl+["
+  unfold_recursively: "Ctrl+K Ctrl+]"
+
+# Multi-cursor (VSCode style)
+multi_cursor:
+  add_cursor_above: "Ctrl+Alt+Up"
+  add_cursor_below: "Ctrl+Alt+Down"
+  add_cursor_to_line_ends: "Shift+Alt+I"
+  add_next_occurrence: "Ctrl+D"
+  add_all_occurrences: "Ctrl+Shift+L"
+  
+  # Selection
+  column_selection: "Shift+Alt+Drag"
+  box_selection: "Shift+Alt+Ctrl+Arrow"
+
+# Bookmarks (VSCode extension style)
+bookmarks:
+  toggle_bookmark: "Ctrl+Alt+K"
+  next_bookmark: "Ctrl+Alt+L"
+  previous_bookmark: "Ctrl+Alt+J"
+  list_bookmarks: "Ctrl+Shift+P"
+
+# Live Share (VSCode extension style)
+live_share:
+  start_session: "Ctrl+Shift+P"
+  join_session: "Ctrl+Shift+P"
+  end_session: "Ctrl+Shift+P"
+  
+  # Collaboration
+  share_terminal: "Ctrl+Shift+P"
+  share_server: "Ctrl+Shift+P"
+
+# Integrated Terminal (VSCode style)
+integrated_terminal:
+  new_terminal: "Ctrl+Shift+`"
+  split_terminal: "Ctrl+Shift+5"
+  kill_active_terminal: "Ctrl+Shift+K"
+  
+  # Terminal tabs
+  switch_terminal: "Ctrl+Page Up/Down"
+  rename_terminal: "F2"
+
+# Zen Mode (VSCode style)
+zen_mode:
+  toggle_zen_mode: "Ctrl+K Z"
+  exit_zen_mode: "Escape Escape"
+
+# Accessibility (VSCode style)
+accessibility:
+  increase_font_size: "Ctrl+="
+  decrease_font_size: "Ctrl+-"
+  reset_font_size: "Ctrl+0"
+  
+  # Screen reader
+  focus_accessibility_help: "Alt+F1"
+
+# Platform-specific overrides
+platform_overrides:
+  windows:
+    # Windows-specific shortcuts
+    show_all_commands: "Ctrl+Shift+P"
+    toggle_word_wrap: "Alt+Z"
+    
+  macos:
+    # macOS-specific shortcuts (Cmd instead of Ctrl)
+    new_file: "Cmd+N"
+    open_file: "Cmd+O"
+    save: "Cmd+S"
+    copy: "Cmd+C"
+    paste: "Cmd+V"
+    undo: "Cmd+Z"
+    redo: "Cmd+Shift+Z"
+    find: "Cmd+F"
+    
+  linux:
+    # Linux-specific shortcuts
+    show_all_commands: "Ctrl+Shift+P"
+    toggle_word_wrap: "Alt+Z"

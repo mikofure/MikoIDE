@@ -1,0 +1,452 @@
+# Vim Keyboard Shortcuts for Hyperion IDE
+# Emulates Vim editor keyboard shortcuts and modal editing
+# Version: 1.0.0
+
+name: "Vim Style"
+description: "Keyboard shortcuts based on Vim editor with modal editing support"
+version: "1.0.0"
+platform: "cross-platform"
+
+# Modal Editing States
+modes:
+  normal_mode: "Escape"
+  insert_mode: "i"
+  visual_mode: "v"
+  visual_line_mode: "V"
+  visual_block_mode: "Ctrl+V"
+  command_mode: ":"
+  replace_mode: "R"
+  
+  # Mode transitions
+  exit_to_normal: "Escape"
+  insert_at_cursor: "i"
+  insert_at_beginning: "I"
+  append_after_cursor: "a"
+  append_at_end: "A"
+  open_line_below: "o"
+  open_line_above: "O"
+
+# Normal Mode Navigation (Vim style)
+normal_mode:
+  # Basic movement
+  move_left: "h"
+  move_down: "j"
+  move_up: "k"
+  move_right: "l"
+  
+  # Word movement
+  word_forward: "w"
+  word_backward: "b"
+  word_end: "e"
+  big_word_forward: "W"
+  big_word_backward: "B"
+  big_word_end: "E"
+  
+  # Line movement
+  line_beginning: "0"
+  line_first_char: "^"
+  line_end: "$"
+  
+  # Screen movement
+  screen_top: "H"
+  screen_middle: "M"
+  screen_bottom: "L"
+  
+  # Page movement
+  page_down: "Ctrl+F"
+  page_up: "Ctrl+B"
+  half_page_down: "Ctrl+D"
+  half_page_up: "Ctrl+U"
+  
+  # File movement
+  goto_line: "G"
+  goto_first_line: "gg"
+  goto_line_number: ":{number}G"
+  
+  # Character search
+  find_char_forward: "f{char}"
+  find_char_backward: "F{char}"
+  till_char_forward: "t{char}"
+  till_char_backward: "T{char}"
+  repeat_find: ";"
+  repeat_find_reverse: ","
+
+# Edit Operations (Normal Mode)
+edit_normal:
+  # Delete operations
+  delete_char: "x"
+  delete_char_before: "X"
+  delete_line: "dd"
+  delete_to_end: "D"
+  delete_word: "dw"
+  delete_inside_word: "diw"
+  delete_around_word: "daw"
+  
+  # Change operations
+  change_line: "cc"
+  change_to_end: "C"
+  change_word: "cw"
+  change_inside_word: "ciw"
+  change_around_word: "caw"
+  change_char: "s"
+  change_line_substitute: "S"
+  
+  # Yank (copy) operations
+  yank_line: "yy"
+  yank_to_end: "Y"
+  yank_word: "yw"
+  yank_inside_word: "yiw"
+  yank_around_word: "yaw"
+  
+  # Put (paste) operations
+  paste_after: "p"
+  paste_before: "P"
+  
+  # Undo/Redo
+  undo: "u"
+  redo: "Ctrl+R"
+  
+  # Repeat last command
+  repeat: "."
+
+# Text Objects (Vim style)
+text_objects:
+  # Word objects
+  inner_word: "iw"
+  around_word: "aw"
+  inner_WORD: "iW"
+  around_WORD: "aW"
+  
+  # Sentence objects
+  inner_sentence: "is"
+  around_sentence: "as"
+  
+  # Paragraph objects
+  inner_paragraph: "ip"
+  around_paragraph: "ap"
+  
+  # Bracket objects
+  inner_parentheses: "i("
+  around_parentheses: "a("
+  inner_brackets: "i["
+  around_brackets: "a["
+  inner_braces: "i{"
+  around_braces: "a{"
+  inner_angle_brackets: "i<"
+  around_angle_brackets: "a<"
+  
+  # Quote objects
+  inner_single_quotes: "i'"
+  around_single_quotes: "a'"
+  inner_double_quotes: 'i"'
+  around_double_quotes: 'a"'
+  inner_backticks: "i`"
+  around_backticks: "a`"
+  
+  # Tag objects (HTML/XML)
+  inner_tag: "it"
+  around_tag: "at"
+
+# Visual Mode Operations
+visual_mode:
+  # Selection
+  select_char: "v"
+  select_line: "V"
+  select_block: "Ctrl+V"
+  
+  # Extend selection
+  extend_to_word: "w"
+  extend_to_end: "$"
+  extend_to_beginning: "0"
+  
+  # Operations on selection
+  delete_selection: "d"
+  change_selection: "c"
+  yank_selection: "y"
+  
+  # Case conversion
+  toggle_case: "~"
+  uppercase: "U"
+  lowercase: "u"
+  
+  # Indentation
+  indent_right: ">"
+  indent_left: "<"
+
+# Search and Replace (Vim style)
+search:
+  search_forward: "/{pattern}"
+  search_backward: "?{pattern}"
+  search_next: "n"
+  search_previous: "N"
+  search_word_under_cursor: "*"
+  search_word_under_cursor_backward: "#"
+  
+  # Search and replace
+  substitute_line: ":s/{pattern}/{replacement}/"
+  substitute_all_line: ":s/{pattern}/{replacement}/g"
+  substitute_file: ":%s/{pattern}/{replacement}/g"
+  substitute_confirm: ":%s/{pattern}/{replacement}/gc"
+  
+  # Clear search highlight
+  clear_highlight: ":noh"
+
+# Command Mode Operations
+command_mode:
+  # File operations
+  save: ":w"
+  save_as: ":w {filename}"
+  save_quit: ":wq"
+  quit: ":q"
+  quit_force: ":q!"
+  save_quit_all: ":wqa"
+  quit_all: ":qa"
+  
+  # Edit operations
+  edit_file: ":e {filename}"
+  reload_file: ":e!"
+  
+  # Line numbers
+  show_line_numbers: ":set nu"
+  hide_line_numbers: ":set nonu"
+  
+  # Search settings
+  ignore_case: ":set ic"
+  case_sensitive: ":set noic"
+  highlight_search: ":set hls"
+  no_highlight_search: ":set nohls"
+  
+  # Indentation
+  set_tab_width: ":set ts={number}"
+  set_shift_width: ":set sw={number}"
+  expand_tabs: ":set et"
+  no_expand_tabs: ":set noet"
+
+# Window Management (Vim style)
+windows:
+  # Split windows
+  split_horizontal: ":sp"
+  split_vertical: ":vsp"
+  
+  # Navigate windows
+  window_left: "Ctrl+W h"
+  window_down: "Ctrl+W j"
+  window_up: "Ctrl+W k"
+  window_right: "Ctrl+W l"
+  
+  # Resize windows
+  increase_height: "Ctrl+W +"
+  decrease_height: "Ctrl+W -"
+  increase_width: "Ctrl+W >"
+  decrease_width: "Ctrl+W <"
+  equalize_windows: "Ctrl+W ="
+  
+  # Close windows
+  close_window: "Ctrl+W c"
+  close_others: "Ctrl+W o"
+
+# Buffers (Vim style)
+buffers:
+  # Buffer navigation
+  next_buffer: ":bn"
+  previous_buffer: ":bp"
+  first_buffer: ":bf"
+  last_buffer: ":bl"
+  
+  # Buffer management
+  list_buffers: ":ls"
+  switch_buffer: ":b {number}"
+  delete_buffer: ":bd"
+  
+  # File switching
+  alternate_file: "Ctrl+^"
+
+# Tabs (Vim style)
+tabs:
+  # Tab management
+  new_tab: ":tabnew"
+  close_tab: ":tabclose"
+  next_tab: "gt"
+  previous_tab: "gT"
+  first_tab: ":tabfirst"
+  last_tab: ":tablast"
+  
+  # Move tabs
+  move_tab_left: ":tabmove -1"
+  move_tab_right: ":tabmove +1"
+
+# Marks and Jumps (Vim style)
+marks:
+  # Set marks
+  set_mark: "m{letter}"
+  
+  # Jump to marks
+  jump_to_mark: "'{letter}"
+  jump_to_mark_exact: "`{letter}"
+  
+  # Special marks
+  jump_to_last_edit: "'."
+  jump_to_last_insert: "'^"
+  jump_to_last_visual: "'<"
+  jump_to_last_visual_end: "'>"
+  
+  # Jump list
+  jump_older: "Ctrl+O"
+  jump_newer: "Ctrl+I"
+
+# Macros (Vim style)
+macros:
+  # Record macro
+  start_recording: "q{letter}"
+  stop_recording: "q"
+  
+  # Play macro
+  play_macro: "@{letter}"
+  repeat_last_macro: "@@"
+
+# Folding (Vim style)
+folding:
+  # Manual folding
+  create_fold: "zf"
+  delete_fold: "zd"
+  delete_all_folds: "zD"
+  
+  # Fold navigation
+  open_fold: "zo"
+  close_fold: "zc"
+  toggle_fold: "za"
+  open_all_folds: "zR"
+  close_all_folds: "zM"
+  
+  # Fold levels
+  fold_more: "zm"
+  fold_less: "zr"
+
+# Registers (Vim style)
+registers:
+  # Named registers
+  yank_to_register: '"{letter}y'
+  paste_from_register: '"{letter}p'
+  
+  # Special registers
+  unnamed_register: '""'
+  system_clipboard: '"+'
+  selection_clipboard: '"*'
+  black_hole_register: '"_'
+  
+  # Show registers
+  show_registers: ":reg"
+
+# Advanced Navigation
+advanced_navigation:
+  # Sentence navigation
+  next_sentence: ")"
+  previous_sentence: "("
+  
+  # Paragraph navigation
+  next_paragraph: "}"
+  previous_paragraph: "{"
+  
+  # Function navigation
+  next_function: "]]"
+  previous_function: "[["
+  
+  # Matching brackets
+  match_bracket: "%"
+  
+  # Line joining
+  join_lines: "J"
+  join_lines_no_space: "gJ"
+
+# Insert Mode Shortcuts
+insert_mode:
+  # Exit insert mode
+  exit_insert: "Escape"
+  exit_insert_alt: "Ctrl+["
+  
+  # Navigation in insert mode
+  move_left: "Ctrl+H"
+  move_right: "Ctrl+L"
+  
+  # Delete in insert mode
+  delete_char: "Ctrl+H"
+  delete_word: "Ctrl+W"
+  delete_line: "Ctrl+U"
+  
+  # Auto-completion
+  complete_word: "Ctrl+N"
+  complete_word_back: "Ctrl+P"
+  complete_line: "Ctrl+X Ctrl+L"
+  complete_filename: "Ctrl+X Ctrl+F"
+
+# Ex Commands (Command Line Mode)
+ex_commands:
+  # File operations
+  write: ":w"
+  write_quit: ":wq"
+  quit: ":q"
+  quit_all: ":qa"
+  
+  # Search and replace
+  global_replace: ":%s/old/new/g"
+  confirm_replace: ":%s/old/new/gc"
+  
+  # Line operations
+  goto_line: ":{number}"
+  delete_lines: ":{start},{end}d"
+  copy_lines: ":{start},{end}co{dest}"
+  move_lines: ":{start},{end}m{dest}"
+  
+  # External commands
+  shell_command: ":!{command}"
+  read_command: ":r !{command}"
+  
+  # Help
+  help: ":help"
+  help_topic: ":help {topic}"
+
+# Vim-specific IDE Integration
+ide_integration:
+  # File explorer (NERDTree style)
+  toggle_file_explorer: ":NERDTreeToggle"
+  find_in_explorer: ":NERDTreeFind"
+  
+  # Code navigation
+  go_to_definition: "gd"
+  go_to_declaration: "gD"
+  show_references: "gr"
+  
+  # Code actions
+  format_code: "gq"
+  auto_indent: "="
+  
+  # Terminal integration
+  open_terminal: ":terminal"
+  
+  # Git integration (Fugitive style)
+  git_status: ":Gstatus"
+  git_commit: ":Gcommit"
+  git_diff: ":Gdiff"
+  
+  # Plugin management
+  install_plugins: ":PlugInstall"
+  update_plugins: ":PlugUpdate"
+
+# Platform Adaptations
+platform_overrides:
+  windows:
+    # Windows-specific adaptations
+    system_clipboard: '"+y'
+    paste_system: '"+p'
+    
+  macos:
+    # macOS-specific adaptations
+    system_clipboard: '"*y'
+    paste_system: '"*p'
+    
+  linux:
+    # Linux-specific adaptations
+    system_clipboard: '"+y'
+    paste_system: '"+p'
+    selection_clipboard: '"*y'
+    paste_selection: '"*p'

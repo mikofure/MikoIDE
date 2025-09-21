@@ -1,0 +1,403 @@
+# Hyperion IDE Default Keyboard Shortcuts
+# Combines VSCode + Xcode + Premiere Pro shortcuts for optimal workflow
+# Version: 1.0.0
+
+name: "Hyperion Default"
+description: "Default keyboard shortcuts combining VSCode, Xcode, and Premiere Pro workflows"
+version: "1.0.0"
+platform: "cross-platform"
+
+# File Operations (VSCode + Xcode style)
+file:
+  new_file: "Ctrl+N"
+  new_window: "Ctrl+Shift+N"
+  open_file: "Ctrl+O"
+  open_folder: "Ctrl+K Ctrl+O"
+  open_workspace: "Ctrl+Alt+O"
+  open_recent: "Ctrl+R"
+  save: "Ctrl+S"
+  save_as: "Ctrl+Shift+S"
+  save_all: "Ctrl+K S"
+  close_file: "Ctrl+W"
+  close_folder: "Ctrl+K F"
+  close_window: "Ctrl+Shift+W"
+  close_all: "Ctrl+K Ctrl+W"
+  revert_file: "Ctrl+K R"
+  
+  # Xcode-style file operations
+  reveal_in_explorer: "Ctrl+Shift+R"
+  show_in_finder: "Ctrl+Alt+R"
+
+# Edit Operations (VSCode + Premiere Pro style)
+edit:
+  undo: "Ctrl+Z"
+  redo: "Ctrl+Y"
+  cut: "Ctrl+X"
+  copy: "Ctrl+C"
+  paste: "Ctrl+V"
+  paste_special: "Ctrl+Shift+V"
+  select_all: "Ctrl+A"
+  select_line: "Ctrl+L"
+  select_word: "Ctrl+D"
+  select_all_occurrences: "Ctrl+Shift+L"
+  
+  # Advanced selection (VSCode style)
+  expand_selection: "Shift+Alt+Right"
+  shrink_selection: "Shift+Alt+Left"
+  add_cursor_above: "Ctrl+Alt+Up"
+  add_cursor_below: "Ctrl+Alt+Down"
+  add_cursor_to_line_ends: "Shift+Alt+I"
+  
+  # Line operations
+  duplicate_line: "Shift+Alt+Down"
+  delete_line: "Ctrl+Shift+K"
+  move_line_up: "Alt+Up"
+  move_line_down: "Alt+Down"
+  copy_line_up: "Shift+Alt+Up"
+  copy_line_down: "Shift+Alt+Down"
+  
+  # Text manipulation (Premiere Pro inspired)
+  toggle_comment: "Ctrl+/"
+  toggle_block_comment: "Shift+Alt+A"
+  format_document: "Shift+Alt+F"
+  format_selection: "Ctrl+K Ctrl+F"
+  indent: "Ctrl+]"
+  outdent: "Ctrl+["
+  
+  # Advanced editing
+  join_lines: "Ctrl+J"
+  transform_to_uppercase: "Ctrl+K Ctrl+U"
+  transform_to_lowercase: "Ctrl+K Ctrl+L"
+  sort_lines_ascending: "Ctrl+K Ctrl+S"
+
+# Navigation (VSCode + Xcode style)
+navigation:
+  go_to_line: "Ctrl+G"
+  go_to_file: "Ctrl+P"
+  go_to_symbol: "Ctrl+Shift+O"
+  go_to_symbol_in_workspace: "Ctrl+T"
+  go_to_definition: "F12"
+  go_to_declaration: "Ctrl+F12"
+  go_to_type_definition: "Ctrl+Shift+F12"
+  go_to_implementation: "Ctrl+Shift+I"
+  go_to_references: "Shift+F12"
+  
+  # Peek operations (VSCode style)
+  peek_definition: "Alt+F12"
+  peek_declaration: "Ctrl+Shift+F10"
+  peek_references: "Shift+F12"
+  
+  # Navigation history
+  go_back: "Alt+Left"
+  go_forward: "Alt+Right"
+  go_to_last_edit: "Ctrl+K Ctrl+Q"
+  
+  # Xcode-style navigation
+  jump_to_counterpart: "Ctrl+Alt+Up"
+  open_quickly: "Ctrl+Shift+O"
+  
+  # Bracket navigation
+  go_to_bracket: "Ctrl+Shift+\\"
+  select_to_bracket: "Ctrl+Shift+Alt+\\"
+
+# Search and Replace (VSCode + Premiere Pro style)
+search:
+  find: "Ctrl+F"
+  find_next: "F3"
+  find_previous: "Shift+F3"
+  find_in_files: "Ctrl+Shift+F"
+  replace: "Ctrl+H"
+  replace_in_files: "Ctrl+Shift+H"
+  
+  # Advanced search
+  find_with_selection: "Ctrl+F3"
+  find_all_references: "Alt+Shift+F12"
+  search_editor: "Ctrl+K Ctrl+F"
+  
+  # Premiere Pro inspired search
+  find_and_replace_timeline: "Ctrl+Alt+F"
+  find_in_project: "Shift+F"
+
+# View and Layout (VSCode + Xcode + Premiere Pro)
+view:
+  toggle_sidebar: "Ctrl+B"
+  toggle_panel: "Ctrl+J"
+  toggle_terminal: "Ctrl+`"
+  toggle_problems: "Ctrl+Shift+M"
+  toggle_output: "Ctrl+Shift+U"
+  toggle_debug_console: "Ctrl+Shift+Y"
+  
+  # Explorer and panels
+  show_explorer: "Ctrl+Shift+E"
+  show_search: "Ctrl+Shift+F"
+  show_source_control: "Ctrl+Shift+G"
+  show_debug: "Ctrl+Shift+D"
+  show_extensions: "Ctrl+Shift+X"
+  
+  # Layout management
+  split_editor_right: "Ctrl+\\"
+  split_editor_down: "Ctrl+K Ctrl+\\"
+  close_editor_group: "Ctrl+K W"
+  focus_first_editor_group: "Ctrl+1"
+  focus_second_editor_group: "Ctrl+2"
+  focus_third_editor_group: "Ctrl+3"
+  
+  # Xcode-style views
+  toggle_navigator: "Ctrl+0"
+  toggle_utilities: "Ctrl+Alt+0"
+  toggle_debug_area: "Ctrl+Shift+Y"
+  
+  # Premiere Pro inspired
+  toggle_timeline: "Shift+5"
+  toggle_project_panel: "Shift+1"
+  toggle_source_monitor: "Shift+2"
+  toggle_program_monitor: "Shift+3"
+  
+  # Zoom and display
+  zoom_in: "Ctrl+="
+  zoom_out: "Ctrl+-"
+  zoom_reset: "Ctrl+0"
+  toggle_zen_mode: "Ctrl+K Z"
+  toggle_fullscreen: "F11"
+
+# Build and Run (Xcode + VSCode style)
+build:
+  build: "Ctrl+Shift+B"
+  build_and_run: "F5"
+  run_without_debugging: "Ctrl+F5"
+  stop: "Shift+F5"
+  restart: "Ctrl+Shift+F5"
+  
+  # Xcode-style build operations
+  clean_build: "Ctrl+Shift+K"
+  analyze: "Ctrl+Shift+B"
+  test: "Ctrl+U"
+  profile: "Ctrl+I"
+  archive: "Ctrl+Shift+A"
+  
+  # Task management
+  run_task: "Ctrl+Shift+P"
+  configure_task: "Ctrl+Shift+Alt+T"
+  show_running_tasks: "Ctrl+Shift+Alt+U"
+
+# Debug (VSCode + Xcode style)
+debug:
+  start_debugging: "F5"
+  start_without_debugging: "Ctrl+F5"
+  stop_debugging: "Shift+F5"
+  restart_debugging: "Ctrl+Shift+F5"
+  pause: "F6"
+  continue: "F5"
+  step_over: "F10"
+  step_into: "F11"
+  step_out: "Shift+F11"
+  
+  # Breakpoints
+  toggle_breakpoint: "F9"
+  conditional_breakpoint: "Shift+F9"
+  toggle_all_breakpoints: "Ctrl+Shift+F9"
+  remove_all_breakpoints: "Ctrl+Shift+Alt+F9"
+  
+  # Debug views
+  show_debug_console: "Ctrl+Shift+Y"
+  show_call_stack: "Ctrl+Shift+C"
+  show_variables: "Ctrl+Shift+V"
+  show_watch: "Ctrl+Shift+W"
+
+# Terminal (VSCode + Xcode style)
+terminal:
+  new_terminal: "Ctrl+Shift+`"
+  split_terminal: "Ctrl+Shift+5"
+  kill_terminal: "Ctrl+Shift+Alt+`"
+  focus_terminal: "Ctrl+`"
+  focus_next_terminal: "Ctrl+PageDown"
+  focus_previous_terminal: "Ctrl+PageUp"
+  
+  # Terminal navigation
+  scroll_up: "Ctrl+Shift+Up"
+  scroll_down: "Ctrl+Shift+Down"
+  scroll_to_top: "Ctrl+Home"
+  scroll_to_bottom: "Ctrl+End"
+  
+  # Xcode-style console
+  clear_console: "Ctrl+K"
+  show_console: "Ctrl+Shift+C"
+
+# Source Control (VSCode + Xcode style)
+git:
+  stage_file: "Ctrl+K Ctrl+S"
+  unstage_file: "Ctrl+K Ctrl+U"
+  commit: "Ctrl+K Ctrl+C"
+  commit_all: "Ctrl+K Ctrl+A"
+  push: "Ctrl+K Ctrl+P"
+  pull: "Ctrl+K Ctrl+L"
+  sync: "Ctrl+K Ctrl+Y"
+  
+  # Git operations
+  show_git_output: "Ctrl+Shift+G"
+  clone_repository: "Ctrl+Shift+Alt+G"
+  initialize_repository: "Ctrl+Shift+Alt+I"
+  
+  # Diff and merge
+  compare_with_head: "Ctrl+K Ctrl+H"
+  compare_with_previous: "Ctrl+K Ctrl+P"
+  show_diff: "Ctrl+K Ctrl+D"
+
+# Refactoring (VSCode + Xcode style)
+refactor:
+  rename_symbol: "F2"
+  extract_method: "Ctrl+Shift+R"
+  extract_variable: "Ctrl+Shift+Alt+R"
+  organize_imports: "Shift+Alt+O"
+  
+  # Code actions
+  quick_fix: "Ctrl+."
+  source_action: "Ctrl+Shift+."
+  refactor_this: "Ctrl+Shift+R"
+  
+  # Xcode-style refactoring
+  rename_all: "Ctrl+Alt+Shift+R"
+  extract_to_method: "Ctrl+Alt+M"
+  inline: "Ctrl+Alt+I"
+
+# Workspace and Project (Xcode + Premiere Pro style)
+workspace:
+  new_workspace: "Ctrl+Alt+N"
+  open_workspace: "Ctrl+Alt+O"
+  save_workspace: "Ctrl+Alt+S"
+  close_workspace: "Ctrl+Alt+W"
+  
+  # Project management
+  add_folder_to_workspace: "Ctrl+K Ctrl+A"
+  remove_folder_from_workspace: "Ctrl+K Ctrl+R"
+  
+  # Xcode-style project operations
+  new_project: "Ctrl+Shift+N"
+  open_project: "Ctrl+Shift+O"
+  close_project: "Ctrl+Shift+W"
+  
+  # Premiere Pro inspired workspace
+  import_media: "Ctrl+I"
+  new_sequence: "Ctrl+N"
+  duplicate_sequence: "Ctrl+Alt+D"
+
+# Timeline and Media (Premiere Pro inspired)
+timeline:
+  play_pause: "Space"
+  play_in_to_out: "Shift+Space"
+  go_to_in_point: "Shift+I"
+  go_to_out_point: "Shift+O"
+  set_in_point: "I"
+  set_out_point: "O"
+  clear_in_point: "Ctrl+Shift+I"
+  clear_out_point: "Ctrl+Shift+O"
+  
+  # Timeline navigation
+  step_forward: "Right"
+  step_backward: "Left"
+  next_edit: "Down"
+  previous_edit: "Up"
+  go_to_beginning: "Home"
+  go_to_end: "End"
+  
+  # Editing operations
+  cut: "Ctrl+K"
+  copy: "Ctrl+C"
+  paste: "Ctrl+V"
+  paste_insert: "Ctrl+Shift+V"
+  clear: "Delete"
+  ripple_delete: "Shift+Delete"
+  
+  # Tools
+  selection_tool: "V"
+  razor_tool: "C"
+  slip_tool: "Y"
+  slide_tool: "U"
+  pen_tool: "P"
+  hand_tool: "H"
+  zoom_tool: "Z"
+
+# Window Management (Xcode + VSCode style)
+window:
+  new_window: "Ctrl+Shift+N"
+  close_window: "Ctrl+Shift+W"
+  next_window: "Ctrl+Alt+Right"
+  previous_window: "Ctrl+Alt+Left"
+  minimize: "Ctrl+M"
+  
+  # Tab management
+  new_tab: "Ctrl+T"
+  close_tab: "Ctrl+W"
+  next_tab: "Ctrl+Tab"
+  previous_tab: "Ctrl+Shift+Tab"
+  reopen_closed_tab: "Ctrl+Shift+T"
+  
+  # Xcode-style window management
+  show_document_outline: "Ctrl+Alt+O"
+  show_minimap: "Ctrl+Alt+M"
+  show_breadcrumbs: "Ctrl+Alt+B"
+
+# Help and Documentation
+help:
+  show_all_commands: "Ctrl+Shift+P"
+  keyboard_shortcuts: "Ctrl+K Ctrl+S"
+  user_settings: "Ctrl+,"
+  workspace_settings: "Ctrl+K Ctrl+,"
+  
+  # Documentation
+  show_hover: "Ctrl+K Ctrl+I"
+  trigger_parameter_hints: "Ctrl+Shift+Space"
+  trigger_suggest: "Ctrl+Space"
+  
+  # Help system
+  welcome: "Ctrl+Shift+Alt+W"
+  show_release_notes: "Ctrl+Shift+Alt+R"
+  report_issue: "Ctrl+Shift+Alt+I"
+
+# Custom Hyperion Features
+hyperion:
+  # Theme switching
+  next_theme: "Ctrl+K Ctrl+T"
+  previous_theme: "Ctrl+K Ctrl+Shift+T"
+  theme_picker: "Ctrl+K T"
+  
+  # Layout presets
+  coding_layout: "Ctrl+Alt+1"
+  debugging_layout: "Ctrl+Alt+2"
+  review_layout: "Ctrl+Alt+3"
+  presentation_layout: "Ctrl+Alt+4"
+  
+  # Productivity features
+  focus_mode: "Ctrl+K F"
+  distraction_free: "Ctrl+K D"
+  toggle_minimap: "Ctrl+K M"
+  toggle_breadcrumbs: "Ctrl+K B"
+  
+  # AI and smart features
+  ai_assist: "Ctrl+K A"
+  smart_completion: "Ctrl+K I"
+  code_explanation: "Ctrl+K E"
+  generate_documentation: "Ctrl+K G"
+
+# Platform-specific overrides
+platform_overrides:
+  macos:
+    # Replace Ctrl with Cmd for macOS
+    modifier_key: "Cmd"
+    
+    # macOS-specific shortcuts
+    quit_application: "Cmd+Q"
+    hide_application: "Cmd+H"
+    minimize_window: "Cmd+M"
+    preferences: "Cmd+,"
+    
+  linux:
+    # Linux-specific shortcuts
+    show_applications: "Super"
+    workspace_switcher: "Ctrl+Alt+Arrow"
+    
+  windows:
+    # Windows-specific shortcuts
+    show_desktop: "Win+D"
+    task_manager: "Ctrl+Shift+Esc"
+    system_settings: "Win+I"

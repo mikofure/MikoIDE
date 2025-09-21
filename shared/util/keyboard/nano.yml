@@ -1,0 +1,243 @@
+# Nano Editor Keyboard Shortcuts for Hyperion IDE
+# Emulates GNU nano text editor shortcuts
+# Version: 1.0.0
+
+name: "Nano Style"
+description: "Keyboard shortcuts based on GNU nano text editor"
+version: "1.0.0"
+platform: "cross-platform"
+
+# File Operations (Nano style)
+file:
+  new_file: "Ctrl+O"          # WriteOut in nano creates new
+  open_file: "Ctrl+R"         # Read File
+  save: "Ctrl+O"              # WriteOut
+  save_as: "Ctrl+O"           # WriteOut (nano prompts for filename)
+  exit: "Ctrl+X"              # Exit nano
+  close_file: "Ctrl+X"        # Exit current file
+
+# Edit Operations (Nano style)
+edit:
+  cut_line: "Ctrl+K"          # Cut (kill) line
+  paste: "Ctrl+U"             # Uncut (paste)
+  copy_line: "Alt+6"          # Copy line
+  undo: "Alt+U"               # Undo
+  redo: "Alt+E"               # Redo
+  
+  # Text manipulation
+  delete_char: "Delete"       # Delete character under cursor
+  backspace: "Backspace"      # Delete character before cursor
+  delete_word: "Ctrl+Delete"  # Delete word
+  
+  # Selection (nano doesn't have traditional selection, but we adapt)
+  select_all: "Ctrl+A"        # Go to beginning, then mark, then end
+  mark_text: "Ctrl+6"         # Mark text (start selection)
+  unmark: "Ctrl+6"            # Unmark (end selection)
+
+# Navigation (Nano style)
+navigation:
+  go_to_line: "Ctrl+_"        # Go to line number
+  go_to_beginning: "Ctrl+Y"   # Page Up / Go to beginning
+  go_to_end: "Ctrl+V"         # Page Down / Go to end
+  
+  # Cursor movement
+  move_left: "Left"           # Move cursor left
+  move_right: "Right"         # Move cursor right
+  move_up: "Up"               # Move cursor up
+  move_down: "Down"           # Move cursor down
+  move_word_left: "Ctrl+Left" # Move word left
+  move_word_right: "Ctrl+Right" # Move word right
+  
+  # Page navigation
+  page_up: "Ctrl+Y"           # Previous page
+  page_down: "Ctrl+V"         # Next page
+  home: "Home"                # Beginning of line
+  end: "End"                  # End of line
+  
+  # Document navigation
+  first_line: "Alt+\\"        # First line
+  last_line: "Alt+/"          # Last line
+
+# Search and Replace (Nano style)
+search:
+  find: "Ctrl+W"              # Where Is (search)
+  find_next: "Alt+W"          # Find next occurrence
+  find_previous: "Alt+Q"      # Find previous occurrence
+  replace: "Ctrl+\\"          # Replace
+  
+  # Search options
+  case_sensitive: "Alt+C"     # Toggle case sensitivity
+  regex_search: "Alt+R"       # Toggle regex search
+  backwards_search: "Alt+B"   # Search backwards
+
+# View and Display (Nano style)
+view:
+  toggle_help: "Ctrl+G"       # Get Help
+  refresh_screen: "Ctrl+L"    # Refresh screen
+  
+  # Display options
+  toggle_line_numbers: "Alt+#" # Toggle line numbers
+  toggle_whitespace: "Alt+P"   # Toggle whitespace display
+  toggle_syntax: "Alt+Y"       # Toggle syntax highlighting
+  
+  # Scrolling
+  scroll_up: "Alt+Up"         # Scroll up one line
+  scroll_down: "Alt+Down"     # Scroll down one line
+
+# Text Formatting (Nano adaptations)
+format:
+  justify_paragraph: "Ctrl+J" # Justify paragraph
+  indent: "Alt+}"             # Indent line
+  unindent: "Alt+{"           # Unindent line
+  
+  # Case conversion
+  to_uppercase: "Alt+U"       # Convert to uppercase
+  to_lowercase: "Alt+L"       # Convert to lowercase
+
+# Advanced Features (Nano style)
+advanced:
+  spell_check: "Ctrl+T"       # To Spell (spell checker)
+  word_count: "Alt+D"         # Display word count
+  
+  # Multiple files
+  next_file: "Alt+>"          # Next file buffer
+  previous_file: "Alt+<"      # Previous file buffer
+  
+  # Bookmarks
+  set_bookmark: "Alt+Insert"  # Set bookmark
+  goto_bookmark: "Alt+PageUp" # Go to bookmark
+
+# System Operations (Nano style)
+system:
+  suspend: "Ctrl+Z"           # Suspend nano (background)
+  execute_command: "Ctrl+T"   # Execute external command
+  
+  # File browser
+  browse: "Ctrl+T"            # Browse (when in file operations)
+
+# Special Characters and Input
+input:
+  literal_character: "Alt+V"  # Insert literal character
+  tab: "Tab"                  # Insert tab
+  enter: "Enter"              # New line
+  
+  # Unicode input
+  unicode_input: "Alt+V"      # Unicode character input
+
+# Nano-specific Shortcuts
+nano_specific:
+  # Cut/Copy operations
+  cut_to_end: "Ctrl+K"        # Cut from cursor to end of line
+  cut_whole_line: "Alt+K"     # Cut entire line
+  copy_line: "Alt+6"          # Copy current line
+  
+  # Text manipulation
+  complete_word: "Ctrl+]"     # Complete word
+  comment_line: "Alt+3"       # Comment/uncomment line
+  
+  # Display toggles
+  toggle_mouse: "Alt+M"       # Toggle mouse support
+  toggle_tabs: "Alt+T"        # Toggle tab display
+  toggle_wrap: "Alt+$"        # Toggle line wrapping
+  
+  # Advanced editing
+  mark_paragraph: "Alt+("     # Mark paragraph
+  justify_selection: "Alt+J"  # Justify selection
+  
+  # File operations
+  insert_file: "Ctrl+R"       # Insert another file
+  write_selection: "Ctrl+O"   # Write selection to file
+
+# Help and Information
+help:
+  show_help: "Ctrl+G"         # Show help screen
+  show_position: "Ctrl+C"     # Show cursor position
+  show_version: "Alt+V"       # Show version information
+
+# Configuration (Nano style)
+config:
+  # These would typically be set in .nanorc
+  auto_indent: "set autoindent"
+  line_numbers: "set linenumbers"
+  mouse_support: "set mouse"
+  syntax_highlighting: "include \"/usr/share/nano/*.nanorc\""
+  
+  # Soft wrapping
+  soft_wrap: "set softwrap"
+  tab_size: "set tabsize 4"
+  
+  # Visual aids
+  show_cursor: "set showcursor"
+  smooth_scroll: "set smooth"
+
+# Nano Command Line Options (for reference)
+command_line:
+  # Common nano startup options
+  line_numbers: "-l"          # Show line numbers
+  mouse: "-m"                 # Enable mouse
+  no_wrap: "-w"               # Don't wrap long lines
+  tab_size: "-T 4"            # Set tab size to 4
+  syntax: "-Y <syntax>"       # Specify syntax highlighting
+  
+  # Editing options
+  auto_indent: "-i"           # Auto indent
+  cut_to_end: "-k"            # Cut to end of line
+  unix_format: "-u"           # Save in Unix format
+  
+  # Display options
+  constant_cursor: "-c"       # Constantly show cursor position
+  multibuffer: "-F"           # Enable multiple file buffers
+
+# Nano Color Schemes (for syntax highlighting)
+colors:
+  # Basic syntax highlighting colors
+  comment: "brightblue"
+  keyword: "brightgreen"
+  string: "brightyellow"
+  number: "brightred"
+  operator: "brightmagenta"
+  
+  # UI colors
+  title: "brightwhite,blue"
+  status: "brightwhite,green"
+  key_combo: "brightwhite,red"
+  function: "brightblue"
+
+# Nano Regex Patterns (for search)
+regex:
+  # Common regex patterns used in nano
+  email: "\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b"
+  url: "https?://[^\\s]+"
+  ip_address: "\\b(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\b"
+  
+  # Programming patterns
+  function_def: "^\\s*(def|function)\\s+\\w+"
+  comment_line: "^\\s*[#//]"
+  empty_line: "^\\s*$"
+
+# Nano Backup and Recovery
+backup:
+  # Backup file creation
+  backup_suffix: "~"          # Default backup suffix
+  backup_directory: ".nano_backup/"
+  
+  # Auto-save
+  auto_save_interval: 300     # seconds
+  
+  # Recovery
+  recover_file: "nano -R"     # Recover from crash
+
+# Integration with Hyperion IDE
+hyperion_integration:
+  # Map nano shortcuts to IDE functions
+  file_explorer: "Ctrl+R"     # Use nano's read file for file explorer
+  command_palette: "Ctrl+G"   # Use nano's help for command palette
+  
+  # Terminal integration
+  terminal_nano: "Ctrl+Alt+N" # Open nano in terminal
+  edit_in_nano: "Alt+N"       # Edit current file in nano mode
+  
+  # Nano mode toggle
+  toggle_nano_mode: "Ctrl+Alt+Shift+N" # Switch to nano editing mode
+  nano_status_bar: true       # Show nano-style status bar
+  nano_help_bar: true         # Show nano-style help at bottom

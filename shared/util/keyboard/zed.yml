@@ -1,0 +1,412 @@
+# Zed Editor Keyboard Shortcuts for Hyperion IDE
+# Emulates Zed editor keyboard shortcuts and modern editing features
+# Version: 1.0.0
+
+name: "Zed Style"
+description: "Keyboard shortcuts based on Zed editor with modern features"
+version: "1.0.0"
+platform: "cross-platform"
+
+# File Operations
+file_operations:
+  new_file: "Ctrl+N"
+  open_file: "Ctrl+O"
+  open_folder: "Ctrl+Shift+O"
+  save: "Ctrl+S"
+  save_as: "Ctrl+Shift+S"
+  save_all: "Ctrl+Alt+S"
+  close_tab: "Ctrl+W"
+  close_all_tabs: "Ctrl+Shift+W"
+  reopen_closed_tab: "Ctrl+Shift+T"
+  
+  # Recent files
+  recent_files: "Ctrl+P"
+  recent_projects: "Ctrl+Shift+P"
+  
+  # File explorer
+  toggle_sidebar: "Ctrl+B"
+  focus_explorer: "Ctrl+Shift+E"
+  reveal_in_explorer: "Ctrl+Shift+R"
+
+# Editing Operations
+editing:
+  # Basic editing
+  undo: "Ctrl+Z"
+  redo: "Ctrl+Y"
+  cut: "Ctrl+X"
+  copy: "Ctrl+C"
+  paste: "Ctrl+V"
+  select_all: "Ctrl+A"
+  
+  # Line operations
+  duplicate_line: "Ctrl+D"
+  delete_line: "Ctrl+Shift+K"
+  move_line_up: "Alt+Up"
+  move_line_down: "Alt+Down"
+  copy_line_up: "Shift+Alt+Up"
+  copy_line_down: "Shift+Alt+Down"
+  
+  # Selection
+  select_word: "Ctrl+D"
+  select_all_occurrences: "Ctrl+Shift+L"
+  add_cursor_above: "Ctrl+Alt+Up"
+  add_cursor_below: "Ctrl+Alt+Down"
+  add_cursor_at_click: "Alt+Click"
+  
+  # Text manipulation
+  toggle_comment: "Ctrl+/"
+  toggle_block_comment: "Ctrl+Shift+/"
+  indent: "Tab"
+  outdent: "Shift+Tab"
+  format_document: "Shift+Alt+F"
+  format_selection: "Ctrl+K Ctrl+F"
+  
+  # Case conversion
+  transform_to_uppercase: "Ctrl+K Ctrl+U"
+  transform_to_lowercase: "Ctrl+K Ctrl+L"
+  transform_to_title_case: "Ctrl+K Ctrl+T"
+
+# Navigation
+navigation:
+  # Basic navigation
+  go_to_line: "Ctrl+G"
+  go_to_symbol: "Ctrl+Shift+O"
+  go_to_definition: "F12"
+  peek_definition: "Alt+F12"
+  go_to_references: "Shift+F12"
+  go_to_implementation: "Ctrl+F12"
+  
+  # File navigation
+  quick_open: "Ctrl+P"
+  go_to_file: "Ctrl+E"
+  switch_between_files: "Ctrl+Tab"
+  
+  # Bracket navigation
+  go_to_bracket: "Ctrl+Shift+\\"
+  select_to_bracket: "Ctrl+Shift+Alt+\\"
+  
+  # Word navigation
+  move_word_left: "Ctrl+Left"
+  move_word_right: "Ctrl+Right"
+  select_word_left: "Ctrl+Shift+Left"
+  select_word_right: "Ctrl+Shift+Right"
+  
+  # Line navigation
+  move_to_beginning: "Home"
+  move_to_end: "End"
+  select_to_beginning: "Shift+Home"
+  select_to_end: "Shift+End"
+  
+  # Page navigation
+  page_up: "Page Up"
+  page_down: "Page Down"
+  select_page_up: "Shift+Page Up"
+  select_page_down: "Shift+Page Down"
+  
+  # Document navigation
+  go_to_top: "Ctrl+Home"
+  go_to_bottom: "Ctrl+End"
+  select_to_top: "Ctrl+Shift+Home"
+  select_to_bottom: "Ctrl+Shift+End"
+
+# Search and Replace
+search:
+  # Basic search
+  find: "Ctrl+F"
+  find_next: "F3"
+  find_previous: "Shift+F3"
+  find_in_files: "Ctrl+Shift+F"
+  replace: "Ctrl+H"
+  replace_in_files: "Ctrl+Shift+H"
+  
+  # Advanced search
+  find_with_selection: "Ctrl+F3"
+  find_all_references: "Alt+Shift+F12"
+  search_symbol: "Ctrl+T"
+  
+  # Search options
+  toggle_case_sensitive: "Alt+C"
+  toggle_whole_word: "Alt+W"
+  toggle_regex: "Alt+R"
+
+# Code Features
+code:
+  # IntelliSense
+  trigger_suggest: "Ctrl+Space"
+  trigger_parameter_hints: "Ctrl+Shift+Space"
+  show_hover: "Ctrl+K Ctrl+I"
+  
+  # Refactoring
+  rename_symbol: "F2"
+  extract_method: "Ctrl+Shift+R"
+  organize_imports: "Shift+Alt+O"
+  
+  # Code actions
+  quick_fix: "Ctrl+."
+  source_action: "Ctrl+Shift+."
+  
+  # Folding
+  fold: "Ctrl+Shift+["
+  unfold: "Ctrl+Shift+]"
+  fold_all: "Ctrl+K Ctrl+0"
+  unfold_all: "Ctrl+K Ctrl+J"
+  fold_level_1: "Ctrl+K Ctrl+1"
+  fold_level_2: "Ctrl+K Ctrl+2"
+  fold_level_3: "Ctrl+K Ctrl+3"
+  
+  # Snippets
+  insert_snippet: "Ctrl+K Ctrl+X"
+  surround_with: "Ctrl+K Ctrl+S"
+
+# Multi-cursor and Selection
+multi_cursor:
+  # Multi-cursor
+  add_cursor_above: "Ctrl+Alt+Up"
+  add_cursor_below: "Ctrl+Alt+Down"
+  add_cursor_to_line_ends: "Shift+Alt+I"
+  
+  # Selection
+  expand_selection: "Shift+Alt+Right"
+  shrink_selection: "Shift+Alt+Left"
+  select_current_word: "Ctrl+D"
+  select_all_occurrences: "Ctrl+Shift+L"
+  skip_occurrence: "Ctrl+K Ctrl+D"
+  
+  # Column selection
+  column_select_up: "Shift+Alt+Up"
+  column_select_down: "Shift+Alt+Down"
+  column_select_left: "Shift+Alt+Left"
+  column_select_right: "Shift+Alt+Right"
+
+# Window Management
+window:
+  # Tabs
+  new_tab: "Ctrl+T"
+  close_tab: "Ctrl+W"
+  next_tab: "Ctrl+Tab"
+  previous_tab: "Ctrl+Shift+Tab"
+  move_tab_left: "Ctrl+Shift+Page Up"
+  move_tab_right: "Ctrl+Shift+Page Down"
+  
+  # Splits
+  split_editor_right: "Ctrl+\\"
+  split_editor_down: "Ctrl+Shift+\\"
+  close_editor: "Ctrl+F4"
+  
+  # Focus
+  focus_editor_group_1: "Ctrl+1"
+  focus_editor_group_2: "Ctrl+2"
+  focus_editor_group_3: "Ctrl+3"
+  
+  # Panels
+  toggle_panel: "Ctrl+J"
+  toggle_sidebar: "Ctrl+B"
+  toggle_terminal: "Ctrl+`"
+  
+  # Zoom
+  zoom_in: "Ctrl+="
+  zoom_out: "Ctrl+-"
+  zoom_reset: "Ctrl+0"
+
+# Terminal Integration
+terminal:
+  # Terminal operations
+  new_terminal: "Ctrl+Shift+`"
+  toggle_terminal: "Ctrl+`"
+  kill_terminal: "Ctrl+Shift+C"
+  
+  # Terminal navigation
+  focus_terminal: "Ctrl+Shift+`"
+  terminal_scroll_up: "Ctrl+Shift+Up"
+  terminal_scroll_down: "Ctrl+Shift+Down"
+  
+  # Terminal tabs
+  new_terminal_tab: "Ctrl+Shift+5"
+  next_terminal: "Ctrl+Page Down"
+  previous_terminal: "Ctrl+Page Up"
+
+# Git Integration
+git:
+  # Source control
+  show_source_control: "Ctrl+Shift+G"
+  git_commit: "Ctrl+Enter"
+  git_push: "Ctrl+Shift+P"
+  git_pull: "Ctrl+Shift+L"
+  
+  # Changes
+  stage_file: "Ctrl+K Ctrl+S"
+  unstage_file: "Ctrl+K Ctrl+U"
+  discard_changes: "Ctrl+K Ctrl+D"
+  
+  # Diff
+  show_diff: "Ctrl+Shift+D"
+  next_change: "Alt+F5"
+  previous_change: "Shift+Alt+F5"
+  
+  # Branches
+  checkout_branch: "Ctrl+Shift+B"
+  create_branch: "Ctrl+Shift+N"
+
+# Debug Operations
+debug:
+  # Debug controls
+  start_debugging: "F5"
+  start_without_debugging: "Ctrl+F5"
+  stop_debugging: "Shift+F5"
+  restart_debugging: "Ctrl+Shift+F5"
+  
+  # Breakpoints
+  toggle_breakpoint: "F9"
+  conditional_breakpoint: "Shift+F9"
+  remove_all_breakpoints: "Ctrl+Shift+F9"
+  
+  # Step controls
+  step_over: "F10"
+  step_into: "F11"
+  step_out: "Shift+F11"
+  continue: "F5"
+  
+  # Debug panels
+  show_debug_console: "Ctrl+Shift+Y"
+  show_variables: "Ctrl+Shift+V"
+  show_call_stack: "Ctrl+Shift+C"
+
+# Extensions and Plugins
+extensions:
+  # Extension management
+  show_extensions: "Ctrl+Shift+X"
+  install_extension: "Ctrl+Shift+P"
+  disable_extension: "Ctrl+K Ctrl+X"
+  
+  # Plugin shortcuts
+  command_palette: "Ctrl+Shift+P"
+  keyboard_shortcuts: "Ctrl+K Ctrl+S"
+  user_settings: "Ctrl+,"
+  workspace_settings: "Ctrl+Shift+,"
+
+# Workspace Management
+workspace:
+  # Workspace operations
+  open_workspace: "Ctrl+K Ctrl+O"
+  save_workspace: "Ctrl+K Ctrl+S"
+  close_workspace: "Ctrl+K Ctrl+W"
+  
+  # Project management
+  add_folder_to_workspace: "Ctrl+K Ctrl+A"
+  remove_folder_from_workspace: "Ctrl+K Ctrl+R"
+  
+  # Recent workspaces
+  recent_workspaces: "Ctrl+R"
+
+# Language Features
+language:
+  # Language server
+  restart_language_server: "Ctrl+Shift+P"
+  show_language_status: "Ctrl+K Ctrl+L"
+  
+  # Code intelligence
+  show_outline: "Ctrl+Shift+O"
+  show_breadcrumbs: "Ctrl+Shift+."
+  
+  # Documentation
+  show_documentation: "Ctrl+K Ctrl+I"
+  show_signature_help: "Ctrl+Shift+Space"
+
+# Collaboration Features
+collaboration:
+  # Live share
+  start_collaboration: "Ctrl+Shift+L"
+  join_collaboration: "Ctrl+Shift+J"
+  
+  # Comments
+  add_comment: "Ctrl+Shift+A"
+  reply_to_comment: "Ctrl+Shift+R"
+  resolve_comment: "Ctrl+Shift+E"
+
+# Zen Mode and Focus
+focus:
+  # Zen mode
+  toggle_zen_mode: "Ctrl+K Z"
+  exit_zen_mode: "Escape Escape"
+  
+  # Centered layout
+  toggle_centered_layout: "Ctrl+K Ctrl+C"
+  
+  # Minimap
+  toggle_minimap: "Ctrl+K Ctrl+M"
+
+# Accessibility
+accessibility:
+  # Screen reader
+  toggle_screen_reader: "Ctrl+E"
+  announce_line: "Ctrl+L"
+  
+  # High contrast
+  toggle_high_contrast: "Ctrl+K Ctrl+H"
+  
+  # Font size
+  increase_font_size: "Ctrl+="
+  decrease_font_size: "Ctrl+-"
+  reset_font_size: "Ctrl+0"
+
+# Advanced Features
+advanced:
+  # Emmet
+  expand_abbreviation: "Tab"
+  wrap_with_abbreviation: "Ctrl+Shift+A"
+  
+  # Markdown
+  toggle_preview: "Ctrl+Shift+V"
+  preview_to_side: "Ctrl+K V"
+  
+  # JSON
+  format_json: "Ctrl+Shift+I"
+  minify_json: "Ctrl+Shift+M"
+  
+  # Tasks
+  run_task: "Ctrl+Shift+P"
+  configure_task: "Ctrl+Shift+T"
+
+# Platform Overrides
+platform_overrides:
+  windows:
+    # Windows-specific shortcuts
+    show_all_commands: "Ctrl+Shift+P"
+    toggle_word_wrap: "Alt+Z"
+    
+  macos:
+    # macOS adaptations
+    new_file: "Cmd+N"
+    open_file: "Cmd+O"
+    save: "Cmd+S"
+    copy: "Cmd+C"
+    paste: "Cmd+V"
+    undo: "Cmd+Z"
+    redo: "Cmd+Shift+Z"
+    find: "Cmd+F"
+    replace: "Cmd+Alt+F"
+    go_to_line: "Cmd+L"
+    command_palette: "Cmd+Shift+P"
+    
+  linux:
+    # Linux-specific shortcuts
+    show_all_commands: "Ctrl+Shift+P"
+    toggle_word_wrap: "Alt+Z"
+
+# Custom Zed Features
+zed_specific:
+  # AI assistance
+  ai_assistant: "Ctrl+Shift+A"
+  code_completion: "Ctrl+Space"
+  
+  # Collaboration
+  share_project: "Ctrl+Shift+S"
+  invite_collaborator: "Ctrl+Shift+I"
+  
+  # Performance
+  reload_window: "Ctrl+R"
+  developer_tools: "Ctrl+Shift+I"
+  
+  # Themes
+  select_theme: "Ctrl+K Ctrl+T"
+  toggle_dark_mode: "Ctrl+Shift+D"

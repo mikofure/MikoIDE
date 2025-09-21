@@ -1,0 +1,405 @@
+# Xcode Keyboard Shortcuts for Hyperion IDE
+# Emulates Apple Xcode keyboard shortcuts
+# Version: 1.0.0
+
+name: "Xcode Style"
+description: "Keyboard shortcuts based on Apple Xcode IDE"
+version: "1.0.0"
+platform: "cross-platform"
+
+# File Operations (Xcode style)
+file:
+  new_file: "Cmd+N"
+  new_project: "Cmd+Shift+N"
+  new_workspace: "Cmd+Ctrl+Shift+N"
+  open_file: "Cmd+O"
+  open_quickly: "Cmd+Shift+O"
+  save: "Cmd+S"
+  save_as: "Cmd+Shift+S"
+  save_all: "Cmd+Alt+S"
+  close_file: "Cmd+W"
+  close_project: "Cmd+Shift+W"
+  close_workspace: "Cmd+Ctrl+W"
+  
+  # Recent files
+  open_recent: "Cmd+Ctrl+1"
+  clear_recent: "Cmd+Shift+Delete"
+
+# Edit Operations (Xcode style)
+edit:
+  undo: "Cmd+Z"
+  redo: "Cmd+Shift+Z"
+  cut: "Cmd+X"
+  copy: "Cmd+C"
+  paste: "Cmd+V"
+  paste_special: "Cmd+Ctrl+V"
+  
+  # Selection
+  select_all: "Cmd+A"
+  select_line: "Cmd+L"
+  select_word: "Cmd+D"
+  select_paragraph: "Cmd+Shift+P"
+  
+  # Line operations
+  duplicate_line: "Cmd+D"
+  delete_line: "Cmd+Shift+K"
+  move_line_up: "Cmd+Alt+["
+  move_line_down: "Cmd+Alt+]"
+  
+  # Text manipulation
+  comment_selection: "Cmd+/"
+  uncomment_selection: "Cmd+Alt+/"
+  increase_indent: "Cmd+]"
+  decrease_indent: "Cmd+["
+  
+  # Code formatting
+  re_indent: "Ctrl+I"
+  format_code: "Cmd+Ctrl+F"
+  
+  # Case conversion
+  make_uppercase: "Cmd+Ctrl+U"
+  make_lowercase: "Cmd+Ctrl+L"
+
+# Navigation (Xcode style)
+navigation:
+  jump_to_line: "Cmd+L"
+  jump_to_definition: "Cmd+Ctrl+J"
+  jump_to_next_issue: "Cmd+'"
+  jump_to_previous_issue: "Cmd+\""
+  
+  # File navigation
+  open_quickly: "Cmd+Shift+O"
+  reveal_in_navigator: "Cmd+Shift+J"
+  
+  # History navigation
+  go_back: "Cmd+Ctrl+Left"
+  go_forward: "Cmd+Ctrl+Right"
+  
+  # Symbol navigation
+  jump_to_next_counterpart: "Cmd+Ctrl+Up"
+  jump_to_previous_counterpart: "Cmd+Ctrl+Down"
+  
+  # Assistant editor
+  show_assistant_editor: "Cmd+Alt+Enter"
+  hide_assistant_editor: "Cmd+Enter"
+  
+  # Tab navigation
+  next_tab: "Cmd+Shift+]"
+  previous_tab: "Cmd+Shift+["
+  
+  # Document outline
+  show_document_items: "Cmd+Ctrl+Shift+D"
+
+# Search and Replace (Xcode style)
+search:
+  find: "Cmd+F"
+  find_next: "Cmd+G"
+  find_previous: "Cmd+Shift+G"
+  find_in_project: "Cmd+Shift+F"
+  find_and_replace: "Cmd+Alt+F"
+  find_selected_text: "Cmd+E"
+  
+  # Search navigator
+  show_find_navigator: "Cmd+3"
+  
+  # Search options
+  use_selection_for_find: "Cmd+E"
+  use_selection_for_replace: "Cmd+Shift+E"
+
+# Build and Run (Xcode style)
+build:
+  build: "Cmd+B"
+  build_for_running: "Cmd+Shift+R"
+  build_for_testing: "Cmd+Shift+U"
+  build_for_profiling: "Cmd+Shift+I"
+  clean_build_folder: "Cmd+Shift+K"
+  
+  # Run operations
+  run: "Cmd+R"
+  run_without_building: "Cmd+Ctrl+R"
+  test: "Cmd+U"
+  profile: "Cmd+I"
+  
+  # Stop operations
+  stop: "Cmd+."
+
+# Debug (Xcode style)
+debug:
+  toggle_breakpoint: "Cmd+\\"
+  enable_disable_breakpoints: "Cmd+Y"
+  clear_console: "Cmd+K"
+  
+  # Step operations
+  step_over: "F6"
+  step_into: "F7"
+  step_out: "F8"
+  continue: "Cmd+Ctrl+Y"
+  
+  # Debug navigator
+  show_debug_navigator: "Cmd+6"
+  show_debug_area: "Cmd+Shift+Y"
+  
+  # Variables view
+  print_description: "Cmd+Shift+O"
+
+# Interface Builder (Xcode style)
+interface_builder:
+  show_document_outline: "Cmd+Ctrl+Shift+D"
+  show_object_library: "Cmd+Shift+L"
+  show_size_inspector: "Cmd+Alt+5"
+  show_attributes_inspector: "Cmd+Alt+4"
+  show_connections_inspector: "Cmd+Alt+6"
+  
+  # Alignment
+  align_left_edges: "Cmd+Alt+["
+  align_right_edges: "Cmd+Alt+]"
+  align_top_edges: "Cmd+Alt+Up"
+  align_bottom_edges: "Cmd+Alt+Down"
+
+# Organizer (Xcode style)
+organizer:
+  show_organizer: "Cmd+Shift+2"
+  show_devices: "Cmd+Shift+2"
+  
+  # Archives
+  archive: "Cmd+Shift+A"
+  show_archives: "Cmd+Shift+2"
+
+# Source Control (Xcode style)
+source_control:
+  commit: "Cmd+Alt+C"
+  push: "Cmd+Alt+P"
+  pull: "Cmd+Alt+X"
+  
+  # Source control navigator
+  show_source_control_navigator: "Cmd+2"
+  
+  # Comparison
+  show_comparison: "Cmd+Alt+Shift+Enter"
+  next_change: "Cmd+Alt+Shift+Down"
+  previous_change: "Cmd+Alt+Shift+Up"
+
+# Navigators (Xcode style)
+navigators:
+  show_project_navigator: "Cmd+1"
+  show_source_control_navigator: "Cmd+2"
+  show_symbol_navigator: "Cmd+3"
+  show_find_navigator: "Cmd+4"
+  show_issue_navigator: "Cmd+5"
+  show_test_navigator: "Cmd+6"
+  show_debug_navigator: "Cmd+7"
+  show_breakpoint_navigator: "Cmd+8"
+  show_report_navigator: "Cmd+9"
+  
+  # Hide navigator
+  hide_navigator: "Cmd+0"
+
+# Inspectors (Xcode style)
+inspectors:
+  show_file_inspector: "Cmd+Alt+1"
+  show_quick_help_inspector: "Cmd+Alt+2"
+  show_identity_inspector: "Cmd+Alt+3"
+  show_attributes_inspector: "Cmd+Alt+4"
+  show_size_inspector: "Cmd+Alt+5"
+  show_connections_inspector: "Cmd+Alt+6"
+  
+  # Hide inspector
+  hide_inspector: "Cmd+Alt+0"
+
+# Libraries (Xcode style)
+libraries:
+  show_library: "Cmd+Shift+L"
+  show_media_library: "Cmd+Shift+M"
+  show_color_library: "Cmd+Shift+C"
+
+# View (Xcode style)
+view:
+  show_toolbar: "Cmd+Alt+T"
+  show_tab_bar: "Cmd+T"
+  
+  # Editor area
+  show_standard_editor: "Cmd+Enter"
+  show_assistant_editor: "Cmd+Alt+Enter"
+  show_version_editor: "Cmd+Alt+Shift+Enter"
+  
+  # Debug area
+  show_debug_area: "Cmd+Shift+Y"
+  hide_debug_area: "Cmd+Shift+Y"
+  
+  # Console
+  activate_console: "Cmd+Shift+C"
+  clear_console: "Cmd+K"
+
+# Window (Xcode style)
+window:
+  minimize: "Cmd+M"
+  zoom: "Cmd+Ctrl+Z"
+  
+  # Tabs
+  new_tab: "Cmd+T"
+  close_tab: "Cmd+W"
+  next_tab: "Cmd+Shift+]"
+  previous_tab: "Cmd+Shift+["
+  
+  # Window management
+  new_window: "Cmd+Shift+T"
+  close_window: "Cmd+Shift+W"
+
+# Help (Xcode style)
+help:
+  xcode_help: "Cmd+Shift+?"
+  quick_help: "Cmd+Ctrl+?"
+  search_documentation: "Cmd+Alt+?"
+  
+  # Developer documentation
+  show_documentation: "Cmd+Alt+?"
+
+# Refactoring (Xcode style)
+refactor:
+  rename: "Cmd+Ctrl+E"
+  extract_method: "Cmd+Alt+M"
+  extract_variable: "Cmd+Alt+V"
+  
+  # Code actions
+  show_refactoring_actions: "Cmd+Alt+Shift+A"
+
+# Testing (Xcode style)
+testing:
+  run_tests: "Cmd+U"
+  run_test_again: "Cmd+Ctrl+Alt+G"
+  
+  # Test navigator
+  show_test_navigator: "Cmd+6"
+  
+  # Test methods
+  run_test_method: "Cmd+Ctrl+Alt+U"
+
+# Simulator (Xcode style)
+simulator:
+  run_in_simulator: "Cmd+R"
+  
+  # Device simulation
+  rotate_left: "Cmd+Left"
+  rotate_right: "Cmd+Right"
+  shake_gesture: "Cmd+Ctrl+Z"
+  
+  # Home button
+  device_home: "Cmd+Shift+H"
+  
+  # Screenshots
+  save_screenshot: "Cmd+S"
+
+# Instruments (Xcode style)
+instruments:
+  profile_in_instruments: "Cmd+I"
+  
+  # Profiling
+  time_profiler: "Cmd+Ctrl+T"
+  allocations: "Cmd+Ctrl+A"
+  leaks: "Cmd+Ctrl+L"
+
+# Playgrounds (Xcode style)
+playgrounds:
+  execute_playground: "Cmd+Shift+Enter"
+  stop_playground: "Cmd+."
+  
+  # Timeline
+  show_timeline: "Cmd+Alt+Enter"
+
+# Code Completion (Xcode style)
+code_completion:
+  show_completions: "Esc"
+  accept_completion: "Tab"
+  accept_completion_with_return: "Enter"
+  
+  # Parameter completion
+  next_parameter: "Tab"
+  previous_parameter: "Shift+Tab"
+
+# Folding (Xcode style)
+folding:
+  fold_methods: "Cmd+Alt+Left"
+  unfold_methods: "Cmd+Alt+Right"
+  fold_comment_blocks: "Cmd+Alt+Up"
+  unfold_comment_blocks: "Cmd+Alt+Down"
+  
+  # Focus folding
+  focus_follows_selection: "Cmd+Alt+F"
+
+# Bookmarks (Xcode style)
+bookmarks:
+  add_bookmark: "Cmd+Alt+M"
+  show_bookmarks: "Cmd+Alt+B"
+
+# Schemes (Xcode style)
+schemes:
+  edit_scheme: "Cmd+Shift+,"
+  manage_schemes: "Cmd+Shift+Alt+,"
+  
+  # Scheme selection
+  choose_scheme: "Cmd+Ctrl+Alt+S"
+
+# Behaviors (Xcode style)
+behaviors:
+  edit_behaviors: "Cmd+9"
+
+# Preferences (Xcode style)
+preferences:
+  show_preferences: "Cmd+,"
+  
+  # Specific preference panes
+  general_preferences: "Cmd+,"
+  accounts_preferences: "Cmd+,"
+  behaviors_preferences: "Cmd+,"
+  navigation_preferences: "Cmd+,"
+  fonts_colors_preferences: "Cmd+,"
+  text_editing_preferences: "Cmd+,"
+  key_bindings_preferences: "Cmd+,"
+  source_trees_preferences: "Cmd+,"
+  components_preferences: "Cmd+,"
+  locations_preferences: "Cmd+,"
+
+# Quick Actions (Xcode style)
+quick_actions:
+  show_related_items: "Cmd+Ctrl+1"
+  show_previous_history: "Cmd+Ctrl+2"
+  show_next_history: "Cmd+Ctrl+3"
+  show_top_level_items: "Cmd+Ctrl+4"
+  show_group_files: "Cmd+Ctrl+5"
+  show_document_items: "Cmd+Ctrl+6"
+
+# Platform-specific adaptations for non-Mac
+platform_overrides:
+  windows:
+    # Convert Cmd to Ctrl for Windows
+    new_file: "Ctrl+N"
+    open_file: "Ctrl+O"
+    save: "Ctrl+S"
+    copy: "Ctrl+C"
+    paste: "Ctrl+V"
+    undo: "Ctrl+Z"
+    redo: "Ctrl+Shift+Z"
+    find: "Ctrl+F"
+    build: "Ctrl+B"
+    run: "Ctrl+R"
+    
+    # Windows-specific alternatives
+    show_project_navigator: "Ctrl+1"
+    show_find_navigator: "Ctrl+4"
+    
+  linux:
+    # Convert Cmd to Ctrl for Linux
+    new_file: "Ctrl+N"
+    open_file: "Ctrl+O"
+    save: "Ctrl+S"
+    copy: "Ctrl+C"
+    paste: "Ctrl+V"
+    undo: "Ctrl+Z"
+    redo: "Ctrl+Shift+Z"
+    find: "Ctrl+F"
+    build: "Ctrl+B"
+    run: "Ctrl+R"
+    
+    # Linux-specific alternatives
+    show_project_navigator: "Ctrl+1"
+    show_find_navigator: "Ctrl+4"
