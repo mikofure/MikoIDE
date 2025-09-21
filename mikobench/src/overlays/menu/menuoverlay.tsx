@@ -3,12 +3,16 @@ import { editorMenu, type MenuItem } from '../../shared/menu';
 import ReactDOM from "react-dom/client";
 import React from 'react';
 import './menu.css';
+import '@fontsource-variable/inter/wght.css'
 
 export default function MenuOverlay() {
   const params = new URLSearchParams(window.location.search);
   const section = params.get("section");
   const width = params.get("width");
-  const height = params.get("height");
+  // const x = params.get("x");
+  // const y = params.get("y");
+  const screenAvailWidth = params.get("screenavailwidth");
+  const screenAvailHeight = params.get("screenavailheight");
 
   const items = editorMenu.find(s => s.title === section)?.items || [];
 
@@ -26,15 +30,18 @@ export default function MenuOverlay() {
 
   // Create dynamic style based on URL parameters
   const overlayStyle: React.CSSProperties = {
-    width: width ? `${width}px` : undefined,
-    height: height ? `${height}px` : undefined,
-    maxWidth: width ? `${width}px` : '14rem', // fallback to max-w-sm (14rem)
-    maxHeight: height ? `${height}px` : undefined,
-    overflow: 'auto'
+    position: "absolute",
+    // left: x ? `${x}px` : undefined, (move to CEF+SDL Management)
+    // top: y ? `${y}px` : undefined, (move to CEF+SDL Management)
+    width: width && parseInt(width) > 0 ? `${width}px` : "auto",
+    // Always use free height - let content determine its own height
+    height: "auto",
+    maxWidth: screenAvailWidth ? `${screenAvailWidth}px` : "14rem",
+    maxHeight: screenAvailHeight ? `${screenAvailHeight}px` : undefined,
+    overflow: "auto",
   };
-
   return (
-    <div 
+    <div
       className="bg-[#141414] border border-[#454545] shadow-lg rounded-md py-1"
       style={overlayStyle}
     >

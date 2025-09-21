@@ -88,6 +88,17 @@ public:
     void ShowMenuOverlay(const std::string& section, int x, int y);
     void HideMenuOverlay();
     bool IsMenuOverlayVisible() const;
+    void ResizeMenuOverlay(int height);
+    
+    // Menu overlay position and state setters
+    void SetMenuOverlayPosition(int x, int y);
+    void SetMenuOverlayVisible(bool visible);
+    void SetCurrentMenuSection(const std::string& section);
+    
+    // Menu overlay position and state getters
+    int GetMenuOverlayX() const { return menu_overlay_x_; }
+    int GetMenuOverlayY() const { return menu_overlay_y_; }
+    std::string GetCurrentMenuSection() const { return current_menu_section_; }
     
     // Editor sublayer management
     void EnableEditor(bool enable);
@@ -270,6 +281,9 @@ public:
     virtual void OnLoadStart(CefRefPtr<CefBrowser> browser,
                             CefRefPtr<CefFrame> frame,
                             TransitionType transition_type) override;
+    virtual void OnLoadEnd(CefRefPtr<CefBrowser> browser,
+                          CefRefPtr<CefFrame> frame,
+                          int httpStatusCode) override;
 
     // CefContextMenuHandler methods
     virtual void OnBeforeContextMenu(CefRefPtr<CefBrowser> browser,
@@ -347,7 +361,7 @@ public:
     void SendFocusEvent(bool set_focus);
     
     // Menu overlay management
-    void OpenMenuOverlay(const std::string& section, int x, int y);
+    void OpenMenuOverlay(const std::string& section, int x, int y, int width, int height);
     void CloseMenuOverlay();
     
     // Editor management

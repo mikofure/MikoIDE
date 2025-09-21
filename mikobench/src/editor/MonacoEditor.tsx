@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as monaco from 'monaco-editor';
+import '../shared/context';
 
 interface StandaloneEditorProps {
   value?: string;
@@ -20,6 +21,9 @@ interface StandaloneEditorProps {
   };
   // miko Client inspired styling
   mikoTheme?: boolean;
+  // File-related props for shared context integration
+  filename?: string;
+  isDirty?: boolean;
 }
 
 const StandaloneEditor: React.FC<StandaloneEditorProps> = ({
@@ -33,12 +37,16 @@ const StandaloneEditor: React.FC<StandaloneEditorProps> = ({
   height = '100%',
   className = '',
   position,
+  filename = 'untitled.ts',
+  isDirty = false,
   //@ts-expect-error
   ...props
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [editor, setEditor] = useState<monaco.editor.IStandaloneCodeEditor | null>(null);
   const [isEditorReady, setIsEditorReady] = useState(false);
+  const [currentFilename, setCurrentFilename] = useState(filename);
+  const [currentIsDirty, setCurrentIsDirty] = useState(isDirty);
 
   // miko Client inspired theme
   const setupmikoTheme = useCallback(() => {
@@ -103,6 +111,132 @@ const StandaloneEditor: React.FC<StandaloneEditorProps> = ({
     });
   }, []);
 
+  // Get language from filename extension
+  const getLanguageFromFilename = useCallback((filename: string): string => {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    const languageMap: Record<string, string> = {
+      'ts': 'typescript',
+      'tsx': 'typescript',
+      'js': 'javascript',
+      'jsx': 'javascript',
+      'py': 'python',
+      'cpp': 'cpp',
+      'c': 'c',
+      'h': 'c',
+      'hpp': 'cpp',
+      'cs': 'csharp',
+      'java': 'java',
+      'go': 'go',
+      'rs': 'rust',
+      'php': 'php',
+      'rb': 'ruby',
+      'swift': 'swift',
+      'kt': 'kotlin',
+      'scala': 'scala',
+      'html': 'html',
+      'css': 'css',
+      'scss': 'scss',
+      'sass': 'sass',
+      'less': 'less',
+      'json': 'json',
+      'xml': 'xml',
+      'yaml': 'yaml',
+      'yml': 'yaml',
+      'md': 'markdown',
+      'sql': 'sql',
+      'sh': 'shell',
+      'bash': 'shell',
+      'zsh': 'shell',
+      'fish': 'shell',
+      'ps1': 'powershell',
+      'dockerfile': 'dockerfile',
+      'makefile': 'makefile',
+      'cmake': 'cmake',
+    };
+    
+    return languageMap[ext || ''] || 'plaintext';
+  }, []);
+
+  // Shared context integration
+  useEffect(() => {
+    // Parse filename from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlFilename = urlParams.get('file');
+    
+    if (urlFilename) {
+      setCurrentFilename(urlFilename);
+    }
+
+    if (window.sharedContext) {
+      // Notify workbench that editor is ready
+      window.sharedContext.emit('editor:ready', undefined);
+
+      // Listen for workbench events
+      const handleActiveTabChanged = (data: { file: string; content: string; language: string; theme: string }) => {
+        setCurrentFilename(data.file);
+        setCurrentIsDirty(false);
+        
+        // Update language based on filename if not explicitly provided
+        const detectedLanguage = getLanguageFromFilename(data.file);
+        if (editor && detectedLanguage !== language) {
+          const model = editor.getModel();
+          if (model) {
+            monaco.editor.setModelLanguage(model, detectedLanguage);
+          }
+        }
+      };
+
+      const handleThemeChanged = (_data: { theme: string; mikoTheme: boolean }) => {
+        // Theme changes are handled by props
+      };
+
+      window.sharedContext.on('workbench:activeTabChanged', handleActiveTabChanged);
+      window.sharedContext.on('workbench:themeChanged', handleThemeChanged);
+
+      return () => {
+        window.sharedContext.off('workbench:activeTabChanged', handleActiveTabChanged);
+        window.sharedContext.off('workbench:themeChanged', handleThemeChanged);
+      };
+    }
+  }, [editor, language, getLanguageFromFilename]);
+
+  // Handle content changes with shared context
+  const handleContentChange = useCallback((newContent: string) => {
+    setCurrentIsDirty(true);
+    onChange?.(newContent);
+
+    // Notify workbench of content change via shared context
+    if (window.sharedContext) {
+      window.sharedContext.emit('editor:contentChanged', {
+        content: newContent,
+        file: currentFilename,
+        isDirty: currentIsDirty || true
+      });
+    }
+  }, [currentFilename, currentIsDirty, onChange]);
+
+  // Handle save shortcut
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+        event.preventDefault();
+        
+        // Notify workbench to save file via shared context
+        if (window.sharedContext) {
+          window.sharedContext.emit('editor:saveRequest', {
+            file: currentFilename,
+            content: editor?.getValue() || ''
+          });
+        }
+        
+        setCurrentIsDirty(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentFilename, editor]);
+
   // Initialize editor
   useEffect(() => {
     if (!containerRef.current) return;
@@ -144,7 +278,7 @@ const StandaloneEditor: React.FC<StandaloneEditorProps> = ({
     // Handle content changes
     const disposable = editorInstance.onDidChangeModelContent(() => {
       const currentValue = editorInstance.getValue();
-      onChange?.(currentValue);
+      handleContentChange(currentValue);
     });
 
     // Call onMount callback
