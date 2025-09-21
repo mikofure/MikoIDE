@@ -1,0 +1,44 @@
+name: "Neko Light Theme"
+type: "light"
+
+palette:
+  background: "#FDF6E3"     
+  foreground: "#657B83"     
+  selection: "#EEE8D5"      
+  cursor: "#DC322F"         
+
+syntax:
+  keyword: "#D33682"        
+  string: "#2AA198"         
+  number: "#CB4B16"         
+  type: "#B58900"           
+  function: "#268BD2"       
+  variable: "#586E75"       
+  comment: "#93A1A1"        
+  operator: "#859900"       
+  constant: "#DC322F"       
+
+ui:
+  sidebar:
+    background: "#EEE8D5"
+    foreground: "#586E75"
+    highlight: "#D33682"
+  statusbar:
+    background: "#B58900"
+    foreground: "#FDF6E3"
+  tab:
+    active:
+      background: "#FDF6E3"
+      foreground: "#657B83"
+    inactive:
+      background: "#EEE8D5"
+      foreground: "#93A1A1"
+  panel:
+    background: "#FDF6E3"
+    border: "#D3D3D3"
+
+selection-colors:
+  - "#D33682"   
+  - "#268BD2"   
+  - "#2AA198"   
+  - "#CB4B16"

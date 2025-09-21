@@ -1,0 +1,44 @@
+name: "Vanilla Theme"
+type: "light"
+
+palette:
+  background: "#F8F8FF"     
+  foreground: "#4A4A4A"     
+  selection: "#E6E6FA"      
+  cursor: "#8B4513"         
+
+syntax:
+  keyword: "#8B4513"        
+  string: "#556B2F"         
+  number: "#B8860B"         
+  type: "#4682B4"           
+  function: "#CD853F"       
+  variable: "#2F4F4F"       
+  comment: "#A0A0A0"        
+  operator: "#8B4513"       
+  constant: "#B8860B"       
+
+ui:
+  sidebar:
+    background: "#F5F5DC"
+    foreground: "#4A4A4A"
+    highlight: "#8B4513"
+  statusbar:
+    background: "#DEB887"
+    foreground: "#4A4A4A"
+  tab:
+    active:
+      background: "#F8F8FF"
+      foreground: "#4A4A4A"
+    inactive:
+      background: "#F5F5DC"
+      foreground: "#A0A0A0"
+  panel:
+    background: "#F8F8FF"
+    border: "#D3D3D3"
+
+selection-colors:
+  - "#8B4513"   
+  - "#CD853F"   
+  - "#556B2F"   
+  - "#4682B4"

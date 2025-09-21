@@ -1,0 +1,44 @@
+name: "Sunlight Theme"
+type: "light"
+
+palette:
+  background: "#FFFEF7"     
+  foreground: "#5C6166"     
+  selection: "#FFE4B5"      
+  cursor: "#FF6347"         
+
+syntax:
+  keyword: "#FF8C00"        
+  string: "#228B22"         
+  number: "#DC143C"         
+  type: "#4169E1"           
+  function: "#FF6347"       
+  variable: "#2F4F4F"       
+  comment: "#708090"        
+  operator: "#FF4500"       
+  constant: "#B22222"       
+
+ui:
+  sidebar:
+    background: "#FFF8DC"
+    foreground: "#2F4F4F"
+    highlight: "#FF8C00"
+  statusbar:
+    background: "#FFD700"
+    foreground: "#2F4F4F"
+  tab:
+    active:
+      background: "#FFFEF7"
+      foreground: "#5C6166"
+    inactive:
+      background: "#FFF8DC"
+      foreground: "#708090"
+  panel:
+    background: "#FFFEF7"
+    border: "#DDD"
+
+selection-colors:
+  - "#FF8C00"   
+  - "#FF6347"   
+  - "#228B22"   
+  - "#4169E1"

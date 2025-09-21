@@ -1,0 +1,44 @@
+name: "Extra Dark Theme"
+type: "dark"
+
+palette:
+  background: "#0D1117"     
+  foreground: "#C9D1D9"     
+  selection: "#264F78"      
+  cursor: "#58A6FF"         
+
+syntax:
+  keyword: "#FF7B72"        
+  string: "#A5C261"         
+  number: "#79C0FF"         
+  type: "#FFA657"           
+  function: "#D2A8FF"       
+  variable: "#FFA198"       
+  comment: "#8B949E"        
+  operator: "#FF7B72"       
+  constant: "#79C0FF"       
+
+ui:
+  sidebar:
+    background: "#010409"
+    foreground: "#7D8590"
+    highlight: "#58A6FF"
+  statusbar:
+    background: "#21262D"
+    foreground: "#C9D1D9"
+  tab:
+    active:
+      background: "#0D1117"
+      foreground: "#C9D1D9"
+    inactive:
+      background: "#010409"
+      foreground: "#7D8590"
+  panel:
+    background: "#0D1117"
+    border: "#30363D"
+
+selection-colors:
+  - "#58A6FF"   
+  - "#FF7B72"   
+  - "#A5C261"   
+  - "#D2A8FF"

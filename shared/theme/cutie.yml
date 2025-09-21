@@ -1,0 +1,44 @@
+name: "Cutie Theme"
+type: "light"
+
+palette:
+  background: "#FFF0F5"     
+  foreground: "#8B008B"     
+  selection: "#FFB6C1"      
+  cursor: "#FF69B4"         
+
+syntax:
+  keyword: "#DA70D6"        
+  string: "#98FB98"         
+  number: "#FFB347"         
+  type: "#DDA0DD"           
+  function: "#FF91A4"       
+  variable: "#9370DB"       
+  comment: "#C0C0C0"        
+  operator: "#FF1493"       
+  constant: "#FFB347"       
+
+ui:
+  sidebar:
+    background: "#FFCCCB"
+    foreground: "#8B008B"
+    highlight: "#FF69B4"
+  statusbar:
+    background: "#FFB6C1"
+    foreground: "#8B008B"
+  tab:
+    active:
+      background: "#FFF0F5"
+      foreground: "#8B008B"
+    inactive:
+      background: "#FFCCCB"
+      foreground: "#C0C0C0"
+  panel:
+    background: "#FFF0F5"
+    border: "#FFB6C1"
+
+selection-colors:
+  - "#FF69B4"   
+  - "#DA70D6"   
+  - "#98FB98"   
+  - "#FF91A4"

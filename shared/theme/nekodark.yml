@@ -1,0 +1,44 @@
+name: "Neko Dark Theme"
+type: "dark"
+
+palette:
+  background: "#1A1A2E"     
+  foreground: "#E94560"     
+  selection: "#533483"      
+  cursor: "#FF6B6B"         
+
+syntax:
+  keyword: "#9B59B6"        
+  string: "#F39C12"         
+  number: "#E74C3C"         
+  type: "#8E44AD"           
+  function: "#F39C12"       
+  variable: "#ECF0F1"       
+  comment: "#7F8C8D"        
+  operator: "#E67E22"       
+  constant: "#E74C3C"       
+
+ui:
+  sidebar:
+    background: "#16213E"
+    foreground: "#BDC3C7"
+    highlight: "#E94560"
+  statusbar:
+    background: "#533483"
+    foreground: "#FFFFFF"
+  tab:
+    active:
+      background: "#1A1A2E"
+      foreground: "#E94560"
+    inactive:
+      background: "#2C2C54"
+      foreground: "#95A5A6"
+  panel:
+    background: "#1A1A2E"
+    border: "#533483"
+
+selection-colors:
+  - "#E94560"   
+  - "#9B59B6"   
+  - "#F39C12"   
+  - "#FF6B6B"

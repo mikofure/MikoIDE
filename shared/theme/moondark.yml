@@ -1,0 +1,44 @@
+name: "Moon Dark Theme"
+type: "dark"
+
+palette:
+  background: "#0F1419"     
+  foreground: "#BFBDB6"     
+  selection: "#253340"      
+  cursor: "#FFCC66"         
+
+syntax:
+  keyword: "#5CCFE6"        
+  string: "#BAE67E"         
+  number: "#FFAE57"         
+  type: "#5CCFE6"           
+  function: "#FFD580"       
+  variable: "#D4BFFF"       
+  comment: "#5C6773"        
+  operator: "#F29E74"       
+  constant: "#FFAE57"       
+
+ui:
+  sidebar:
+    background: "#1A1F29"
+    foreground: "#8A9199"
+    highlight: "#5CCFE6"
+  statusbar:
+    background: "#253340"
+    foreground: "#BFBDB6"
+  tab:
+    active:
+      background: "#0F1419"
+      foreground: "#BFBDB6"
+    inactive:
+      background: "#1A1F29"
+      foreground: "#5C6773"
+  panel:
+    background: "#0F1419"
+    border: "#253340"
+
+selection-colors:
+  - "#5CCFE6"   
+  - "#BAE67E"   
+  - "#FFAE57"   
+  - "#D4BFFF"
