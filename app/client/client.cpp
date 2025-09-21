@@ -1531,20 +1531,10 @@ void SimpleClient::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
         Logger::LogMessage(
             "Applied full transparency to menu overlay window (alpha=0)");
 
-        // Position the overlay window and ensure it stays on top
-        int overlay_x = 0, overlay_y = 32;
-        if (window_) {
-          overlay_x = window_->GetMenuOverlayX();
-          overlay_y = window_->GetMenuOverlayY();
-          Logger::LogMessage("Retrieved overlay position from SDL3Window: (" + 
-                            std::to_string(overlay_x) + ", " + 
-                            std::to_string(overlay_y) + ")");
-        }
-        SetWindowPos(overlay_hwnd, HWND_TOPMOST, overlay_x, overlay_y, 0, 0,
-                     SWP_NOSIZE | SWP_NOACTIVATE);
-        Logger::LogMessage("Set menu overlay window position to (" + 
-                          std::to_string(overlay_x) + ", " + 
-                          std::to_string(overlay_y) + ") and stay on top");
+        // Ensure the window stays on top
+        SetWindowPos(overlay_hwnd, HWND_TOPMOST, 0, 0, 0, 0,
+                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+        Logger::LogMessage("Set menu overlay window to stay on top");
       } else {
         Logger::LogMessage(
             "Failed to get overlay window handle for transparency");
@@ -2277,13 +2267,6 @@ void SimpleClient::OpenMenuOverlay(const std::string &section, int x, int y, int
         browser_settings.background_color =
             CefColorSetARGB(0, 0, 0, 0); // Fully transparent BGRA
 
-        // Update SDL3Window overlay position tracking BEFORE creating browser
-        if (window_) {
-          window_->SetMenuOverlayPosition(overlayX, overlayY);
-          window_->SetMenuOverlayVisible(true);
-          window_->SetCurrentMenuSection(section);
-        }
-
         // Create Steam-like overlay routing URL
         std::string overlay_url = BuildOverlayURL(section, overlayX, overlayY,
                                                   overlayWidth, overlayHeight);
@@ -2300,6 +2283,13 @@ void SimpleClient::OpenMenuOverlay(const std::string &section, int x, int y, int
         // Mark overlay as active if browser creation was successful
         if (browser_created) {
           menu_overlay_active_ = true;
+          
+          // Update SDL3Window overlay position tracking
+          if (window_) {
+            window_->SetMenuOverlayPosition(overlayX, overlayY);
+            window_->SetMenuOverlayVisible(true);
+            window_->SetCurrentMenuSection(section);
+          }
           
           Logger::LogMessage("Menu overlay marked as active and position updated");
         }
@@ -2363,7 +2353,7 @@ void SimpleClient::CloseMenuOverlay() {
     // Reset SDL3Window overlay position tracking
     if (window_) {
       window_->SetMenuOverlayVisible(false);
-      window_->SetMenuOverlayPosition(0, 32);
+      window_->SetMenuOverlayPosition(0, 0);
       window_->SetCurrentMenuSection("");
     }
 
