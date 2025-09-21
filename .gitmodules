@@ -1,3 +1,6 @@
 [submodule "mikoinstaller"]
 	path = mikoinstaller
 	url = https://github.com/mikofure/mikoinstaller
+[submodule "helpers/crashpad"]
+	path = helpers/crashpad
+	url = https://github.com/backtrace-labs/crashpad
