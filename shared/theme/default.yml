@@ -1,0 +1,44 @@
+name: "Hyperion Theme Default Dark"
+type: "dark"
+
+palette:
+  background: "#1E1E1E"     
+  foreground: "#FFFFFF"     
+  selection: "#264F78"      
+  cursor: "#FFFFFF"         
+
+syntax:
+  keyword: "#BCB4FF"        
+  string: "#71EAFF"         
+  number: "#FF7B7B"         
+  type: "#BCB4FF"           
+  function: "#71EAFF"       
+  variable: "#FFFFFF"       
+  comment: "#6A9955"        
+  operator: "#D4D4D4"       
+  constant: "#FF7B7B"       
+
+ui:
+  sidebar:
+    background: "#252526"
+    foreground: "#D4D4D4"
+    highlight: "#71EAFF"
+  statusbar:
+    background: "#007ACC"
+    foreground: "#FFFFFF"
+  tab:
+    active:
+      background: "#1E1E1E"
+      foreground: "#FFFFFF"
+    inactive:
+      background: "#2D2D2D"
+      foreground: "#AAAAAA"
+  panel:
+    background: "#1E1E1E"
+    border: "#3C3C3C"
+
+selection-colors:
+  - "#71EAFF"   
+  - "#BCB4FF"   
+  - "#FF7B7B"   
+  - "#FFFFFF"   

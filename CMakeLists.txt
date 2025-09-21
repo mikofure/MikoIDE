@@ -178,6 +178,9 @@ add_executable(${PROJECT_NAME} WIN32
     app/resources/resources.cpp
     app/resources/resourceutil.cpp
     app/resources/splash.cpp
+    app/terminal/renderer.cpp
+    app/terminal/processmanager.cpp
+    app/terminal/terminalbuffer.cpp
     app/renderer/dx11_renderer.cpp
     app/internal/simpleipc.cpp
     app/bootstrap/bootstrap.cpp
@@ -190,6 +193,15 @@ add_executable(mikowebhelper WIN32
     app/client/app.cpp
 )
 
+# Add Terminal executable
+add_executable(mikoterminal
+    app/terminal/renderer.cpp
+    app/terminal/processmanager.cpp
+    app/terminal/terminalbuffer.cpp
+    test/terminal/main.cpp
+    test/terminal/windowed.cpp
+)
+
 # Add Windows resource file
 if(WIN32)
     target_sources(${PROJECT_NAME} PRIVATE shared/windows/assets/app.rc)
@@ -199,11 +211,17 @@ endif()
 # Set target properties using CEF macros
 SET_EXECUTABLE_TARGET_PROPERTIES(${PROJECT_NAME})
 SET_EXECUTABLE_TARGET_PROPERTIES(mikowebhelper)
+SET_EXECUTABLE_TARGET_PROPERTIES(mikoterminal)
 
 # Set target properties for consistent output directory
 set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CEF_TARGET_OUT_DIR}"
     OUTPUT_NAME "${PROJECT_NAME}"
+)
+
+# Set terminal output properties - place in CEF directory structure
+set_target_properties(mikoterminal PROPERTIES
+    OUTPUT_NAME "mikoterminal"
 )
 
 # Set webhelper output properties - place in CEF directory structure
@@ -243,6 +261,19 @@ target_link_libraries(mikowebhelper
     libcef_dll_wrapper
     ${CEF_STANDARD_LIBS}
 )
+
+target_link_libraries(mikoterminal
+    SDL3::SDL3
+    SDL3::SDL3-shared
+)
+
+# Add Windows-specific libraries for mikoterminal
+if(WIN32)
+    target_link_libraries(mikoterminal
+        d2d1
+        dwrite
+    )
+endif()
 
 # Include directories for both executables
 target_include_directories(${PROJECT_NAME} PRIVATE
