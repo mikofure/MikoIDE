@@ -35,7 +35,7 @@ export default function MenuOverlay() {
 
   return (
     <div 
-      className="bg-[#141414] border border-[#454545] shadow-lg rounded-md min-w-fit py-1"
+      className="bg-[#141414] border border-[#454545] shadow-lg rounded-md py-1"
       style={overlayStyle}
     >
       {items.map((item, i) => !item.separator ? (
