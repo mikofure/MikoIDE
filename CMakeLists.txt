@@ -167,6 +167,13 @@ add_executable(${PROJECT_NAME} WIN32
     app/bootstrap/bootstrap.cpp
 )
 
+# Add platform-specific renderer sources
+if(UNIX AND NOT APPLE)
+    target_sources(${PROJECT_NAME} PRIVATE
+        app/renderer/linux/vulkan_renderer.cpp
+    )
+endif()
+
 add_executable(mikowebhelper WIN32
     app/webhelper/main.cpp
     app/utils/logger.cpp
@@ -251,6 +258,12 @@ if(WIN32)
         d2d1 dwrite d3d11 dxgi windowscodecs
         dwmapi shell32 ole32
     )
+endif()
+
+if(UNIX AND NOT APPLE)
+    target_link_libraries(${PROJECT_NAME}
+        vulkan
+    )   
 endif()
 
 target_link_libraries(mikowebhelper

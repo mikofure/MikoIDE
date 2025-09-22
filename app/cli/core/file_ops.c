@@ -42,7 +42,6 @@ char* get_absolute_path(const char* path) {
 void normalize_path(char* path) {
     if (!path) return;
     
-    // Convert all separators to the platform-specific one
     for (char* p = path; *p; p++) {
         if (*p == '/' || *p == '\\') {
             *p = PATH_SEPARATOR;
@@ -68,21 +67,30 @@ int open_file_or_directory(const char* path) {
         return 1;
     }
 
-    
-    // Get the directory where hyprn.exe is located (CLI executable)
     char hyperion_path[PATH_MAX];
     char exe_path[PATH_MAX];
-    
+
 #ifdef _WIN32
-    // Get the full path of the current executable
+    // หาตำแหน่งจริงของ hyprn.exe
     DWORD result = GetModuleFileNameA(NULL, exe_path, sizeof(exe_path));
     if (result == 0 || result >= sizeof(exe_path)) {
         fprintf(stderr, "Error: Could not get executable path\n");
         free(abs_path);
         return 1;
     }
+
+    // exe_path = ...\bin\hyprn.exe
+    char* last_sep = strrchr(exe_path, PATH_SEPARATOR);
+    if (last_sep) *last_sep = '\0'; // => ...\bin
+
+    // ขึ้นไป parent directory (root ที่มี Hyperion.exe)
+    last_sep = strrchr(exe_path, PATH_SEPARATOR);
+    if (last_sep) *last_sep = '\0'; // => root
+
+    snprintf(hyperion_path, sizeof(hyperion_path), "%s%cHyperion.exe", exe_path, PATH_SEPARATOR);
+
 #else
-    // For Unix-like systems, use readlink on /proc/self/exe
+    // Unix-like systems
     ssize_t len = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
     if (len == -1) {
         fprintf(stderr, "Error: Could not get executable path\n");
@@ -90,55 +98,27 @@ int open_file_or_directory(const char* path) {
         return 1;
     }
     exe_path[len] = '\0';
+
+    char* last_sep = strrchr(exe_path, PATH_SEPARATOR);
+    if (last_sep) *last_sep = '\0'; // bin
+    last_sep = strrchr(exe_path, PATH_SEPARATOR);
+    if (last_sep) *last_sep = '\0'; // root
+
+    snprintf(hyperion_path, sizeof(hyperion_path), "%s%cHyperion", exe_path, PATH_SEPARATOR);
 #endif
-    
-    // Get the directory containing the executable
-    char* last_separator = strrchr(exe_path, PATH_SEPARATOR);
-    if (last_separator) {
-        *last_separator = '\0'; // Remove the executable name
-        // Navigate to parent directory (from bin to Release)
-        last_separator = strrchr(exe_path, PATH_SEPARATOR);
-        if (last_separator) {
-            *last_separator = '\0'; // Remove bin directory
-            snprintf(hyperion_path, sizeof(hyperion_path), "%s%cHyperion.exe", exe_path, PATH_SEPARATOR);
-        } else {
-            // Fallback
-            snprintf(hyperion_path, sizeof(hyperion_path), "..%cHyperion.exe", PATH_SEPARATOR);
-        }
-    } else {
-        // Fallback: assume Hyperion.exe is in parent directory
-        snprintf(hyperion_path, sizeof(hyperion_path), "..%cHyperion.exe", PATH_SEPARATOR);
+
+    printf("Launching Hyperion at: %s\n", hyperion_path);
+
+    char command[2048];
+    snprintf(command, sizeof(command), "\"%s\" \"%s\"", hyperion_path, abs_path);
+
+    int result_code = system(command);
+    if (result_code != 0) {
+        fprintf(stderr, "Error: Failed to launch Hyperion (code %d)\n", result_code);
     }
-    
-    if (is_directory(abs_path)) {
-        printf("Opening directory: %s\n", abs_path);
-        // Launch Hyperion with directory
-#ifdef _WIN32
-        char command[1024];
-        snprintf(command, sizeof(command), "\"%s\" \"%s\"", hyperion_path, abs_path);
-        system(command);
-#else
-        // For Linux/macOS, you might use the equivalent binary
-        char command[1024];
-        snprintf(command, sizeof(command), "\"%s\" \"%s\"", hyperion_path, abs_path);
-        system(command);
-#endif
-    } else {
-        printf("Opening file: %s\n", abs_path);
-        // Launch Hyperion with file
-#ifdef _WIN32
-        char command[1024];
-        snprintf(command, sizeof(command), "\"%s\" \"%s\"", hyperion_path, abs_path);
-        system(command);
-#else
-        char command[1024];
-        snprintf(command, sizeof(command), "\"%s\" \"%s\"", hyperion_path, abs_path);
-        system(command);
-#endif
-    }
-    
+
     free(abs_path);
-    return 0;
+    return result_code;
 }
 
 int list_directory(const char* path, bool recursive) {
@@ -241,11 +221,9 @@ int create_new_project(const char* path, const char* template_name) {
         return 1;
     }
 
-    // Create basic project structure based on template
     char file_path[PATH_MAX];
     
     if (template_name && strcmp(template_name, "react-app") == 0) {
-        // Create React app structure
         snprintf(file_path, sizeof(file_path), "%s%cpackage.json", path, PATH_SEPARATOR);
         FILE* f = fopen(file_path, "w");
         if (f) {
@@ -269,7 +247,6 @@ int create_new_project(const char* path, const char* template_name) {
             fclose(f);
         }
     } else {
-        // Create basic project
         snprintf(file_path, sizeof(file_path), "%s%cREADME.md", path, PATH_SEPARATOR);
         FILE* f = fopen(file_path, "w");
         if (f) {
