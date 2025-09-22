@@ -106,9 +106,8 @@ list(APPEND CMAKE_MODULE_PATH "${CEF_ROOT}/cmake")
 find_package(CEF REQUIRED)
 
 # -------------------------------------------------
-# Miniz
+# Dependencies - Miniz (REMOVED - using unzip.exe instead)
 # -------------------------------------------------
-add_subdirectory(external/miniz)
 
 # -------------------------------------------------
 # Output Directories
@@ -183,6 +182,8 @@ add_executable(mikowebhelper WIN32
     app/webhelper/main.cpp
     app/utils/logger.cpp
     app/client/app.cpp
+    app/bootstrap/bootstrap.cpp
+    app/resources/splash.cpp
 )
 
 add_executable(mikoterminal
@@ -256,7 +257,6 @@ target_link_libraries(${PROJECT_NAME}
     libcef_lib
     libcef_dll_wrapper
     ${CEF_STANDARD_LIBS}
-    miniz
 )
 
 if(WIN32)

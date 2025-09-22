@@ -23,7 +23,7 @@
 #include <wincodec.h>
 
 // Miniz includes
-#include "../../external/miniz/miniz.h"
+
 
 #pragma comment(lib, "shlwapi.lib")
 #pragma comment(lib, "shell32.lib")
@@ -608,6 +608,94 @@ bool Bootstrap::ValidateZipFile(const std::filesystem::path& zipPath) {
     }
     
     return false; // No valid signature found
+}
+
+std::filesystem::path Bootstrap::GetAppDirectory() {
+    wchar_t exePath[MAX_PATH];
+    DWORD result = GetModuleFileNameW(nullptr, exePath, MAX_PATH);
+    if (result == 0 || result == MAX_PATH) {
+        // Fallback to current directory only as last resort
+        Logger::LogMessage("Warning: Failed to get executable path, using current directory");
+        return std::filesystem::current_path();
+    }
+    
+    std::filesystem::path path(exePath);
+    return path.parent_path();
+}
+
+bool Bootstrap::IsPathWithinAppDirectory(const std::filesystem::path& path) {
+    try {
+        const auto appDir = GetAppDirectory();
+        std::error_code ec;
+        
+        // Get canonical app directory (this should always exist)
+        const auto canonicalAppDir = std::filesystem::canonical(appDir, ec);
+        if (ec) {
+            Logger::LogMessage("Warning: Cannot get canonical app directory: " + ec.message());
+            return false;
+        }
+        
+        // For the target path, we need to handle the case where it doesn't exist yet
+        std::filesystem::path canonicalPath;
+        if (std::filesystem::exists(path)) {
+            // Path exists, get its canonical form
+            canonicalPath = std::filesystem::canonical(path, ec);
+            if (ec) {
+                Logger::LogMessage("Warning: Cannot get canonical path for existing directory: " + path.string() + " - " + ec.message());
+                return false;
+            }
+        } else {
+            // Path doesn't exist, construct the canonical form manually
+            // Start with the absolute path and resolve any .. or . components
+            auto absolutePath = std::filesystem::absolute(path, ec);
+            if (ec) {
+                Logger::LogMessage("Warning: Cannot get absolute path: " + path.string() + " - " + ec.message());
+                return false;
+            }
+            canonicalPath = absolutePath.lexically_normal();
+        }
+        
+        // Check if the path starts with the app directory
+        auto appDirStr = canonicalAppDir.string();
+        auto pathStr = canonicalPath.string();
+        
+        // Ensure both paths end with separator for proper comparison
+        if (!appDirStr.empty() && appDirStr.back() != std::filesystem::path::preferred_separator) {
+            appDirStr += std::filesystem::path::preferred_separator;
+        }
+        
+        return pathStr.find(appDirStr) == 0;
+    } catch (const std::filesystem::filesystem_error& e) {
+        // If we can't resolve paths, deny access for security
+        Logger::LogMessage("Security: Path validation failed: " + std::string(e.what()));
+        return false;
+    } catch (const std::exception& e) {
+        // Catch any other exceptions
+        Logger::LogMessage("Security: Unexpected error in path validation: " + std::string(e.what()));
+        return false;
+    }
+}
+
+bool Bootstrap::ValidateAndCreateDirectory(const std::filesystem::path& path) {
+    // First check if the path is within the app directory
+    if (!IsPathWithinAppDirectory(path)) {
+        Logger::LogMessage("Security: Attempted to create directory outside app directory: " + path.string());
+        return false;
+    }
+    
+    // Create the directory if it doesn't exist
+    std::error_code ec;
+    if (std::filesystem::exists(path) && std::filesystem::is_directory(path)) {
+        return true;
+    }
+    
+    bool result = std::filesystem::create_directories(path, ec);
+    if (ec) {
+        Logger::LogMessage("Failed to create directory: " + path.string() + " - " + ec.message());
+        return false;
+    }
+    
+    return result;
 }
 
 void SplashScreen::Show() {
@@ -1333,7 +1421,7 @@ bool Bootstrap::ExtractZipWithUnzip(const std::filesystem::path& zipPath, const 
         std::filesystem::create_directories(extractPath);
         
         // Get unzip.exe path
-        const auto exeDir = std::filesystem::current_path();
+        const auto exeDir = Bootstrap::GetAppDirectory();
         const std::filesystem::path unzipPath = exeDir / L"bin" / L"unzip.exe";
         
         if (!std::filesystem::exists(unzipPath)) {
@@ -1465,125 +1553,8 @@ bool Bootstrap::ExtractZipWithUnzip(const std::filesystem::path& zipPath, const 
 }
 
 bool Bootstrap::ExtractZip(const std::filesystem::path& zipPath, const std::filesystem::path& extractPath, ProgressCallback callback) {
-    // Try unzip.exe first, fallback to miniz if it fails
-    if (ExtractZipWithUnzip(zipPath, extractPath, callback)) {
-        return true;
-    }
-    
-    Logger::LogMessage("unzip.exe extraction failed, falling back to miniz");
-    return ExtractZipWithMiniz(zipPath, extractPath, callback);
-}
-
-bool Bootstrap::ExtractZipWithMiniz(const std::filesystem::path& zipPath, const std::filesystem::path& extractPath, ProgressCallback callback) {
-    Logger::LogMessage("Starting ZIP extraction using miniz");
-    
-    try {
-        // Validate ZIP file exists and has reasonable size
-        if (!std::filesystem::exists(zipPath)) {
-            Logger::LogMessage("ZIP file does not exist: " + zipPath.string());
-            return false;
-        }
-        
-        auto fileSize = std::filesystem::file_size(zipPath);
-        if (fileSize == 0) {
-            Logger::LogMessage("ZIP file is empty: " + zipPath.string());
-            return false;
-        }
-        
-        if (fileSize < 22) { // Minimum ZIP file size (end of central directory record)
-            Logger::LogMessage("ZIP file too small to be valid: " + zipPath.string() + " (" + std::to_string(fileSize) + " bytes)");
-            return false;
-        }
-        
-        Logger::LogMessage("ZIP file validation passed: " + zipPath.string() + " (" + std::to_string(fileSize) + " bytes)");
-        
-        // Ensure extraction directory exists
-        std::filesystem::create_directories(extractPath);
-        
-        // Initialize miniz archive
-        mz_zip_archive zip_archive;
-        mz_zip_zero_struct(&zip_archive);
-        
-        // Convert paths to proper format
-        std::string zipPathStr = zipPath.string();
-        std::string extractPathStr = extractPath.string();
-        
-        Logger::LogMessage("Opening ZIP file: " + zipPathStr);
-        
-        // Open ZIP file
-        if (!mz_zip_reader_init_file(&zip_archive, zipPathStr.c_str(), 0)) {
-            mz_zip_error error = mz_zip_get_last_error(&zip_archive);
-            std::string errorMsg = "Failed to open ZIP file: " + std::string(mz_zip_get_error_string(error));
-            Logger::LogMessage(errorMsg);
-            return false;
-        }
-        
-        // Get number of files in archive
-        mz_uint numFiles = mz_zip_reader_get_num_files(&zip_archive);
-        Logger::LogMessage("ZIP file contains " + std::to_string(numFiles) + " entries");
-        
-        if (numFiles == 0) {
-            Logger::LogMessage("ZIP file is empty");
-            mz_zip_reader_end(&zip_archive);
-            return true; // Empty archive is considered success
-        }
-        
-        // Extract all files
-        bool success = true;
-        for (mz_uint i = 0; i < numFiles; i++) {
-            mz_zip_archive_file_stat file_stat;
-            if (!mz_zip_reader_file_stat(&zip_archive, i, &file_stat)) {
-                Logger::LogMessage("Failed to get file stat for entry " + std::to_string(i));
-                success = false;
-                break;
-            }
-            
-            // Skip directories
-            if (mz_zip_reader_is_file_a_directory(&zip_archive, i)) {
-                continue;
-            }
-            
-            // Create full output path
-            std::filesystem::path outputPath = extractPath / file_stat.m_filename;
-            
-            // Create directory structure if needed
-            std::filesystem::create_directories(outputPath.parent_path());
-            
-            // Extract file
-            if (!mz_zip_reader_extract_to_file(&zip_archive, i, outputPath.string().c_str(), 0)) {
-                mz_zip_error error = mz_zip_get_last_error(&zip_archive);
-                std::string errorMsg = "Failed to extract file " + std::string(file_stat.m_filename) + ": " + std::string(mz_zip_get_error_string(error));
-                Logger::LogMessage(errorMsg);
-                success = false;
-                break;
-            }
-            
-            // Update progress
-            if (callback) {
-                int percentage = (int)((i + 1) * 100 / numFiles);
-                std::string status = "Extracting: " + std::string(file_stat.m_filename);
-                callback(percentage, status, i + 1, numFiles);
-            }
-            
-            Logger::LogMessage("Extracted: " + std::string(file_stat.m_filename));
-        }
-        
-        // Close archive
-        mz_zip_reader_end(&zip_archive);
-        
-        if (success) {
-            Logger::LogMessage("ZIP extraction completed successfully. Extracted " + std::to_string(numFiles) + " files.");
-            if (callback) {
-                callback(100, "ZIP extraction completed", 0, 0);
-            }
-        }
-        
-        return success;
-        
-    } catch (const std::exception& e) {
-        Logger::LogMessage("Exception during ZIP extraction: " + std::string(e.what()));
-        return false;
-    }
+    // Use unzip.exe for ZIP extraction
+    return ExtractZipWithUnzip(zipPath, extractPath, callback);
 }
 
 // Check if CEF helper exists and download if necessary
@@ -1591,7 +1562,7 @@ bool Bootstrap::DownloadUnzipBinary() {
     Logger::LogMessage("Bootstrap: Downloading unzip.exe...");
     
     // Get paths
-    const auto exeDir = std::filesystem::current_path();
+    const auto exeDir = Bootstrap::GetAppDirectory();
     const std::filesystem::path unzipPath = exeDir / L"bin" / L"unzip.exe";
     
     // Check if unzip.exe already exists
@@ -1602,8 +1573,8 @@ bool Bootstrap::DownloadUnzipBinary() {
     
     // Create bin directory if it doesn't exist
     const std::filesystem::path binDir = exeDir / L"bin";
-    if (!BootstrapUtils::CreateDirectoryRecursive(binDir)) {
-        Logger::LogMessage("Bootstrap: Failed to create bin directory");
+    if (!Bootstrap::ValidateAndCreateDirectory(binDir)) {
+        Logger::LogMessage("Bootstrap: Failed to create or validate bin directory");
         return false;
     }
     
@@ -1637,7 +1608,7 @@ BootstrapResult Bootstrap::CheckAndDownloadCEFHelper(HINSTANCE hInstance, HWND h
     s_cancelled = false;
     
     // Get paths
-    const auto exeDir = std::filesystem::current_path();
+    const auto exeDir = Bootstrap::GetAppDirectory();
     const bool is64 = sizeof(void*) == 8;
     const std::wstring platform = is64 ? L"windows64" : L"windows32";
     const std::filesystem::path cefDir = exeDir / L"bin" / L"cef" / platform;
@@ -1891,14 +1862,18 @@ namespace BootstrapUtils {
     }
     
     std::filesystem::path GetTempFilePath(const std::string& filename) {
-        wchar_t tempPath[MAX_PATH];
-        DWORD result = GetTempPathW(MAX_PATH, tempPath);
-        if (result == 0) {
-            return std::filesystem::current_path() / filename;
+        // Use app directory for temp files instead of system temp
+        const auto appDir = Bootstrap::GetAppDirectory();
+        const auto tempDir = appDir / "temp";
+        
+        // Create temp directory if it doesn't exist
+        std::error_code ec;
+        if (!Bootstrap::ValidateAndCreateDirectory(tempDir)) {
+            Logger::LogMessage("Warning: Failed to create or validate temp directory, using app directory");
+            return appDir / filename;
         }
         
-        std::filesystem::path temp(tempPath);
-        return temp / filename;
+        return tempDir / filename;
     }
     
     bool IsValidExecutable(const std::filesystem::path& path) {
@@ -1929,5 +1904,25 @@ namespace BootstrapUtils {
         
         std::error_code ec;
         return std::filesystem::remove(path, ec);
+    }
+    
+    bool DeleteTempPath() {
+        const auto appDir = Bootstrap::GetAppDirectory();
+        const auto tempDir = appDir / "temp";
+        
+        if (!std::filesystem::exists(tempDir)) {
+            return true; // Nothing to delete
+        }
+        
+        std::error_code ec;
+        std::filesystem::remove_all(tempDir, ec);
+        
+        if (ec) {
+            Logger::LogMessage("Warning: Failed to delete temp directory: " + ec.message());
+            return false;
+        }
+        
+        Logger::LogMessage("Temp directory cleaned up successfully");
+        return true;
     }
 }

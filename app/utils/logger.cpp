@@ -1,4 +1,5 @@
 #include "logger.hpp"
+#include "../bootstrap/bootstrap.hpp"
 #include <fstream>
 #include <iostream>
 #include <chrono>
@@ -38,11 +39,35 @@ std::string Logger::GetTimestampedLogFileName() {
     auto now = std::chrono::system_clock::now();
     auto time_t = std::chrono::system_clock::to_time_t(now);
     
+    // Get app directory or fallback to current working directory
+    std::filesystem::path logDir;
+    try {
+        logDir = Bootstrap::GetAppDirectory() / "logs";
+    } catch (...) {
+        // Fallback to current working directory if Bootstrap fails
+        logDir = std::filesystem::current_path() / "logs";
+    }
+    
     std::stringstream ss;
-    ss << "logs/hyperion_" << std::put_time(std::localtime(&time_t), "%Y%m%d_%H%M%S") << ".log";
+    ss << logDir.string() << "/hyperion_" << std::put_time(std::localtime(&time_t), "%Y%m%d_%H%M%S") << ".log";
     return ss.str();
 }
 
 void Logger::EnsureLogDirectoryExists() {
-    std::filesystem::create_directories("logs");
+    // Get app directory or fallback to current working directory
+    std::filesystem::path logDir;
+    try {
+        logDir = Bootstrap::GetAppDirectory() / "logs";
+    } catch (...) {
+        // Fallback to current working directory if Bootstrap fails
+        logDir = std::filesystem::current_path() / "logs";
+    }
+    
+    std::error_code ec;
+    std::filesystem::create_directories(logDir, ec);
+    if (ec) {
+        // If we can't create in app directory, try current directory as fallback
+        logDir = std::filesystem::current_path() / "logs";
+        std::filesystem::create_directories(logDir, ec);
+    }
 }

@@ -3,9 +3,12 @@
 
 !include "MUI2.nsh"
 
+; Create output directory if it doesn't exist
+!system 'if not exist "..\..\out" mkdir "..\..\out"'
+
 ; General
 Name "Hyperion"
-OutFile "Hyperion-Setup.exe"
+OutFile "..\..\out\Hyperion-Setup.exe"
 Unicode True
 
 ; Default installation folder
@@ -22,6 +25,11 @@ Var StartMenuFolder
 
 ; Interface Settings
 !define MUI_ABORTWARNING
+
+; Finish Page Configuration
+!define MUI_FINISHPAGE_RUN "$INSTDIR\Hyperion.exe"
+!define MUI_FINISHPAGE_RUN_TEXT "Launch Hyperion"
+!define MUI_FINISHPAGE_RUN_CHECKED
 
 ; Pages
 !insertmacro MUI_PAGE_WELCOME

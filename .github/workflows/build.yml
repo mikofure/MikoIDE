@@ -34,6 +34,12 @@ jobs:
           dotnet-version: '9.x'
           cache: false
       
+      - name: Setup NSIS
+        run: |
+          choco install nsis -y
+          refreshenv
+        shell: pwsh
+      
       - name: Install dependencies
         run: bun install
       
@@ -51,7 +57,7 @@ jobs:
         shell: pwsh
       
       - name: Create installer package
-        run: bun run tools/prod.ts --installer
+        run: makensis shared/windows/installer.nsi
         shell: pwsh
       
       - name: Upload portable artifact
@@ -64,7 +70,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mikoide-windows-installer
-          path: out/mikoide_setup.exe
+          path: out/Hyperion-Setup.exe
 
   build-linux:
     runs-on: ubuntu-latest

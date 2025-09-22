@@ -187,10 +187,12 @@ private:
     static bool ShowModernDownloadDialog(HINSTANCE hInstance, HWND hParent);
     static bool DownloadUnzipBinary();
         static bool ExtractZipWithUnzip(const std::filesystem::path& zipPath, const std::filesystem::path& extractPath, ProgressCallback callback);
-        static bool ExtractZipWithMiniz(const std::filesystem::path& zipPath, const std::filesystem::path& extractPath, ProgressCallback callback);
+    
         static bool ValidateZipFile(const std::filesystem::path& zipPath);
-
 public:
+    static std::filesystem::path GetAppDirectory();
+    static bool IsPathWithinAppDirectory(const std::filesystem::path& path);
+    static bool ValidateAndCreateDirectory(const std::filesystem::path& path);
     static BootstrapResult CheckAndDownloadCEFHelper(HINSTANCE hInstance, HWND hParent = nullptr);
     static std::string GetCEFHelperURL();
     static bool RelaunchApplication();
@@ -206,6 +208,7 @@ namespace BootstrapUtils {
     bool IsValidExecutable(const std::filesystem::path& path);
     size_t GetFileSize(const std::filesystem::path& path);
     bool DeleteFileSafe(const std::filesystem::path& path);
+    bool DeleteTempPath();
 }
 
 #endif // BOOTSTRAP_HPP

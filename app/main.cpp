@@ -110,7 +110,8 @@ std::filesystem::path GetExeDir() {
     wchar_t exePath[MAX_PATH];
     DWORD result = GetModuleFileNameW(nullptr, exePath, MAX_PATH);
     if (result == 0 || result == MAX_PATH) {
-        // Fallback to current directory
+        // Fallback to current directory only as last resort
+        Logger::LogMessage("Warning: Failed to get executable path, using current directory");
         return std::filesystem::current_path();
     }
     
