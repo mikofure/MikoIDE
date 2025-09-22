@@ -37,7 +37,7 @@ jobs:
       - name: Setup NSIS
         run: |
           choco install nsis -y
-          refreshenv
+          echo "C:\Program Files (x86)\NSIS" | Out-File -FilePath $env:GITHUB_PATH -Append
         shell: pwsh
       
       - name: Install dependencies
