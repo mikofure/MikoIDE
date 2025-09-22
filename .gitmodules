@@ -7,3 +7,18 @@
 [submodule "lauguageserver/typescript"]
 	path = languageserver/typescript
 	url = https://github.com/tree-sitter/tree-sitter-typescript
+[submodule "external/SDL3"]
+	path = external/SDL3
+	url = https://github.com/libsdl-org/SDL
+[submodule "external/minizip"]
+	path = external/minizip
+	url = https://github.com/zlib-ng/minizip-ng
+[submodule "external/repidyaml"]
+	path = external/repidyaml
+	url = https://github.com/biojppm/rapidyaml
+[submodule "external/json"]
+	path = external/json
+	url = https://github.com/nlohmann/json
+[submodule "external/libgit2"]
+	path = external/libgit2
+	url = https://github.com/libgit2/libgit2
