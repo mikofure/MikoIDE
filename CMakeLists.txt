@@ -12,18 +12,12 @@ include(FetchContent)
 # -------------------------------------------------
 # Dependencies - SDL3
 # -------------------------------------------------
-FetchContent_Declare(
-    SDL3
-    GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-    GIT_TAG main
-    GIT_SHALLOW TRUE
-)
 
 set(SDL_SHARED ON  CACHE BOOL "Build SDL3 as shared library")
 set(SDL_STATIC OFF CACHE BOOL "Build SDL3 as static library")
 set(SDL_TEST   OFF CACHE BOOL "Build SDL3 test programs")
 
-FetchContent_MakeAvailable(SDL3)
+add_subdirectory(external/SDL3)
 
 # -------------------------------------------------
 # Dependencies - CEF
