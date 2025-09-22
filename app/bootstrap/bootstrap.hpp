@@ -15,6 +15,7 @@
 #include <vector>
 #include <thread>
 #include <memory>
+#include <atomic>
 
 #pragma comment(lib, "wininet.lib")
 #pragma comment(lib, "comctl32.lib")
@@ -171,9 +172,11 @@ public:
 class Bootstrap {
 private:
     static std::unique_ptr<ModernDialog> s_modern_dialog;
-    static bool s_cancelled;
+    static std::atomic<bool> s_cancelled;
     static std::string s_current_status;
-    static int s_current_progress;
+    static std::atomic<int> s_current_progress;
+    static std::atomic<bool> s_download_completed;
+    static std::atomic<bool> s_extract_completed;
 
     static bool DownloadFile(const std::string& url, const std::filesystem::path& destination, ProgressCallback callback);
     static bool DownloadFileSingle(const std::string& url, const std::filesystem::path& destination, ProgressCallback callback);
@@ -182,6 +185,10 @@ private:
     static bool ExtractZip(const std::filesystem::path& zipPath, const std::filesystem::path& extractPath, ProgressCallback callback);
     static void UpdateProgress(int percentage, const std::string& status, size_t bytesDownloaded = 0, size_t totalBytes = 0);
     static bool ShowModernDownloadDialog(HINSTANCE hInstance, HWND hParent);
+    static bool DownloadUnzipBinary();
+        static bool ExtractZipWithUnzip(const std::filesystem::path& zipPath, const std::filesystem::path& extractPath, ProgressCallback callback);
+        static bool ExtractZipWithMiniz(const std::filesystem::path& zipPath, const std::filesystem::path& extractPath, ProgressCallback callback);
+        static bool ValidateZipFile(const std::filesystem::path& zipPath);
 
 public:
     static BootstrapResult CheckAndDownloadCEFHelper(HINSTANCE hInstance, HWND hParent = nullptr);

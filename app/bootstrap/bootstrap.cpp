@@ -5,6 +5,9 @@
 #include <shlwapi.h>
 #include <shellapi.h>
 #include <windowsx.h>
+#include <wininet.h>
+#include <comdef.h>
+#include <shlobj.h>
 #include <sstream>
 #include <thread>
 #include <chrono>
@@ -19,6 +22,9 @@
 #include <dwrite.h>
 #include <wincodec.h>
 
+// Miniz includes
+#include "../../external/miniz/miniz.h"
+
 #pragma comment(lib, "shlwapi.lib")
 #pragma comment(lib, "shell32.lib")
 #pragma comment(lib, "wininet.lib")
@@ -32,9 +38,11 @@ bool SplashScreen::s_imagePreloaded = false;
 
 // Static member definitions
 std::unique_ptr<ModernDialog> Bootstrap::s_modern_dialog = nullptr;
-bool Bootstrap::s_cancelled = false;
+std::atomic<bool> Bootstrap::s_cancelled{false};
 std::string Bootstrap::s_current_status = "";
-int Bootstrap::s_current_progress = 0;
+std::atomic<int> Bootstrap::s_current_progress{0};
+std::atomic<bool> Bootstrap::s_download_completed{false};
+std::atomic<bool> Bootstrap::s_extract_completed{false};
 
 // Global variables for download tracking
 static std::atomic<size_t> g_totalBytesDownloaded{0};
@@ -568,6 +576,40 @@ bool SplashScreen::Create(HINSTANCE hInstance, const std::wstring& title) {
     return true;
 }
 
+// Validate ZIP file integrity by checking the central directory
+bool Bootstrap::ValidateZipFile(const std::filesystem::path& zipPath) {
+    std::ifstream file(zipPath, std::ios::binary);
+    if (!file) {
+        return false;
+    }
+    
+    // Get file size
+    file.seekg(0, std::ios::end);
+    size_t fileSize = static_cast<size_t>(file.tellg());
+    
+    if (fileSize < 22) { // Minimum ZIP file size (end of central directory record)
+        return false;
+    }
+    
+    // Look for end of central directory signature (0x06054b50) in the last 65KB
+    const size_t searchSize = std::min(fileSize, static_cast<size_t>(65536));
+    file.seekg(static_cast<std::streamoff>(fileSize - searchSize), std::ios::beg);
+    
+    std::vector<char> buffer(searchSize);
+    file.read(buffer.data(), static_cast<std::streamsize>(searchSize));
+    
+    // Search for the signature from the end
+    const uint32_t signature = 0x06054b50;
+    for (size_t i = searchSize; i >= 4; --i) {
+        uint32_t value = *reinterpret_cast<const uint32_t*>(&buffer[i - 4]);
+        if (value == signature) {
+            return true; // Found valid end of central directory
+        }
+    }
+    
+    return false; // No valid signature found
+}
+
 void SplashScreen::Show() {
     if (m_hwnd) {
         ShowWindow(m_hwnd, SW_SHOW);
@@ -990,16 +1032,51 @@ bool Bootstrap::DownloadChunk(const std::string& url, ::DownloadChunk& chunk) {
         return false;
     }
     
-    HINTERNET hUrl = InternetOpenUrlA(hInternet, url.c_str(), nullptr, 0, INTERNET_FLAG_RELOAD, 0);
-    if (!hUrl) {
+    // Parse URL to get components
+    URL_COMPONENTSA urlComp = {0};
+    urlComp.dwStructSize = sizeof(urlComp);
+    char szHostName[256] = {0};
+    char szUrlPath[1024] = {0};
+    urlComp.lpszHostName = szHostName;
+    urlComp.dwHostNameLength = sizeof(szHostName);
+    urlComp.lpszUrlPath = szUrlPath;
+    urlComp.dwUrlPathLength = sizeof(szUrlPath);
+    
+    if (!InternetCrackUrlA(url.c_str(), 0, 0, &urlComp)) {
         InternetCloseHandle(hInternet);
         chunk.failed = true;
         return false;
     }
     
-    // Set range header for partial content
+    // Connect to server
+    HINTERNET hConnect = InternetConnectA(hInternet, szHostName, urlComp.nPort, nullptr, nullptr, INTERNET_SERVICE_HTTP, 0, 0);
+    if (!hConnect) {
+        InternetCloseHandle(hInternet);
+        chunk.failed = true;
+        return false;
+    }
+    
+    // Create HTTP request with range header
     std::string rangeHeader = "Range: bytes=" + std::to_string(chunk.startByte) + "-" + std::to_string(chunk.endByte);
-    HttpAddRequestHeadersA(hUrl, rangeHeader.c_str(), static_cast<DWORD>(rangeHeader.length()), HTTP_ADDREQ_FLAG_ADD);
+    
+    HINTERNET hRequest = HttpOpenRequestA(hConnect, "GET", szUrlPath, nullptr, nullptr, nullptr, 
+                                         INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE | 
+                                         (urlComp.nScheme == INTERNET_SCHEME_HTTPS ? INTERNET_FLAG_SECURE : 0), 0);
+    if (!hRequest) {
+        InternetCloseHandle(hConnect);
+        InternetCloseHandle(hInternet);
+        chunk.failed = true;
+        return false;
+    }
+    
+    // Send request with range header
+    if (!HttpSendRequestA(hRequest, rangeHeader.c_str(), static_cast<DWORD>(rangeHeader.length()), nullptr, 0)) {
+        InternetCloseHandle(hRequest);
+        InternetCloseHandle(hConnect);
+        InternetCloseHandle(hInternet);
+        chunk.failed = true;
+        return false;
+    }
     
     // Prepare buffer
     size_t chunkSize = chunk.endByte - chunk.startByte + 1;
@@ -1011,7 +1088,7 @@ bool Bootstrap::DownloadChunk(const std::string& url, ::DownloadChunk& chunk) {
     DWORD bytesRead = 0;
     size_t totalBytesRead = 0;
     
-    while (InternetReadFile(hUrl, tempBuffer, bufferSize, &bytesRead) && bytesRead > 0 && !s_cancelled) {
+    while (InternetReadFile(hRequest, tempBuffer, bufferSize, &bytesRead) && bytesRead > 0 && !s_cancelled) {
         if (totalBytesRead + bytesRead > chunkSize) {
             bytesRead = static_cast<DWORD>(chunkSize - totalBytesRead);
         }
@@ -1028,7 +1105,8 @@ bool Bootstrap::DownloadChunk(const std::string& url, ::DownloadChunk& chunk) {
         }
     }
     
-    InternetCloseHandle(hUrl);
+    InternetCloseHandle(hRequest);
+    InternetCloseHandle(hConnect);
     InternetCloseHandle(hInternet);
     
     chunk.completed = (totalBytesRead == chunkSize) && !s_cancelled;
@@ -1149,6 +1227,13 @@ bool Bootstrap::DownloadFile(const std::string& url, const std::filesystem::path
     
     outFile.close();
     
+    // Validate ZIP file integrity
+    if (!ValidateZipFile(destination)) {
+        Logger::LogMessage("Downloaded ZIP file is corrupted, falling back to single connection");
+        BootstrapUtils::DeleteFileSafe(destination);
+        return DownloadFileSingle(url, destination, callback);
+    }
+    
     callback(100, "Download completed", fileSize, fileSize);
     Logger::LogMessage("Multi-connection download completed successfully");
     return true;
@@ -1225,110 +1310,331 @@ bool Bootstrap::DownloadFileSingle(const std::string& url, const std::filesystem
     return true;
 }
 
-// Extract ZIP file with improved error handling and progress
-bool Bootstrap::ExtractZip(const std::filesystem::path& zipPath, const std::filesystem::path& extractPath, ProgressCallback callback) {
-    Logger::LogMessage("Starting ZIP extraction from: " + zipPath.string() + " to: " + extractPath.string());
+// Extract ZIP file with progress callback (using minizip-ng)
+bool Bootstrap::ExtractZipWithUnzip(const std::filesystem::path& zipPath, const std::filesystem::path& extractPath, ProgressCallback callback) {
+    Logger::LogMessage("Starting ZIP extraction using unzip.exe");
     
-    callback(0, "Initializing extraction...", 0, 0);
-    
-    // Ensure extract directory exists
-    std::error_code ec;
-    std::filesystem::create_directories(extractPath, ec);
-    if (ec) {
-        Logger::LogMessage("Failed to create extraction directory: " + ec.message());
-        return false;
-    }
-    
-    // Use PowerShell to extract the ZIP file with better error handling
-    std::wstring zipPathW = zipPath.wstring();
-    std::wstring extractPathW = extractPath.wstring();
-    
-    // Build PowerShell command with error handling
-    std::wstring psCommand = L"powershell.exe -Command \"try { Expand-Archive -Path '";
-    psCommand += zipPathW;
-    psCommand += L"' -DestinationPath '";
-    psCommand += extractPathW;
-    psCommand += L"' -Force; Write-Host 'SUCCESS' } catch { Write-Host 'ERROR:' $_.Exception.Message; exit 1 }\"";
-    
-    callback(25, "Starting PowerShell extraction...", 0, 0);
-    
-    STARTUPINFOW si = {};
-    PROCESS_INFORMATION pi = {};
-    si.cb = sizeof(si);
-    si.dwFlags = STARTF_USESHOWWINDOW;
-    si.wShowWindow = SW_HIDE;
-    
-    BOOL success = CreateProcessW(
-        nullptr,
-        const_cast<LPWSTR>(psCommand.c_str()),
-        nullptr,
-        nullptr,
-        FALSE,
-        0,
-        nullptr,
-        nullptr,
-        &si,
-        &pi
-    );
-    
-    if (success) {
-        callback(50, "Extracting files...", 0, 0);
-        
-        // Wait for the process to complete with timeout
-        DWORD waitResult = WaitForSingleObject(pi.hProcess, 300000); // 5 minute timeout
-        
-        if (waitResult == WAIT_TIMEOUT) {
-            Logger::LogMessage("ZIP extraction timed out");
-            TerminateProcess(pi.hProcess, 1);
-            CloseHandle(pi.hProcess);
-            CloseHandle(pi.hThread);
+    try {
+        // Validate ZIP file exists and has reasonable size
+        if (!std::filesystem::exists(zipPath)) {
+            Logger::LogMessage("ZIP file does not exist: " + zipPath.string());
             return false;
         }
+        
+        auto fileSize = std::filesystem::file_size(zipPath);
+        if (fileSize == 0) {
+            Logger::LogMessage("ZIP file is empty: " + zipPath.string());
+            return false;
+        }
+        
+        Logger::LogMessage("ZIP file validation passed: " + zipPath.string() + " (" + std::to_string(fileSize) + " bytes)");
+        
+        // Ensure extraction directory exists
+        std::filesystem::create_directories(extractPath);
+        
+        // Get unzip.exe path
+        const auto exeDir = std::filesystem::current_path();
+        const std::filesystem::path unzipPath = exeDir / L"bin" / L"unzip.exe";
+        
+        if (!std::filesystem::exists(unzipPath)) {
+            Logger::LogMessage("unzip.exe not found at: " + unzipPath.string());
+            return false;
+        }
+        
+        // Build command line: unzip.exe -o zipfile -d extractpath
+        std::wstring cmdLine = L"\"" + unzipPath.wstring() + L"\" -o \"" + zipPath.wstring() + L"\" -d \"" + extractPath.wstring() + L"\"";
+        Logger::LogMessage("Executing: " + std::string(cmdLine.begin(), cmdLine.end()));
+        
+        // Create pipes for capturing output
+        HANDLE hReadPipe, hWritePipe;
+        SECURITY_ATTRIBUTES sa = { sizeof(SECURITY_ATTRIBUTES), nullptr, TRUE };
+        
+        if (!CreatePipe(&hReadPipe, &hWritePipe, &sa, 0)) {
+            Logger::LogMessage("Failed to create pipe for unzip output");
+            return false;
+        }
+        
+        // Set up process startup info
+        STARTUPINFOW si = { sizeof(STARTUPINFOW) };
+        si.dwFlags = STARTF_USESTDHANDLES;
+        si.hStdOutput = hWritePipe;
+        si.hStdError = hWritePipe;
+        si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+        
+        PROCESS_INFORMATION pi = {};
+        
+        // Create process
+        BOOL success = CreateProcessW(
+            nullptr,
+            const_cast<LPWSTR>(cmdLine.c_str()),
+            nullptr,
+            nullptr,
+            TRUE,
+            CREATE_NO_WINDOW,
+            nullptr,
+            extractPath.c_str(),
+            &si,
+            &pi
+        );
+        
+        CloseHandle(hWritePipe); // Close write end of pipe
+        
+        if (!success) {
+            Logger::LogMessage("Failed to create unzip process");
+            CloseHandle(hReadPipe);
+            return false;
+        }
+        
+        // Read output and parse progress
+        std::string output;
+        char buffer[4096];
+        DWORD bytesRead;
+        int totalFiles = 0;
+        int extractedFiles = 0;
+        
+        while (ReadFile(hReadPipe, buffer, sizeof(buffer) - 1, &bytesRead, nullptr) && bytesRead > 0) {
+            buffer[bytesRead] = '\0';
+            output += buffer;
+            
+            // Parse output for progress
+            std::string bufferStr(buffer);
+            std::istringstream iss(bufferStr);
+            std::string line;
+            
+            while (std::getline(iss, line)) {
+                // Check for "inflating: filename" pattern
+                if (line.find("inflating:") != std::string::npos) {
+                    extractedFiles++;
+                    size_t pos = line.find("inflating:");
+                    if (pos != std::string::npos) {
+                        std::string filename = line.substr(pos + 10);
+                        // Trim whitespace
+                        filename.erase(0, filename.find_first_not_of(" \t"));
+                        filename.erase(filename.find_last_not_of(" \t\r\n") + 1);
+                        
+                        if (callback) {
+                            int percentage = totalFiles > 0 ? (extractedFiles * 100 / totalFiles) : 50;
+                            std::string status = "Extracting: " + filename;
+                            callback(percentage, status, extractedFiles, totalFiles);
+                        }
+                        
+                        Logger::LogMessage("Extracted: " + filename);
+                    }
+                }
+                // Check for "creating: foldername" pattern
+                else if (line.find("creating:") != std::string::npos) {
+                    size_t pos = line.find("creating:");
+                    if (pos != std::string::npos) {
+                        std::string foldername = line.substr(pos + 9);
+                        // Trim whitespace
+                        foldername.erase(0, foldername.find_first_not_of(" \t"));
+                        foldername.erase(foldername.find_last_not_of(" \t\r\n") + 1);
+                        
+                        Logger::LogMessage("Created directory: " + foldername);
+                    }
+                }
+            }
+        }
+        
+        // Wait for process to complete
+        WaitForSingleObject(pi.hProcess, INFINITE);
         
         DWORD exitCode;
         GetExitCodeProcess(pi.hProcess, &exitCode);
         
+        CloseHandle(hReadPipe);
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
         
-        callback(75, "Verifying extraction...", 0, 0);
-        
         if (exitCode == 0) {
-            // Verify extraction by checking if files exist
-            int extractedFiles = 0;
-            try {
-                for (const auto& entry : std::filesystem::recursive_directory_iterator(extractPath, ec)) {
-                    if (!ec && entry.is_regular_file()) {
-                        extractedFiles++;
-                    }
-                }
-            } catch (const std::exception& e) {
-                Logger::LogMessage("Error verifying extraction: " + std::string(e.what()));
+            Logger::LogMessage("ZIP extraction completed successfully using unzip.exe");
+            if (callback) {
+                callback(100, "ZIP extraction completed", 0, 0);
             }
-            
-            callback(100, "Extraction completed", extractedFiles, extractedFiles);
-            
-            if (extractedFiles > 0) {
-                Logger::LogMessage("ZIP extraction completed successfully - " + std::to_string(extractedFiles) + " files extracted");
-                return true;
-            } else {
-                Logger::LogMessage("ZIP extraction completed but no files found");
-                return false;
-            }
+            return true;
         } else {
-            Logger::LogMessage("ZIP extraction failed with exit code: " + std::to_string(exitCode));
+            Logger::LogMessage("unzip.exe failed with exit code: " + std::to_string(exitCode));
+            Logger::LogMessage("unzip.exe output: " + output);
             return false;
         }
-    } else {
-        DWORD error = GetLastError();
-        Logger::LogMessage("Failed to start PowerShell extraction process. Error: " + std::to_string(error));
+        
+    } catch (const std::exception& e) {
+        Logger::LogMessage("Exception during ZIP extraction with unzip.exe: " + std::string(e.what()));
+        return false;
+    }
+}
+
+bool Bootstrap::ExtractZip(const std::filesystem::path& zipPath, const std::filesystem::path& extractPath, ProgressCallback callback) {
+    // Try unzip.exe first, fallback to miniz if it fails
+    if (ExtractZipWithUnzip(zipPath, extractPath, callback)) {
+        return true;
+    }
+    
+    Logger::LogMessage("unzip.exe extraction failed, falling back to miniz");
+    return ExtractZipWithMiniz(zipPath, extractPath, callback);
+}
+
+bool Bootstrap::ExtractZipWithMiniz(const std::filesystem::path& zipPath, const std::filesystem::path& extractPath, ProgressCallback callback) {
+    Logger::LogMessage("Starting ZIP extraction using miniz");
+    
+    try {
+        // Validate ZIP file exists and has reasonable size
+        if (!std::filesystem::exists(zipPath)) {
+            Logger::LogMessage("ZIP file does not exist: " + zipPath.string());
+            return false;
+        }
+        
+        auto fileSize = std::filesystem::file_size(zipPath);
+        if (fileSize == 0) {
+            Logger::LogMessage("ZIP file is empty: " + zipPath.string());
+            return false;
+        }
+        
+        if (fileSize < 22) { // Minimum ZIP file size (end of central directory record)
+            Logger::LogMessage("ZIP file too small to be valid: " + zipPath.string() + " (" + std::to_string(fileSize) + " bytes)");
+            return false;
+        }
+        
+        Logger::LogMessage("ZIP file validation passed: " + zipPath.string() + " (" + std::to_string(fileSize) + " bytes)");
+        
+        // Ensure extraction directory exists
+        std::filesystem::create_directories(extractPath);
+        
+        // Initialize miniz archive
+        mz_zip_archive zip_archive;
+        mz_zip_zero_struct(&zip_archive);
+        
+        // Convert paths to proper format
+        std::string zipPathStr = zipPath.string();
+        std::string extractPathStr = extractPath.string();
+        
+        Logger::LogMessage("Opening ZIP file: " + zipPathStr);
+        
+        // Open ZIP file
+        if (!mz_zip_reader_init_file(&zip_archive, zipPathStr.c_str(), 0)) {
+            mz_zip_error error = mz_zip_get_last_error(&zip_archive);
+            std::string errorMsg = "Failed to open ZIP file: " + std::string(mz_zip_get_error_string(error));
+            Logger::LogMessage(errorMsg);
+            return false;
+        }
+        
+        // Get number of files in archive
+        mz_uint numFiles = mz_zip_reader_get_num_files(&zip_archive);
+        Logger::LogMessage("ZIP file contains " + std::to_string(numFiles) + " entries");
+        
+        if (numFiles == 0) {
+            Logger::LogMessage("ZIP file is empty");
+            mz_zip_reader_end(&zip_archive);
+            return true; // Empty archive is considered success
+        }
+        
+        // Extract all files
+        bool success = true;
+        for (mz_uint i = 0; i < numFiles; i++) {
+            mz_zip_archive_file_stat file_stat;
+            if (!mz_zip_reader_file_stat(&zip_archive, i, &file_stat)) {
+                Logger::LogMessage("Failed to get file stat for entry " + std::to_string(i));
+                success = false;
+                break;
+            }
+            
+            // Skip directories
+            if (mz_zip_reader_is_file_a_directory(&zip_archive, i)) {
+                continue;
+            }
+            
+            // Create full output path
+            std::filesystem::path outputPath = extractPath / file_stat.m_filename;
+            
+            // Create directory structure if needed
+            std::filesystem::create_directories(outputPath.parent_path());
+            
+            // Extract file
+            if (!mz_zip_reader_extract_to_file(&zip_archive, i, outputPath.string().c_str(), 0)) {
+                mz_zip_error error = mz_zip_get_last_error(&zip_archive);
+                std::string errorMsg = "Failed to extract file " + std::string(file_stat.m_filename) + ": " + std::string(mz_zip_get_error_string(error));
+                Logger::LogMessage(errorMsg);
+                success = false;
+                break;
+            }
+            
+            // Update progress
+            if (callback) {
+                int percentage = (int)((i + 1) * 100 / numFiles);
+                std::string status = "Extracting: " + std::string(file_stat.m_filename);
+                callback(percentage, status, i + 1, numFiles);
+            }
+            
+            Logger::LogMessage("Extracted: " + std::string(file_stat.m_filename));
+        }
+        
+        // Close archive
+        mz_zip_reader_end(&zip_archive);
+        
+        if (success) {
+            Logger::LogMessage("ZIP extraction completed successfully. Extracted " + std::to_string(numFiles) + " files.");
+            if (callback) {
+                callback(100, "ZIP extraction completed", 0, 0);
+            }
+        }
+        
+        return success;
+        
+    } catch (const std::exception& e) {
+        Logger::LogMessage("Exception during ZIP extraction: " + std::string(e.what()));
         return false;
     }
 }
 
 // Check if CEF helper exists and download if necessary
+bool Bootstrap::DownloadUnzipBinary() {
+    Logger::LogMessage("Bootstrap: Downloading unzip.exe...");
+    
+    // Get paths
+    const auto exeDir = std::filesystem::current_path();
+    const std::filesystem::path unzipPath = exeDir / L"bin" / L"unzip.exe";
+    
+    // Check if unzip.exe already exists
+    if (std::filesystem::exists(unzipPath) && BootstrapUtils::IsValidExecutable(unzipPath)) {
+        Logger::LogMessage("Bootstrap: unzip.exe already exists");
+        return true;
+    }
+    
+    // Create bin directory if it doesn't exist
+    const std::filesystem::path binDir = exeDir / L"bin";
+    if (!BootstrapUtils::CreateDirectoryRecursive(binDir)) {
+        Logger::LogMessage("Bootstrap: Failed to create bin directory");
+        return false;
+    }
+    
+    // Download unzip.exe
+    const std::string unzipUrl = "https://stahlworks.com/dev/unzip.exe";
+    bool downloadSuccess = DownloadFileSingle(unzipUrl, unzipPath, [](int percentage, const std::string& status, size_t bytesDownloaded, size_t totalBytes) {
+        UpdateProgress(percentage, "Downloading unzip.exe: " + status, bytesDownloaded, totalBytes);
+    });
+    
+    if (!downloadSuccess) {
+        Logger::LogMessage("Bootstrap: Failed to download unzip.exe");
+        return false;
+    }
+    
+    // Verify the downloaded file
+    if (!std::filesystem::exists(unzipPath) || !BootstrapUtils::IsValidExecutable(unzipPath)) {
+        Logger::LogMessage("Bootstrap: Downloaded unzip.exe is not valid");
+        return false;
+    }
+    
+    Logger::LogMessage("Bootstrap: unzip.exe downloaded successfully");
+    return true;
+}
+
 BootstrapResult Bootstrap::CheckAndDownloadCEFHelper(HINSTANCE hInstance, HWND hParent) {
     Logger::LogMessage("Bootstrap: Checking CEF helper...");
+    
+    // Reset completion flags
+    s_download_completed = false;
+    s_extract_completed = false;
+    s_cancelled = false;
     
     // Get paths
     const auto exeDir = std::filesystem::current_path();
@@ -1358,6 +1664,16 @@ BootstrapResult Bootstrap::CheckAndDownloadCEFHelper(HINSTANCE hInstance, HWND h
         return BootstrapResult::DOWNLOAD_FAILED;
     }
     
+    // First, download unzip.exe binary
+    if (!DownloadUnzipBinary()) {
+        if (s_modern_dialog) {
+            s_modern_dialog->Hide();
+            s_modern_dialog.reset();
+        }
+        CoUninitialize();
+        return BootstrapResult::DOWNLOAD_FAILED;
+    }
+    
     // Get download URL
     std::string downloadUrl = GetCEFHelperURL();
     
@@ -1370,11 +1686,12 @@ BootstrapResult Bootstrap::CheckAndDownloadCEFHelper(HINSTANCE hInstance, HWND h
         downloadSuccess = DownloadFile(downloadUrl, tempZip, [](int percentage, const std::string& status, size_t bytesDownloaded, size_t totalBytes) {
             UpdateProgress(percentage, status, bytesDownloaded, totalBytes);
         });
+        s_download_completed = true;
     });
     
-    // Message loop for dialog
+    // Message loop for dialog - wait for download completion
     MSG msg;
-    while (!s_cancelled && downloadThread.joinable()) {
+    while (!s_cancelled && !s_download_completed) {
         if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
             if (msg.message == WM_QUIT) {
                 s_cancelled = true;
@@ -1390,9 +1707,14 @@ BootstrapResult Bootstrap::CheckAndDownloadCEFHelper(HINSTANCE hInstance, HWND h
                 DispatchMessage(&msg);
             }
         }
+        // Small sleep to prevent 100% CPU usage
+        Sleep(10);
     }
     
-    downloadThread.join();
+    // Wait for download thread to complete
+    if (downloadThread.joinable()) {
+        downloadThread.join();
+    }
     
     if (s_cancelled) {
         if (s_modern_dialog) {
@@ -1420,10 +1742,11 @@ BootstrapResult Bootstrap::CheckAndDownloadCEFHelper(HINSTANCE hInstance, HWND h
         extractSuccess = ExtractZip(tempZip, cefDir, [](int percentage, const std::string& status, size_t bytesDownloaded, size_t totalBytes) {
             UpdateProgress(percentage, status, bytesDownloaded, totalBytes);
         });
+        s_extract_completed = true;
     });
     
-    // Wait for extraction
-    while (!s_cancelled && extractThread.joinable()) {
+    // Wait for extraction - use completion flag instead of joinable
+    while (!s_cancelled && !s_extract_completed) {
         if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
             if (msg.message == WM_QUIT) {
                 s_cancelled = true;
@@ -1439,9 +1762,14 @@ BootstrapResult Bootstrap::CheckAndDownloadCEFHelper(HINSTANCE hInstance, HWND h
                 DispatchMessage(&msg);
             }
         }
+        // Small sleep to prevent 100% CPU usage
+        Sleep(10);
     }
     
-    extractThread.join();
+    // Wait for extraction thread to complete
+    if (extractThread.joinable()) {
+        extractThread.join();
+    }
     
     // Cleanup
     if (s_modern_dialog) {
@@ -1458,6 +1786,20 @@ BootstrapResult Bootstrap::CheckAndDownloadCEFHelper(HINSTANCE hInstance, HWND h
     if (!extractSuccess) {
         return BootstrapResult::EXTRACT_FAILED;
     }
+    
+    // Debug: List extracted files
+    Logger::LogMessage("Bootstrap: Checking extraction directory: " + cefDir.string());
+    try {
+        for (const auto& entry : std::filesystem::recursive_directory_iterator(cefDir)) {
+            if (entry.is_regular_file()) {
+                Logger::LogMessage("Bootstrap: Found file: " + entry.path().string());
+            }
+        }
+    } catch (const std::exception& e) {
+        Logger::LogMessage("Bootstrap: Error listing files: " + std::string(e.what()));
+    }
+    
+    Logger::LogMessage("Bootstrap: Looking for helper at: " + helperPath.string());
     
     // Verify extraction
     if (!std::filesystem::exists(helperPath) || !BootstrapUtils::IsValidExecutable(helperPath)) {
@@ -1538,7 +1880,14 @@ namespace BootstrapUtils {
     
     bool CreateDirectoryRecursive(const std::filesystem::path& path) {
         std::error_code ec;
-        return std::filesystem::create_directories(path, ec);
+        // If directory already exists, return true
+        if (std::filesystem::exists(path) && std::filesystem::is_directory(path)) {
+            return true;
+        }
+        // Try to create the directory
+        bool result = std::filesystem::create_directories(path, ec);
+        // Return true if creation succeeded or if directory already exists
+        return result || (!ec && std::filesystem::exists(path));
     }
     
     std::filesystem::path GetTempFilePath(const std::string& filename) {

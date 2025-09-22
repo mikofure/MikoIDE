@@ -106,6 +106,11 @@ list(APPEND CMAKE_MODULE_PATH "${CEF_ROOT}/cmake")
 find_package(CEF REQUIRED)
 
 # -------------------------------------------------
+# Miniz
+# -------------------------------------------------
+add_subdirectory(external/miniz)
+
+# -------------------------------------------------
 # Output Directories
 # -------------------------------------------------
 set(CEF_OUT_DIR_RELEASE "${CMAKE_BINARY_DIR}/Release/bin/cef/${CEF_PLATFORM}")
@@ -142,6 +147,12 @@ endif()
 # -------------------------------------------------
 # Targets
 # -------------------------------------------------
+
+if(MSVC)
+    add_compile_options(/wd4505) # disable C4505 warning
+    add_compile_options(/W3)     # optional: lower warning level
+endif()
+
 add_executable(${PROJECT_NAME} WIN32
     app/main.cpp
     app/utils/logger.cpp
@@ -245,12 +256,14 @@ target_link_libraries(${PROJECT_NAME}
     libcef_lib
     libcef_dll_wrapper
     ${CEF_STANDARD_LIBS}
+    miniz
 )
 
 if(WIN32)
     target_link_libraries(${PROJECT_NAME}
         d2d1 dwrite d3d11 dxgi windowscodecs
         dwmapi shell32 ole32
+        msvcrt
     )
 endif()
 
