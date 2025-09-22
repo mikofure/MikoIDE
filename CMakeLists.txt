@@ -116,6 +116,10 @@ find_package(CEF REQUIRED)
 # -------------------------------------------------
 set(CEF_OUT_DIR_RELEASE "${CMAKE_BINARY_DIR}/Release/bin/cef/${CEF_PLATFORM}")
 set(CEF_OUT_DIR_DEBUG   "${CMAKE_BINARY_DIR}/Debug/bin/cef/${CEF_PLATFORM}")
+set(TOOLS_OUT_DIR_DEBUG "${CMAKE_BINARY_DIR}/Debug/tools")
+set(TOOLS_OUT_DIR_RELEASE "${CMAKE_BINARY_DIR}/Release/tools")
+set(CORE_BINARY_DEBUG "${CMAKE_BINARY_DIR}/Debug/bin")
+set(CORE_BINARY_RELEASE "${CMAKE_BINARY_DIR}/Release/bin")
 
 if(CMAKE_CONFIGURATION_TYPES)
     set(CEF_TARGET_OUT_DIR "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
@@ -177,6 +181,19 @@ add_executable(mikoterminal
     test/terminal/windowed.cpp
 )
 
+add_executable(termibench
+    test/termibench/termibench.c
+)
+add_executable(hyprn
+    app/cli/main.c
+    app/cli/core/parser.c
+    app/cli/core/file_ops.c
+    app/cli/core/workspace.c
+    app/cli/core/extensions.c
+    app/cli/core/server.c
+    app/cli/core/executor.c
+)
+
 # -------------------------------------------------
 # Resources
 # -------------------------------------------------
@@ -188,6 +205,8 @@ endif()
 SET_EXECUTABLE_TARGET_PROPERTIES(${PROJECT_NAME})
 SET_EXECUTABLE_TARGET_PROPERTIES(mikowebhelper)
 SET_EXECUTABLE_TARGET_PROPERTIES(mikoterminal)
+SET_EXECUTABLE_TARGET_PROPERTIES(termibench)
+SET_EXECUTABLE_TARGET_PROPERTIES(hyprn)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CEF_TARGET_OUT_DIR}"
@@ -196,6 +215,18 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 
 set_target_properties(mikoterminal PROPERTIES
     OUTPUT_NAME "mikoterminal"
+)
+
+set_target_properties(hyprn PROPERTIES
+    OUTPUT_NAME "hyprn"
+    RUNTIME_OUTPUT_DIRECTORY "${CORE_BINARY_DEBUG}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CORE_BINARY_RELEASE}"
+)
+
+set_target_properties(termibench PROPERTIES
+    OUTPUT_NAME "termibench"
+    RUNTIME_OUTPUT_DIRECTORY "${TOOLS_OUT_DIR_DEBUG}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${TOOLS_OUT_DIR_RELEASE}"
 )
 
 set_target_properties(mikowebhelper PROPERTIES

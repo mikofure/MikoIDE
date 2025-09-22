@@ -22,16 +22,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>
-#include <sys/time.h>
-#include <signal.h>
 #include <math.h>
 
 #ifdef _WIN32
     #include <windows.h>
     #include <conio.h>
     #define CLEAR_SCREEN "cls"
+    #define sleep(x) Sleep((x) * 1000)
+    #define usleep(x) Sleep((x) / 1000)
 #else
+    #include <unistd.h>
+    #include <sys/time.h>
+    #include <signal.h>
     #include <termios.h>
     #include <sys/ioctl.h>
     #define CLEAR_SCREEN "clear"
@@ -175,9 +177,16 @@ void signal_handler(int sig) {
 
 // High-precision timer
 double get_time_ms(void) {
+#ifdef _WIN32
+    LARGE_INTEGER frequency, counter;
+    QueryPerformanceFrequency(&frequency);
+    QueryPerformanceCounter(&counter);
+    return (double)(counter.QuadPart * 1000.0) / frequency.QuadPart;
+#else
     struct timeval tv;
     gettimeofday(&tv, NULL);
     return (double)(tv.tv_sec * 1000.0 + tv.tv_usec / 1000.0);
+#endif
 }
 
 // Get terminal dimensions
@@ -197,8 +206,21 @@ void get_terminal_size(void) {
 
 // Terminal setup
 void setup_terminal(void) {
+#ifdef _WIN32
+    // Enable UTF-8 output on Windows
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+    
+    // Enable ANSI escape sequences on Windows 10+
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD dwMode = 0;
+    GetConsoleMode(hOut, &dwMode);
+    dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    SetConsoleMode(hOut, dwMode);
+#else
     signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);
+#endif
     get_terminal_size();
     
     // Enable alternative screen buffer
@@ -227,21 +249,20 @@ void restore_terminal(void) {
 
 // Print benchmark header
 void print_header(void) {
-    printf(BOLD CYAN "╔══════════════════════════════════════════════════════════════════════════════╗\n");
-    printf("║                          TermiBench - Extreme Terminal Benchmark             ║\n");
-    printf("║                                    Version 1.0.0                            ║\n");
-    printf("╠══════════════════════════════════════════════════════════════════════════════╣\n");
-    printf("║ Terminal Size: %dx%d                                                    ║\n", terminal_width, terminal_height);
-    printf("║ Max Iterations: %d                                                     ║\n", MAX_ITERATIONS);
-    printf("║ Stress Test Duration: %d seconds                                            ║\n", STRESS_TEST_DURATION);
-    printf("╚══════════════════════════════════════════════════════════════════════════════╝" RESET "\n\n");
+    printf(BOLD CYAN "-------------------------------------------------------------------------\n");
+    printf("                          TermiBench - Extreme Terminal Benchmark             \n");
+    printf("                                    Version 1.0.0                            \n");
+    printf("-------------------------------------------------------------------------\n");
+    printf(" Terminal Size: %dx%d                                                     \n", terminal_width, terminal_height);
+    printf(" Max Iterations: %d                                                     \n", MAX_ITERATIONS);
+    printf(" Stress Test Duration: %d seconds                                            \n", STRESS_TEST_DURATION);
+    printf("-------------------------------------------------------------------------" RESET "\n\n");
 }
 
 // ASCII Text Rendering Benchmark
 benchmark_result_t benchmark_ascii_text(int iterations) {
     benchmark_result_t result = {"ASCII Text Rendering", {0}, 1, ""};
     
-    char text_buffer[1024];
     const char* sample_text = "The quick brown fox jumps over the lazy dog. 1234567890!@#$%^&*()";
     
     double start_time = get_time_ms();
