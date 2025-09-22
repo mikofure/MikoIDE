@@ -22,3 +22,6 @@
 [submodule "external/libgit2"]
 	path = external/libgit2
 	url = https://github.com/libgit2/libgit2
+[submodule "external/miniz"]
+	path = external/miniz
+	url = https://github.com/richgel999/miniz
