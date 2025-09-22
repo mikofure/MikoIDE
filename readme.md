@@ -1,5 +1,6 @@
 # MikoIDE - Hyperion
 
+![In Development](https://img.shields.io/badge/status-in%20development-orange.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows-blue.svg)
 ![C++](https://img.shields.io/badge/C%2B%2B-17-blue.svg)
