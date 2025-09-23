@@ -10,84 +10,13 @@
 namespace Hyperion {
 namespace Toolchain {
 
-// UIButton Implementation
-UIButton::UIButton(const std::string& text, std::function<void()> onClick)
-    : m_text(text), m_onClick(onClick) {
-}
 
-void UIButton::Render(ID2D1RenderTarget* renderTarget, IDWriteTextFormat* textFormat) {
-    if (!IsVisible() || !renderTarget || !textFormat) return;
-
-    ID2D1SolidColorBrush* brush = nullptr;
-    
-    // Create brush for button background
-    D2D1_COLOR_F bgColor;
-    if (m_pressed) {
-        bgColor = D2D1::ColorF(0.1f, 0.4f, 0.8f, 1.0f); // Pressed state
-    } else if (m_hovered) {
-        bgColor = D2D1::ColorF(0.25f, 0.65f, 1.0f, 1.0f); // Hovered state
-    } else {
-        bgColor = D2D1::ColorF(0.2f, 0.6f, 1.0f, 1.0f); // Normal state
-    }
-    
-    renderTarget->CreateSolidColorBrush(bgColor, &brush);
-    
-    if (brush) {
-        // Draw button background
-        D2D1_RECT_F rect = D2D1::RectF(m_bounds.x, m_bounds.y, 
-                                       m_bounds.x + m_bounds.width, 
-                                       m_bounds.y + m_bounds.height);
-        renderTarget->FillRectangle(rect, brush);
-        
-        // Draw button text
-        brush->SetColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f));
-        
-        std::wstring wtext(m_text.begin(), m_text.end());
-        renderTarget->DrawText(wtext.c_str(), static_cast<UINT32>(wtext.length()),
-                              textFormat, rect, brush);
-        
-        brush->Release();
-    }
-}
-
-bool UIButton::HandleEvent(const SDL_Event& event) {
-    if (!IsVisible()) return false;
-    
-    if (event.type == SDL_EVENT_MOUSE_MOTION) {
-        float mouseX = static_cast<float>(event.motion.x);
-        float mouseY = static_cast<float>(event.motion.y);
-        m_hovered = m_bounds.Contains(mouseX, mouseY);
-    }
-    else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
-        if (event.button.button == SDL_BUTTON_LEFT) {
-            float mouseX = static_cast<float>(event.button.x);
-            float mouseY = static_cast<float>(event.button.y);
-            if (m_bounds.Contains(mouseX, mouseY)) {
-                m_pressed = true;
-                return true;
-            }
-        }
-    }
-    else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
-        if (event.button.button == SDL_BUTTON_LEFT && m_pressed) {
-            float mouseX = static_cast<float>(event.button.x);
-            float mouseY = static_cast<float>(event.button.y);
-            if (m_bounds.Contains(mouseX, mouseY) && m_onClick) {
-                m_onClick();
-            }
-            m_pressed = false;
-            return true;
-        }
-    }
-    
-    return false;
-}
 
 // UILabel Implementation
 UILabel::UILabel(const std::string& text) : m_text(text) {
 }
 
-void UILabel::Render(ID2D1RenderTarget* renderTarget, IDWriteTextFormat* textFormat) {
+void UILabel::Render(ID2D1RenderTarget* renderTarget, IDWriteTextFormat* textFormat, IDWriteTextFormat* boldTextFormat, IDWriteTextFormat* regularTextFormat, IDWriteTextFormat* semiboldCenteredTextFormat) {
     if (!IsVisible() || !renderTarget || !textFormat) return;
 
     ID2D1SolidColorBrush* brush = nullptr;
@@ -114,7 +43,7 @@ bool UILabel::HandleEvent(const SDL_Event& event) {
 UIList::UIList() {
 }
 
-void UIList::Render(ID2D1RenderTarget* renderTarget, IDWriteTextFormat* textFormat) {
+void UIList::Render(ID2D1RenderTarget* renderTarget, IDWriteTextFormat* textFormat, IDWriteTextFormat* boldTextFormat, IDWriteTextFormat* regularTextFormat, IDWriteTextFormat* semiboldCenteredTextFormat) {
     if (!IsVisible() || !renderTarget || !textFormat) return;
 
     ID2D1SolidColorBrush* brush = nullptr;
@@ -215,7 +144,7 @@ std::string UIList::GetSelectedItem() const {
 UITextInput::UITextInput(const std::string& placeholder) : m_placeholder(placeholder) {
 }
 
-void UITextInput::Render(ID2D1RenderTarget* renderTarget, IDWriteTextFormat* textFormat) {
+void UITextInput::Render(ID2D1RenderTarget* renderTarget, IDWriteTextFormat* textFormat, IDWriteTextFormat* boldTextFormat, IDWriteTextFormat* regularTextFormat, IDWriteTextFormat* semiboldCenteredTextFormat) {
     if (!IsVisible() || !renderTarget || !textFormat) return;
 
     ID2D1SolidColorBrush* brush = nullptr;
@@ -286,12 +215,12 @@ bool UITextInput::HandleEvent(const SDL_Event& event) {
 UIPanel::UIPanel() {
 }
 
-void UIPanel::Render(ID2D1RenderTarget* renderTarget, IDWriteTextFormat* textFormat) {
+void UIPanel::Render(ID2D1RenderTarget* renderTarget, IDWriteTextFormat* textFormat, IDWriteTextFormat* boldTextFormat, IDWriteTextFormat* regularTextFormat, IDWriteTextFormat* semiboldCenteredTextFormat) {
     if (!IsVisible()) return;
     
     for (auto& widget : m_widgets) {
         if (widget && widget->IsVisible()) {
-            widget->Render(renderTarget, textFormat);
+            widget->Render(renderTarget, textFormat, boldTextFormat, regularTextFormat, semiboldCenteredTextFormat);
         }
     }
 }
@@ -331,6 +260,8 @@ WindowedUI::WindowedUI()
     : m_window(nullptr)
     , m_renderer(nullptr)
     , m_hwnd(nullptr)
+    , m_menuBar(nullptr)
+    , m_originalWndProc(nullptr)
     , m_d2dFactory(nullptr)
     , m_renderTarget(nullptr)
     , m_brush(nullptr)
@@ -340,7 +271,10 @@ WindowedUI::WindowedUI()
     , m_width(1200)
     , m_height(800)
     , m_initialized(false)
-    , m_minimized(false) {
+    , m_minimized(false)
+    , m_header(nullptr)
+    , m_sidebar(nullptr)
+    , m_content(nullptr) {
 }
 
 WindowedUI::~WindowedUI() {
@@ -366,6 +300,13 @@ bool WindowedUI::Initialize(const std::string& title, int width, int height) {
         return false;
     }
     
+#ifdef _WIN32
+    if (!CreateMenuBar()) {
+        std::cerr << "Failed to create menu bar" << std::endl;
+        return false;
+    }
+#endif
+    
     CreateUIElements();
     SetupMainLayout();
     
@@ -377,6 +318,16 @@ void WindowedUI::Shutdown() {
     if (!m_initialized) return;
     
     // Release DirectWrite resources
+    if (m_boldTextFormat) {
+        m_boldTextFormat->Release();
+        m_boldTextFormat = nullptr;
+    }
+    
+    if (m_centeredTextFormat) {
+        m_centeredTextFormat->Release();
+        m_centeredTextFormat = nullptr;
+    }
+    
     if (m_textFormat) {
         m_textFormat->Release();
         m_textFormat = nullptr;
@@ -392,16 +343,29 @@ void WindowedUI::Shutdown() {
         m_brush->Release();
         m_brush = nullptr;
     }
-    
+
     if (m_renderTarget) {
         m_renderTarget->Release();
         m_renderTarget = nullptr;
     }
-    
+
     if (m_d2dFactory) {
         m_d2dFactory->Release();
         m_d2dFactory = nullptr;
     }
+
+#ifdef _WIN32
+    // Restore original window procedure and cleanup menu
+    if (m_hwnd && m_originalWndProc) {
+        SetWindowLongPtr(m_hwnd, GWLP_WNDPROC, (LONG_PTR)m_originalWndProc);
+        m_originalWndProc = nullptr;
+    }
+    
+    if (m_menuBar) {
+        DestroyMenu(m_menuBar);
+        m_menuBar = nullptr;
+    }
+#endif
     
     // Release SDL resources
     if (m_renderer) {
@@ -507,6 +471,78 @@ bool WindowedUI::InitializeDirectWrite() {
     m_textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
     m_textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     
+    // Create centered text format for buttons
+    hr = m_writeFactory->CreateTextFormat(
+        L"Segoe UI",
+        nullptr,
+        DWRITE_FONT_WEIGHT_NORMAL,
+        DWRITE_FONT_STYLE_NORMAL,
+        DWRITE_FONT_STRETCH_NORMAL,
+        14.0f,
+        L"",
+        &m_centeredTextFormat);
+    
+    if (FAILED(hr)) {
+        return false;
+    }
+    
+    m_centeredTextFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+    m_centeredTextFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    
+    // Create bold text format for headers
+    hr = m_writeFactory->CreateTextFormat(
+        L"Segoe UI",
+        nullptr,
+        DWRITE_FONT_WEIGHT_SEMI_BOLD,
+        DWRITE_FONT_STYLE_NORMAL,
+        DWRITE_FONT_STRETCH_NORMAL,
+        14.0f,
+        L"",
+        &m_boldTextFormat);
+    
+    if (FAILED(hr)) {
+        return false;
+    }
+    
+    m_boldTextFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
+    m_boldTextFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    
+    // Create semibold centered text format for buttons
+    hr = m_writeFactory->CreateTextFormat(
+        L"Segoe UI",
+        nullptr,
+        DWRITE_FONT_WEIGHT_SEMI_BOLD,
+        DWRITE_FONT_STYLE_NORMAL,
+        DWRITE_FONT_STRETCH_NORMAL,
+        14.0f,
+        L"",
+        &m_semiboldCenteredTextFormat);
+    
+    if (FAILED(hr)) {
+        return false;
+    }
+    
+    m_semiboldCenteredTextFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+    m_semiboldCenteredTextFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    
+    // Create regular text format for path text
+    hr = m_writeFactory->CreateTextFormat(
+        L"Segoe UI",
+        nullptr,
+        DWRITE_FONT_WEIGHT_NORMAL,
+        DWRITE_FONT_STYLE_NORMAL,
+        DWRITE_FONT_STRETCH_NORMAL,
+        14.0f,
+        L"",
+        &m_regularTextFormat);
+    
+    if (FAILED(hr)) {
+        return false;
+    }
+    
+    m_regularTextFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
+    m_regularTextFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    
     return true;
 #else
     return false; // DirectWrite is Windows-only
@@ -514,60 +550,71 @@ bool WindowedUI::InitializeDirectWrite() {
 }
 
 void WindowedUI::CreateUIElements() {
-    // Create main panels
-    m_mainPanel = std::make_shared<UIPanel>();
-    m_toolchainPanel = std::make_shared<UIPanel>();
-    m_projectPanel = std::make_shared<UIPanel>();
-    m_consolePanel = std::make_shared<UIPanel>();
+    // Clear existing widgets
+    ClearWidgets();
     
-    // Create UI elements
-    m_toolchainList = std::make_shared<UIList>();
-    m_projectList = std::make_shared<UIList>();
-    m_consoleOutput = std::make_shared<UILabel>("Console output will appear here...");
-    m_statusLabel = std::make_shared<UILabel>("Ready");
+    // Create new UI components for the redesigned interface
+    m_header = std::make_shared<UIHeader>("C:\\buildworkers\\hyperion");
+    m_header->SetOnChangeDirectory([this]() {
+        // Handle change directory action
+        std::cout << "Change directory requested" << std::endl;
+    });
     
-    // Create buttons with callbacks
-    m_buildButton = std::make_shared<UIButton>("Build", [this]() {
-        if (m_onBuildRequested) {
-            m_onBuildRequested();
+    m_sidebar = std::make_shared<UISidebar>();
+    m_sidebar->SetOnCategorySelected([this](const std::string& category) {
+        // Handle category selection
+        std::cout << "Category selected: " << category << std::endl;
+        if (m_content) {
+            m_content->FilterByCategory(category);
         }
     });
     
-    m_runButton = std::make_shared<UIButton>("Run", [this]() {
-        if (m_onRunRequested) {
-            m_onRunRequested();
-        }
+    // Add categories to sidebar
+    m_sidebar->AddCategory("All", 7);
+    m_sidebar->AddCategory("Compiler", 2);
+    m_sidebar->AddCategory("Runtime", 3);
+    m_sidebar->AddCategory("SDK", 1);
+    m_sidebar->AddCategory("C++ Library", 1);
+    m_sidebar->AddCategory("Language Server", 0);
+    m_sidebar->AddCategory("Utilities", 0);
+    
+    m_content = std::make_shared<UIContent>();
+    
+    // Add sample toolchain cards
+    auto pythonCard = std::make_shared<UIToolchainCard>(
+        "Python", "3.13.0", 
+        "A programming language that lets you work quickly and integrate systems more effectively",
+        "Runtime"
+    );
+    pythonCard->SetOnInstall([](const std::string& name) {
+        std::cout << "Installing " << name << std::endl;
     });
+    m_content->AddCard(pythonCard);
     
-    m_newProjectButton = std::make_shared<UIButton>("New Project", [this]() {
-        if (m_onNewProject) {
-            m_onNewProject();
-        }
+    auto gccCard = std::make_shared<UIToolchainCard>(
+        "GCC", "13.2.0",
+        "The GNU Compiler Collection includes front ends for C, C++, Objective-C, Fortran, Ada, Go, and D",
+        "Compiler"
+    );
+    gccCard->SetOnInstall([](const std::string& name) {
+        std::cout << "Installing " << name << std::endl;
     });
+    m_content->AddCard(gccCard);
     
-    m_openProjectButton = std::make_shared<UIButton>("Open Project", [this]() {
-        if (m_onOpenProject) {
-            m_onOpenProject();
-        }
+    auto nodeCard = std::make_shared<UIToolchainCard>(
+        "Node.js", "20.10.0",
+        "Node.js is a JavaScript runtime built on Chrome's V8 JavaScript engine",
+        "Runtime"
+    );
+    nodeCard->SetOnInstall([](const std::string& name) {
+        std::cout << "Installing " << name << std::endl;
     });
+    m_content->AddCard(nodeCard);
     
-    // Add widgets to panels
-    m_toolchainPanel->AddWidget(m_toolchainList);
-    m_projectPanel->AddWidget(m_projectList);
-    m_projectPanel->AddWidget(m_newProjectButton);
-    m_projectPanel->AddWidget(m_openProjectButton);
-    m_consolePanel->AddWidget(m_consoleOutput);
-    
-    // Add action buttons to main panel
-    m_mainPanel->AddWidget(m_buildButton);
-    m_mainPanel->AddWidget(m_runButton);
-    
-    // Add all panels to main widget list
-    AddWidget(m_toolchainPanel);
-    AddWidget(m_projectPanel);
-    AddWidget(m_consolePanel);
-    AddWidget(m_mainPanel);
-    AddWidget(m_statusLabel);
+    // Add components to the main widget list
+    AddWidget(m_header);
+    AddWidget(m_sidebar);
+    AddWidget(m_content);
 }
 
 void WindowedUI::SetupMainLayout() {
@@ -575,29 +622,29 @@ void WindowedUI::SetupMainLayout() {
 }
 
 void WindowedUI::UpdateLayout() {
-    float panelWidth = static_cast<float>(m_width) / 3.0f;
-    float panelHeight = static_cast<float>(m_height) - 100.0f; // Leave space for status bar and buttons
+    if (!m_header || !m_sidebar || !m_content) return;
     
-    // Layout toolchain panel (left)
-    m_toolchainPanel->SetBounds(Rect(10.0f, 10.0f, panelWidth - 20.0f, panelHeight));
-    m_toolchainList->SetBounds(Rect(10.0f, 10.0f, panelWidth - 20.0f, panelHeight - 20.0f));
+    RECT clientRect;
+    GetClientRect(m_hwnd, &clientRect);
+    int width = clientRect.right - clientRect.left;
+    int height = clientRect.bottom - clientRect.top;
     
-    // Layout project panel (middle)
-    m_projectPanel->SetBounds(Rect(panelWidth + 10.0f, 10.0f, panelWidth - 20.0f, panelHeight));
-    m_projectList->SetBounds(Rect(panelWidth + 10.0f, 10.0f, panelWidth - 20.0f, panelHeight - 80.0f));
-    m_newProjectButton->SetBounds(Rect(panelWidth + 10.0f, panelHeight - 60.0f, 100.0f, 30.0f));
-    m_openProjectButton->SetBounds(Rect(panelWidth + 120.0f, panelHeight - 60.0f, 100.0f, 30.0f));
+    // Header layout (full width, fixed height at top)
+    int headerHeight = 80;
+    m_header->SetBounds({0.0f, 0.0f, static_cast<float>(width), static_cast<float>(headerHeight)});
     
-    // Layout console panel (right)
-    m_consolePanel->SetBounds(Rect(2.0f * panelWidth + 10.0f, 10.0f, panelWidth - 20.0f, panelHeight));
-    m_consoleOutput->SetBounds(Rect(2.0f * panelWidth + 10.0f, 10.0f, panelWidth - 20.0f, panelHeight - 20.0f));
+    // Body layout (below header)
+    int bodyY = headerHeight;
+    int bodyHeight = height - headerHeight;
     
-    // Layout action buttons
-    m_buildButton->SetBounds(Rect(10.0f, panelHeight + 20.0f, 100.0f, 30.0f));
-    m_runButton->SetBounds(Rect(120.0f, panelHeight + 20.0f, 100.0f, 30.0f));
+    // Sidebar layout (1/4 width on left side of body)
+    int sidebarWidth = width / 4;
+    m_sidebar->SetBounds({0.0f, static_cast<float>(bodyY), static_cast<float>(sidebarWidth), static_cast<float>(bodyHeight)});
     
-    // Layout status bar
-    m_statusLabel->SetBounds(Rect(10.0f, static_cast<float>(m_height) - 30.0f, static_cast<float>(m_width) - 20.0f, 20.0f));
+    // Content layout (3/4 width on right side of body)
+    int contentX = sidebarWidth;
+    int contentWidth = width - sidebarWidth;
+    m_content->SetBounds({static_cast<float>(contentX), static_cast<float>(bodyY), static_cast<float>(contentWidth), static_cast<float>(bodyHeight)});
 }
 
 bool WindowedUI::HandleEvent(const SDL_Event& event) {
@@ -667,7 +714,19 @@ void WindowedUI::RenderBackground() {
 void WindowedUI::RenderWidgets() {
     for (auto& widget : m_widgets) {
         if (widget && widget->IsVisible()) {
-            widget->Render(m_renderTarget, m_textFormat);
+            // Use specific text formats for header widget
+            if (widget == m_header && m_boldTextFormat && m_regularTextFormat && m_semiboldCenteredTextFormat) {
+                // Cast to UIHeader to call the extended Render method
+                auto header = std::dynamic_pointer_cast<UIHeader>(widget);
+                if (header) {
+                    header->Render(m_renderTarget, m_textFormat, m_boldTextFormat, m_regularTextFormat, m_semiboldCenteredTextFormat);
+                } else {
+                    widget->Render(m_renderTarget, m_textFormat, m_boldTextFormat, m_regularTextFormat, m_semiboldCenteredTextFormat);
+                }
+            } else {
+                // Use left-aligned text format for other widgets
+                widget->Render(m_renderTarget, m_textFormat, m_boldTextFormat, m_regularTextFormat, m_semiboldCenteredTextFormat);
+            }
         }
     }
 }
@@ -770,6 +829,703 @@ void WindowedUI::SetStatusText(const std::string& status) {
     if (m_statusLabel) {
         m_statusLabel->SetText(status);
     }
+}
+
+#ifdef _WIN32
+bool WindowedUI::CreateMenuBar() {
+    if (!m_hwnd) {
+        return false;
+    }
+    
+    // Create the main menu bar
+    m_menuBar = CreateMenu();
+    if (!m_menuBar) {
+        return false;
+    }
+    
+    // Create File menu
+    HMENU fileMenu = CreatePopupMenu();
+    AppendMenuW(fileMenu, MF_STRING, ID_FILE_NEW_PROJECT, L"&New Project\tCtrl+N");
+    AppendMenuW(fileMenu, MF_STRING, ID_FILE_OPEN_PROJECT, L"&Open Project\tCtrl+O");
+    AppendMenuW(fileMenu, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(fileMenu, MF_STRING, ID_FILE_SAVE_PROJECT, L"&Save Project\tCtrl+S");
+    AppendMenuW(fileMenu, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(fileMenu, MF_STRING, ID_FILE_CLOSE_PROJECT, L"&Close Project");
+    AppendMenuW(fileMenu, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(fileMenu, MF_STRING, ID_FILE_EXIT, L"E&xit\tAlt+F4");
+    AppendMenuW(m_menuBar, MF_POPUP, (UINT_PTR)fileMenu, L"&File");
+    
+    // Create Edit menu
+    HMENU editMenu = CreatePopupMenu();
+    AppendMenuW(editMenu, MF_STRING, ID_EDIT_UNDO, L"&Undo\tCtrl+Z");
+    AppendMenuW(editMenu, MF_STRING, ID_EDIT_REDO, L"&Redo\tCtrl+Y");
+    AppendMenuW(editMenu, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(editMenu, MF_STRING, ID_EDIT_CUT, L"Cu&t\tCtrl+X");
+    AppendMenuW(editMenu, MF_STRING, ID_EDIT_COPY, L"&Copy\tCtrl+C");
+    AppendMenuW(editMenu, MF_STRING, ID_EDIT_PASTE, L"&Paste\tCtrl+V");
+    AppendMenuW(editMenu, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(editMenu, MF_STRING, ID_EDIT_FIND, L"&Find\tCtrl+F");
+    AppendMenuW(editMenu, MF_STRING, ID_EDIT_REPLACE, L"&Replace\tCtrl+H");
+    AppendMenuW(editMenu, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(editMenu, MF_STRING, ID_EDIT_PREFERENCES, L"&Preferences");
+    AppendMenuW(m_menuBar, MF_POPUP, (UINT_PTR)editMenu, L"&Edit");
+    
+    // Create Build menu
+    HMENU buildMenu = CreatePopupMenu();
+    AppendMenuW(buildMenu, MF_STRING, ID_BUILD_BUILD, L"&Build\tF7");
+    AppendMenuW(buildMenu, MF_STRING, ID_BUILD_REBUILD, L"&Rebuild All\tCtrl+Alt+F7");
+    AppendMenuW(buildMenu, MF_STRING, ID_BUILD_CLEAN, L"&Clean\tCtrl+Alt+C");
+    AppendMenuW(buildMenu, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(buildMenu, MF_STRING, ID_BUILD_RUN, L"&Run\tF5");
+    AppendMenuW(buildMenu, MF_STRING, ID_BUILD_DEBUG, L"&Debug\tF9");
+    AppendMenuW(buildMenu, MF_STRING, ID_BUILD_STOP, L"&Stop\tShift+F5");
+    AppendMenuW(buildMenu, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(buildMenu, MF_STRING, ID_BUILD_CONFIGURATION, L"&Configuration Manager");
+    AppendMenuW(m_menuBar, MF_POPUP, (UINT_PTR)buildMenu, L"&Build");
+    
+    // Create Tools menu
+    HMENU toolsMenu = CreatePopupMenu();
+    AppendMenuW(toolsMenu, MF_STRING, ID_TOOLS_TOOLCHAIN_MANAGER, L"&Toolchain Manager");
+    AppendMenuW(toolsMenu, MF_STRING, ID_TOOLS_PACKAGE_MANAGER, L"&Package Manager");
+    AppendMenuW(toolsMenu, MF_STRING, ID_TOOLS_TERMINAL, L"&Terminal");
+    AppendMenuW(toolsMenu, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(toolsMenu, MF_STRING, ID_TOOLS_OPTIONS, L"&Options");
+    AppendMenuW(m_menuBar, MF_POPUP, (UINT_PTR)toolsMenu, L"&Tools");
+    
+    // Create Help menu
+    HMENU helpMenu = CreatePopupMenu();
+    AppendMenuW(helpMenu, MF_STRING, ID_HELP_DOCUMENTATION, L"&Documentation");
+    AppendMenuW(helpMenu, MF_STRING, ID_HELP_KEYBOARD_SHORTCUTS, L"&Keyboard Shortcuts");
+    AppendMenuW(helpMenu, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(helpMenu, MF_STRING, ID_HELP_ABOUT, L"&About Hyperion Toolchain");
+    AppendMenuW(m_menuBar, MF_POPUP, (UINT_PTR)helpMenu, L"&Help");
+    
+    // Set the menu to the window
+    SetMenu(m_hwnd, m_menuBar);
+    
+    // Subclass the window to handle menu messages
+    m_originalWndProc = (WNDPROC)SetWindowLongPtr(m_hwnd, GWLP_WNDPROC, (LONG_PTR)WindowProc);
+    SetWindowLongPtr(m_hwnd, GWLP_USERDATA, (LONG_PTR)this);
+    
+    return true;
+}
+
+void WindowedUI::HandleMenuCommand(WPARAM wParam) {
+    UINT menuId = LOWORD(wParam);
+    
+    switch (menuId) {
+        // File menu
+        case ID_FILE_NEW_PROJECT:
+            if (m_onNewProject) m_onNewProject();
+            break;
+        case ID_FILE_OPEN_PROJECT:
+            if (m_onOpenProject) m_onOpenProject();
+            break;
+        case ID_FILE_SAVE_PROJECT:
+            // TODO: Implement save project functionality
+            break;
+        case ID_FILE_CLOSE_PROJECT:
+            // TODO: Implement close project functionality
+            break;
+        case ID_FILE_EXIT:
+            PostQuitMessage(0);
+            break;
+            
+        // Edit menu
+        case ID_EDIT_UNDO:
+            // TODO: Implement undo functionality
+            break;
+        case ID_EDIT_REDO:
+            // TODO: Implement redo functionality
+            break;
+        case ID_EDIT_CUT:
+            // TODO: Implement cut functionality
+            break;
+        case ID_EDIT_COPY:
+            // TODO: Implement copy functionality
+            break;
+        case ID_EDIT_PASTE:
+            // TODO: Implement paste functionality
+            break;
+        case ID_EDIT_FIND:
+            // TODO: Implement find functionality
+            break;
+        case ID_EDIT_REPLACE:
+            // TODO: Implement replace functionality
+            break;
+        case ID_EDIT_PREFERENCES:
+            // TODO: Implement preferences dialog
+            break;
+            
+        // Build menu
+        case ID_BUILD_BUILD:
+            if (m_onBuildRequested) m_onBuildRequested();
+            break;
+        case ID_BUILD_REBUILD:
+            // TODO: Implement rebuild functionality
+            break;
+        case ID_BUILD_CLEAN:
+            // TODO: Implement clean functionality
+            break;
+        case ID_BUILD_RUN:
+            if (m_onRunRequested) m_onRunRequested();
+            break;
+        case ID_BUILD_DEBUG:
+            // TODO: Implement debug functionality
+            break;
+        case ID_BUILD_STOP:
+            // TODO: Implement stop functionality
+            break;
+        case ID_BUILD_CONFIGURATION:
+            // TODO: Implement configuration manager
+            break;
+            
+        // Tools menu
+        case ID_TOOLS_TOOLCHAIN_MANAGER:
+            // Already in toolchain manager
+            break;
+        case ID_TOOLS_PACKAGE_MANAGER:
+            // TODO: Implement package manager
+            break;
+        case ID_TOOLS_TERMINAL:
+            // TODO: Implement terminal
+            break;
+        case ID_TOOLS_OPTIONS:
+            // TODO: Implement options dialog
+            break;
+            
+        // Help menu
+        case ID_HELP_DOCUMENTATION:
+            // TODO: Open documentation
+            break;
+        case ID_HELP_KEYBOARD_SHORTCUTS:
+            // TODO: Show keyboard shortcuts dialog
+            break;
+        case ID_HELP_ABOUT:
+            MessageBoxW(m_hwnd, L"Hyperion Toolchain Manager\nVersion 1.0\n\nBuilt with SDL3, Direct2D, and DirectWrite", 
+                       L"About Hyperion Toolchain", MB_OK | MB_ICONINFORMATION);
+            break;
+    }
+}
+
+LRESULT CALLBACK WindowedUI::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    WindowedUI* ui = (WindowedUI*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+    
+    switch (uMsg) {
+        case WM_COMMAND:
+            if (ui) {
+                ui->HandleMenuCommand(wParam);
+            }
+            return 0;
+            
+        case WM_SIZE:
+            // Handle window resize for Direct2D render target
+            if (ui && ui->m_renderTarget) {
+                RECT rc;
+                GetClientRect(hwnd, &rc);
+                D2D1_SIZE_U size = D2D1::SizeU(rc.right - rc.left, rc.bottom - rc.top);
+                ui->m_renderTarget->Resize(size);
+            }
+            break;
+    }
+    
+    // Call the original window procedure for other messages
+    if (ui && ui->m_originalWndProc) {
+        return CallWindowProc(ui->m_originalWndProc, hwnd, uMsg, wParam, lParam);
+    }
+    
+    return DefWindowProc(hwnd, uMsg, wParam, lParam);
+}
+#endif
+
+} // namespace Toolchain
+} // namespace Hyperion
+
+// New UI class implementations
+namespace Hyperion {
+namespace Toolchain {
+
+UIButton::UIButton(const std::string& text, std::function<void()> onClick) 
+    : m_text(text), m_onClick(onClick) {
+}
+
+void UIButton::Render(ID2D1RenderTarget* renderTarget, IDWriteTextFormat* textFormat, IDWriteTextFormat* boldTextFormat, IDWriteTextFormat* regularTextFormat, IDWriteTextFormat* semiboldCenteredTextFormat) {
+    if (!IsVisible() || !renderTarget || !textFormat) return;
+
+    ID2D1SolidColorBrush* bgBrush = nullptr;
+    ID2D1SolidColorBrush* textBrush = nullptr;
+    
+    // Determine button colors based on state
+    float bgR, bgG, bgB, bgA;
+    if (m_pressed) {
+        bgR = m_bgColor.r * 0.8f;
+        bgG = m_bgColor.g * 0.8f;
+        bgB = m_bgColor.b * 0.8f;
+        bgA = m_bgColor.a;
+    } else if (m_hovered) {
+        bgR = m_bgColor.r * 1.1f;
+        bgG = m_bgColor.g * 1.1f;
+        bgB = m_bgColor.b * 1.1f;
+        bgA = m_bgColor.a;
+    } else {
+        bgR = m_bgColor.r;
+        bgG = m_bgColor.g;
+        bgB = m_bgColor.b;
+        bgA = m_bgColor.a;
+    }
+    
+    renderTarget->CreateSolidColorBrush(D2D1::ColorF(bgR, bgG, bgB, bgA), &bgBrush);
+    renderTarget->CreateSolidColorBrush(D2D1::ColorF(m_textColor.r, m_textColor.g, m_textColor.b, m_textColor.a), &textBrush);
+    
+    if (bgBrush && textBrush) {
+        // Draw button background
+        D2D1_RECT_F bgRect = D2D1::RectF(m_bounds.x, m_bounds.y, 
+                                         m_bounds.x + m_bounds.width, 
+                                         m_bounds.y + m_bounds.height);
+        renderTarget->FillRectangle(bgRect, bgBrush);
+        
+        // Draw button text (centered) - using semibold centered text format
+        std::wstring wtext(m_text.begin(), m_text.end());
+        renderTarget->DrawText(wtext.c_str(), static_cast<UINT32>(wtext.length()),
+                              textFormat, bgRect, textBrush, D2D1_DRAW_TEXT_OPTIONS_NONE, DWRITE_MEASURING_MODE_NATURAL);
+        
+        bgBrush->Release();
+        textBrush->Release();
+    }
+}
+
+bool UIButton::HandleEvent(const SDL_Event& event) {
+    if (!IsVisible()) return false;
+    
+    if (event.type == SDL_EVENT_MOUSE_MOTION) {
+        float mouseX = static_cast<float>(event.motion.x);
+        float mouseY = static_cast<float>(event.motion.y);
+        m_hovered = m_bounds.Contains(mouseX, mouseY);
+        return m_hovered;
+    }
+    
+    if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
+        if (event.button.button == SDL_BUTTON_LEFT) {
+            float mouseX = static_cast<float>(event.button.x);
+            float mouseY = static_cast<float>(event.button.y);
+            if (m_bounds.Contains(mouseX, mouseY)) {
+                m_pressed = true;
+                return true;
+            }
+        }
+    }
+    
+    if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
+        if (event.button.button == SDL_BUTTON_LEFT && m_pressed) {
+            float mouseX = static_cast<float>(event.button.x);
+            float mouseY = static_cast<float>(event.button.y);
+            m_pressed = false;
+            if (m_bounds.Contains(mouseX, mouseY) && m_onClick) {
+                m_onClick();
+                return true;
+            }
+        }
+    }
+    
+    return false;
+}
+
+void UIButton::SetStyle(const std::string& bgColor, const std::string& textColor) {
+    // Parse hex colors (simplified - assumes #RRGGBB format)
+    if (bgColor == "bg-[#D9D9D9]") {
+        m_bgColor = {0.85f, 0.85f, 0.85f, 1.0f};
+    } else if (bgColor == "bg-[#2A2A2A]") {
+        m_bgColor = {0.16f, 0.16f, 0.16f, 1.0f};
+    }
+    
+    if (textColor == "text-black") {
+        m_textColor = {0.0f, 0.0f, 0.0f, 1.0f};
+    } else if (textColor == "text-white") {
+        m_textColor = {1.0f, 1.0f, 1.0f, 1.0f};
+    }
+}
+
+// UIHeader Implementation
+UIHeader::UIHeader(const std::string& path) : m_path(path) {
+    m_changeDirectoryButton = std::make_shared<UIButton>("Change Directory");
+    m_changeDirectoryButton->SetStyle("bg-[#D9D9D9]", "text-black");
+}
+
+void UIHeader::Render(ID2D1RenderTarget* renderTarget, IDWriteTextFormat* textFormat, IDWriteTextFormat* boldTextFormat, IDWriteTextFormat* regularTextFormat, IDWriteTextFormat* semiboldCenteredTextFormat) {
+    if (!IsVisible() || !renderTarget || !textFormat) return;
+
+    ID2D1SolidColorBrush* textBrush = nullptr;
+    ID2D1SolidColorBrush* bgBrush = nullptr;
+    
+    renderTarget->CreateSolidColorBrush(D2D1::ColorF(0.9f, 0.9f, 0.9f, 1.0f), &textBrush);
+    renderTarget->CreateSolidColorBrush(D2D1::ColorF(0.1f, 0.1f, 0.1f, 1.0f), &bgBrush);
+    
+    if (textBrush && bgBrush) {
+        // Draw header background
+        D2D1_RECT_F bgRect = D2D1::RectF(m_bounds.x, m_bounds.y, 
+                                         m_bounds.x + m_bounds.width, 
+                                         m_bounds.y + m_bounds.height);
+        renderTarget->FillRectangle(bgRect, bgBrush);
+        
+        // Draw "Toolchain Path" label with bold formatting (16px bold)
+        D2D1_RECT_F labelRect = D2D1::RectF(m_bounds.x + 20, m_bounds.y + 10, 
+                                            m_bounds.x + 200, m_bounds.y + 30);
+        std::wstring labelText = L"Toolchain Path";
+        renderTarget->DrawText(labelText.c_str(), static_cast<UINT32>(labelText.length()),
+                              boldTextFormat ? boldTextFormat : textFormat, labelRect, textBrush);
+        
+        // Draw path value with regular formatting (16px regular)
+        D2D1_RECT_F pathRect = D2D1::RectF(m_bounds.x + 20, m_bounds.y + 35, 
+                                           m_bounds.x + m_bounds.width - 200, m_bounds.y + 55);
+        std::wstring pathText(m_path.begin(), m_path.end());
+        renderTarget->DrawText(pathText.c_str(), static_cast<UINT32>(pathText.length()),
+                              regularTextFormat ? regularTextFormat : textFormat, pathRect, textBrush);
+        
+        // Position and render the change directory button
+        float buttonWidth = 150;
+        float buttonHeight = 35;
+        m_changeDirectoryButton->SetBounds(Rect(m_bounds.x + m_bounds.width - buttonWidth - 20, 
+                                               m_bounds.y + 15, buttonWidth, buttonHeight));
+        m_changeDirectoryButton->Render(renderTarget, semiboldCenteredTextFormat ? semiboldCenteredTextFormat : textFormat, boldTextFormat, regularTextFormat, semiboldCenteredTextFormat);
+        
+        textBrush->Release();
+        bgBrush->Release();
+    }
+}
+
+bool UIHeader::HandleEvent(const SDL_Event& event) {
+    if (!IsVisible()) return false;
+    
+    if (m_changeDirectoryButton->HandleEvent(event)) {
+        if (m_onChangeDirectory) {
+            m_onChangeDirectory();
+        }
+        return true;
+    }
+    
+    return false;
+}
+
+// UICategoryItem Implementation
+UICategoryItem::UICategoryItem(const std::string& name, int count) 
+    : m_name(name), m_count(count) {
+}
+
+void UICategoryItem::Render(ID2D1RenderTarget* renderTarget, IDWriteTextFormat* textFormat, IDWriteTextFormat* boldTextFormat, IDWriteTextFormat* regularTextFormat, IDWriteTextFormat* semiboldCenteredTextFormat) {
+    if (!IsVisible() || !renderTarget || !textFormat) return;
+
+    ID2D1SolidColorBrush* textBrush = nullptr;
+    ID2D1SolidColorBrush* bgBrush = nullptr;
+    ID2D1SolidColorBrush* badgeBrush = nullptr;
+    
+    renderTarget->CreateSolidColorBrush(D2D1::ColorF(0.9f, 0.9f, 0.9f, 1.0f), &textBrush);
+    renderTarget->CreateSolidColorBrush(D2D1::ColorF(0.6f, 0.6f, 0.6f, 1.0f), &badgeBrush);
+    
+    // Background color based on state
+    if (m_selected) {
+        renderTarget->CreateSolidColorBrush(D2D1::ColorF(0.2f, 0.6f, 1.0f, 0.3f), &bgBrush);
+    } else if (m_hovered) {
+        renderTarget->CreateSolidColorBrush(D2D1::ColorF(0.2f, 0.2f, 0.2f, 1.0f), &bgBrush);
+    } else {
+        renderTarget->CreateSolidColorBrush(D2D1::ColorF(0.15f, 0.15f, 0.15f, 1.0f), &bgBrush);
+    }
+    
+    if (textBrush && bgBrush && badgeBrush) {
+        // Draw background
+        D2D1_RECT_F bgRect = D2D1::RectF(m_bounds.x, m_bounds.y, 
+                                         m_bounds.x + m_bounds.width, 
+                                         m_bounds.y + m_bounds.height);
+        renderTarget->FillRectangle(bgRect, bgBrush);
+        
+        // Draw category name with left alignment
+        D2D1_RECT_F nameRect = D2D1::RectF(m_bounds.x + 15, m_bounds.y + 8, 
+                                           m_bounds.x + m_bounds.width - 50, m_bounds.y + m_bounds.height - 8);
+        std::wstring nameText(m_name.begin(), m_name.end());
+        renderTarget->DrawText(nameText.c_str(), static_cast<UINT32>(nameText.length()),
+                              textFormat, nameRect, textBrush);
+        
+        // Draw count badge
+        D2D1_RECT_F badgeRect = D2D1::RectF(m_bounds.x + m_bounds.width - 40, m_bounds.y + 8, 
+                                            m_bounds.x + m_bounds.width - 10, m_bounds.y + m_bounds.height - 8);
+        std::wstring countText = std::to_wstring(m_count);
+        renderTarget->DrawText(countText.c_str(), static_cast<UINT32>(countText.length()),
+                              textFormat, badgeRect, badgeBrush);
+        
+        textBrush->Release();
+        bgBrush->Release();
+        badgeBrush->Release();
+    }
+}
+
+bool UICategoryItem::HandleEvent(const SDL_Event& event) {
+    if (!IsVisible()) return false;
+    
+    if (event.type == SDL_EVENT_MOUSE_MOTION) {
+        float mouseX = static_cast<float>(event.motion.x);
+        float mouseY = static_cast<float>(event.motion.y);
+        m_hovered = m_bounds.Contains(mouseX, mouseY);
+        return m_hovered;
+    }
+    
+    if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
+        if (event.button.button == SDL_BUTTON_LEFT) {
+            float mouseX = static_cast<float>(event.button.x);
+            float mouseY = static_cast<float>(event.button.y);
+            if (m_bounds.Contains(mouseX, mouseY)) {
+                if (m_onClick) {
+                    m_onClick();
+                }
+                return true;
+            }
+        }
+    }
+    
+    return false;
+}
+
+// UISidebar Implementation
+UISidebar::UISidebar() {
+    // Categories are added in CreateUIElements to avoid duplication
+}
+
+void UISidebar::Render(ID2D1RenderTarget* renderTarget, IDWriteTextFormat* textFormat, IDWriteTextFormat* boldTextFormat, IDWriteTextFormat* regularTextFormat, IDWriteTextFormat* semiboldCenteredTextFormat) {
+    if (!IsVisible() || !renderTarget || !textFormat) return;
+
+    ID2D1SolidColorBrush* bgBrush = nullptr;
+    renderTarget->CreateSolidColorBrush(D2D1::ColorF(0.12f, 0.12f, 0.12f, 1.0f), &bgBrush);
+    
+    if (bgBrush) {
+        // Draw sidebar background
+        D2D1_RECT_F bgRect = D2D1::RectF(m_bounds.x, m_bounds.y, 
+                                         m_bounds.x + m_bounds.width, 
+                                         m_bounds.y + m_bounds.height);
+        renderTarget->FillRectangle(bgRect, bgBrush);
+        
+        // Render category items
+        float itemHeight = 40.0f;
+        float currentY = m_bounds.y + 10;
+        
+        for (auto& category : m_categories) {
+            category->SetBounds(Rect(m_bounds.x, currentY, m_bounds.width, itemHeight));
+            category->Render(renderTarget, textFormat, boldTextFormat, regularTextFormat, semiboldCenteredTextFormat);
+            currentY += itemHeight + 2;
+        }
+        
+        bgBrush->Release();
+    }
+}
+
+bool UISidebar::HandleEvent(const SDL_Event& event) {
+    if (!IsVisible()) return false;
+    
+    for (auto& category : m_categories) {
+        if (category->HandleEvent(event)) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+void UISidebar::AddCategory(const std::string& name, int count) {
+    auto categoryItem = std::make_shared<UICategoryItem>(name, count);
+    categoryItem->SetOnClick([this, name]() {
+        SetSelectedCategory(name);
+        if (m_onCategorySelected) {
+            m_onCategorySelected(name);
+        }
+    });
+    
+    if (name == m_selectedCategory) {
+        categoryItem->SetSelected(true);
+    }
+    
+    m_categories.push_back(categoryItem);
+}
+
+void UISidebar::SetSelectedCategory(const std::string& name) {
+    m_selectedCategory = name;
+    for (auto& category : m_categories) {
+        // This is a simplified approach - in a real implementation, 
+        // you'd need to store the category name in UICategoryItem
+        category->SetSelected(false);
+    }
+    
+    // Find and select the correct category
+    for (auto& category : m_categories) {
+        // For now, we'll just select the first one as an example
+        // In a real implementation, you'd compare the category name
+        if (name == "All" && category == m_categories[0]) {
+            category->SetSelected(true);
+            break;
+        }
+    }
+}
+
+// UIToolchainCard Implementation
+UIToolchainCard::UIToolchainCard(const std::string& name, const std::string& version, 
+                               const std::string& description, const std::string& badge)
+    : m_name(name), m_version(version), m_description(description), m_badge(badge) {
+    m_installButton = std::make_shared<UIButton>("Install");
+    m_installButton->SetStyle("#2A2A2A", "#FFFFFF");
+}
+
+
+
+void UIToolchainCard::Render(ID2D1RenderTarget* renderTarget, IDWriteTextFormat* textFormat, IDWriteTextFormat* boldTextFormat, IDWriteTextFormat* regularTextFormat, IDWriteTextFormat* semiboldCenteredTextFormat) {
+    if (!IsVisible() || !renderTarget || !textFormat) return;
+
+    ID2D1SolidColorBrush* textBrush = nullptr;
+    ID2D1SolidColorBrush* bgBrush = nullptr;
+    ID2D1SolidColorBrush* badgeBrush = nullptr;
+    
+    renderTarget->CreateSolidColorBrush(D2D1::ColorF(0.9f, 0.9f, 0.9f, 1.0f), &textBrush);
+    renderTarget->CreateSolidColorBrush(D2D1::ColorF(0.18f, 0.18f, 0.18f, 1.0f), &bgBrush);
+    renderTarget->CreateSolidColorBrush(D2D1::ColorF(0.2f, 0.6f, 1.0f, 1.0f), &badgeBrush);
+    
+    if (textBrush && bgBrush && badgeBrush) {
+        // Draw card background
+        D2D1_RECT_F bgRect = D2D1::RectF(m_bounds.x, m_bounds.y, 
+                                         m_bounds.x + m_bounds.width, 
+                                         m_bounds.y + m_bounds.height);
+        renderTarget->FillRectangle(bgRect, bgBrush);
+        
+        // Draw icon placeholder (simplified as a circle)
+        ID2D1SolidColorBrush* iconBrush = nullptr;
+        renderTarget->CreateSolidColorBrush(D2D1::ColorF(0.4f, 0.4f, 0.4f, 1.0f), &iconBrush);
+        if (iconBrush) {
+            D2D1_ELLIPSE iconEllipse = D2D1::Ellipse(D2D1::Point2F(m_bounds.x + 30, m_bounds.y + 30), 20, 20);
+            renderTarget->FillEllipse(iconEllipse, iconBrush);
+            iconBrush->Release();
+        }
+        
+        // Draw toolchain name with left alignment
+        D2D1_RECT_F nameRect = D2D1::RectF(m_bounds.x + 70, m_bounds.y + 15, 
+                                           m_bounds.x + m_bounds.width - 150, m_bounds.y + 35);
+        std::wstring nameText(m_name.begin(), m_name.end());
+        renderTarget->DrawText(nameText.c_str(), static_cast<UINT32>(nameText.length()),
+                              textFormat, nameRect, textBrush);
+        
+        // Draw version with left alignment
+        D2D1_RECT_F versionRect = D2D1::RectF(m_bounds.x + 70, m_bounds.y + 40, 
+                                              m_bounds.x + m_bounds.width - 150, m_bounds.y + 55);
+        std::wstring versionText(m_version.begin(), m_version.end());
+        renderTarget->DrawText(versionText.c_str(), static_cast<UINT32>(versionText.length()),
+                              textFormat, versionRect, textBrush);
+        
+        // Draw description with left alignment
+        D2D1_RECT_F descRect = D2D1::RectF(m_bounds.x + 70, m_bounds.y + 60, 
+                                           m_bounds.x + m_bounds.width - 150, m_bounds.y + 90);
+        std::wstring descText(m_description.begin(), m_description.end());
+        renderTarget->DrawText(descText.c_str(), static_cast<UINT32>(descText.length()),
+                              textFormat, descRect, textBrush);
+        
+        // Draw badge
+        D2D1_RECT_F badgeRect = D2D1::RectF(m_bounds.x + m_bounds.width - 140, m_bounds.y + 15, 
+                                            m_bounds.x + m_bounds.width - 80, m_bounds.y + 35);
+        renderTarget->FillRectangle(badgeRect, badgeBrush);
+        
+        std::wstring badgeText(m_badge.begin(), m_badge.end());
+        renderTarget->DrawText(badgeText.c_str(), static_cast<UINT32>(badgeText.length()),
+                              textFormat, badgeRect, textBrush);
+        
+        // Position and render install button
+        float buttonWidth = 70;
+        float buttonHeight = 30;
+        m_installButton->SetBounds(Rect(m_bounds.x + m_bounds.width - buttonWidth - 10, 
+                                       m_bounds.y + m_bounds.height - buttonHeight - 10, 
+                                       buttonWidth, buttonHeight));
+        m_installButton->Render(renderTarget, textFormat, boldTextFormat, regularTextFormat, semiboldCenteredTextFormat);
+        
+        textBrush->Release();
+        bgBrush->Release();
+        badgeBrush->Release();
+    }
+}
+
+bool UIToolchainCard::HandleEvent(const SDL_Event& event) {
+    if (!IsVisible()) return false;
+    
+    if (m_installButton->HandleEvent(event)) {
+        if (m_onInstall) {
+            m_onInstall(m_name);
+        }
+        return true;
+    }
+    
+    return false;
+}
+
+// UIContent Implementation
+UIContent::UIContent() {
+    // Constructor is now empty - cards are added in CreateUIElements
+}
+
+void UIContent::Render(ID2D1RenderTarget* renderTarget, IDWriteTextFormat* textFormat, IDWriteTextFormat* boldTextFormat, IDWriteTextFormat* regularTextFormat, IDWriteTextFormat* semiboldCenteredTextFormat) {
+    if (!IsVisible() || !renderTarget || !textFormat) return;
+
+    ID2D1SolidColorBrush* bgBrush = nullptr;
+    renderTarget->CreateSolidColorBrush(D2D1::ColorF(0.1f, 0.1f, 0.1f, 1.0f), &bgBrush);
+    
+    if (bgBrush) {
+        // Draw content background
+        D2D1_RECT_F bgRect = D2D1::RectF(m_bounds.x, m_bounds.y, 
+                                         m_bounds.x + m_bounds.width, 
+                                         m_bounds.y + m_bounds.height);
+        renderTarget->FillRectangle(bgRect, bgBrush);
+        
+        // Render toolchain cards
+        float cardHeight = 120.0f;
+        float cardSpacing = 10.0f;
+        float currentY = m_bounds.y + 20 - (m_scrollOffset * (cardHeight + cardSpacing));
+        
+        for (auto& card : m_cards) {
+            if (currentY + cardHeight > m_bounds.y && currentY < m_bounds.y + m_bounds.height) {
+                card->SetBounds(Rect(m_bounds.x + 20, currentY, m_bounds.width - 40, cardHeight));
+                card->Render(renderTarget, textFormat, boldTextFormat, regularTextFormat, semiboldCenteredTextFormat);
+            }
+            currentY += cardHeight + cardSpacing;
+        }
+        
+        bgBrush->Release();
+    }
+}
+
+bool UIContent::HandleEvent(const SDL_Event& event) {
+    if (!IsVisible()) return false;
+    
+    for (auto& card : m_cards) {
+        if (card->HandleEvent(event)) {
+            return true;
+        }
+    }
+    
+    // Handle scrolling
+    if (event.type == SDL_EVENT_MOUSE_WHEEL) {
+        float mouseX = static_cast<float>(event.wheel.mouse_x);
+        float mouseY = static_cast<float>(event.wheel.mouse_y);
+        if (m_bounds.Contains(mouseX, mouseY)) {
+            m_scrollOffset -= event.wheel.y;
+            if (m_scrollOffset < 0) m_scrollOffset = 0;
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+void UIContent::AddCard(std::shared_ptr<UIToolchainCard> card) {
+    m_cards.push_back(card);
+}
+
+void UIContent::ClearCards() {
+    m_cards.clear();
+}
+
+void UIContent::FilterByCategory(const std::string& category) {
+    m_currentCategory = category;
+    // In a real implementation, you would filter the cards based on category
+    // For now, we'll just store the current category
 }
 
 } // namespace Toolchain
