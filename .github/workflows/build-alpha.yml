@@ -51,15 +51,7 @@ jobs:
         run: bun run buildtobin
       
       - name: Build main application
-        run: bun run build:cmake main --verbose
-      
-      - name: Build CLI utilities
-        run: |
-          bun run build:cmake mikoterminal --verbose
-          bun run build:cmake termibench --verbose
-          bun run build:cmake mikowebhelper --verbose
-          bun run build:cmake hyprn --verbose
-        shell: pwsh
+        run: bun run build:cmake
       
       - name: Create portable package
         run: bun run tools/prod.ts --portable
