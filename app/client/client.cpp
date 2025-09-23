@@ -30,7 +30,8 @@ SDL3Window::SDL3Window()
       dx11_renderer_(nullptr), dx11_enabled_(false), dpi_scale_(1.0f),
       menu_overlay_visible_(false), menu_overlay_x_(0), menu_overlay_y_(0),
       editor_enabled_(false), editor_rect_({0, 0, 0, 0}),
-      editor_browser_(nullptr), editor_texture_(nullptr) {}
+      editor_browser_(nullptr), editor_texture_(nullptr),
+      editor_has_focus_(false), main_browser_has_focus_(true) {}
 
 SDL3Window::~SDL3Window() { Shutdown(); }
 
@@ -99,6 +100,9 @@ bool SDL3Window::Initialize(int width, int height) {
   // Initialize DPI scaling
   UpdateDPIScale();
 
+  // Enable text input for the window
+  SDL_StartTextInput(window_);
+
   return true;
 }
 
@@ -123,6 +127,7 @@ void SDL3Window::Shutdown() {
     renderer_ = nullptr;
   }
   if (window_) {
+    SDL_StopTextInput(window_);
     SDL_DestroyWindow(window_);
     window_ = nullptr;
   }
@@ -419,9 +424,21 @@ bool SDL3Window::HandleEvent(const SDL_Event &event) {
     SendKeyEvent(event);
     return true;
 
+  case SDL_EVENT_TEXT_INPUT:
+    SendTextInputEvent(event);
+    return true;
+
   default:
     return false;
   }
+}
+
+bool SDL3Window::IsPointInEditor(int x, int y) const {
+  return editor_enabled_ && 
+         x >= editor_rect_.x && 
+         x < editor_rect_.x + editor_rect_.width &&
+         y >= editor_rect_.y && 
+         y < editor_rect_.y + editor_rect_.height;
 }
 
 void SDL3Window::SendMouseEvent(const SDL_Event &event) {
@@ -430,13 +447,24 @@ void SDL3Window::SendMouseEvent(const SDL_Event &event) {
     return;
   }
 
-  auto browser = client_->GetFirstBrowser();
-  if (!browser) {
-    Logger::LogMessage("SendMouseEvent: Browser is null");
+  // Determine which browser to send the event to
+  CefRefPtr<CefBrowser> target_browser;
+  bool is_editor_event = IsPointInEditor(event.button.x, event.button.y);
+  
+  if (is_editor_event && editor_browser_) {
+    target_browser = editor_browser_;
+    Logger::LogMessage("SendMouseEvent: Routing to editor browser");
+  } else {
+    target_browser = client_->GetFirstBrowser();
+    Logger::LogMessage("SendMouseEvent: Routing to main browser");
+  }
+
+  if (!target_browser) {
+    Logger::LogMessage("SendMouseEvent: Target browser is null");
     return;
   }
 
-  auto host = browser->GetHost();
+  auto host = target_browser->GetHost();
   if (!host) {
     Logger::LogMessage("SendMouseEvent: Browser host is null");
     return;
@@ -447,13 +475,29 @@ void SDL3Window::SendMouseEvent(const SDL_Event &event) {
   mouse_event.y = event.button.y;
   mouse_event.modifiers = 0; // TODO: Handle modifiers
 
-  // Validate coordinates are within reasonable bounds
-  if (mouse_event.x < 0 || mouse_event.y < 0 || mouse_event.x > width_ ||
-      mouse_event.y > height_) {
-    Logger::LogMessage("SendMouseEvent: Mouse coordinates out of bounds (" +
-                       std::to_string(mouse_event.x) + ", " +
-                       std::to_string(mouse_event.y) + ")");
-    return;
+  // If this is an editor event, adjust coordinates relative to editor area
+  if (is_editor_event) {
+    mouse_event.x -= editor_rect_.x;
+    mouse_event.y -= editor_rect_.y;
+    
+    // Validate coordinates are within editor bounds
+    if (mouse_event.x < 0 || mouse_event.y < 0 || 
+        mouse_event.x > editor_rect_.width || mouse_event.y > editor_rect_.height) {
+      Logger::LogMessage("SendMouseEvent: Editor mouse coordinates out of bounds (" +
+                         std::to_string(mouse_event.x) + ", " +
+                         std::to_string(mouse_event.y) + ") editor size: " +
+                         std::to_string(editor_rect_.width) + "x" + std::to_string(editor_rect_.height));
+      return;
+    }
+  } else {
+    // Validate coordinates are within main window bounds
+    if (mouse_event.x < 0 || mouse_event.y < 0 || mouse_event.x > width_ ||
+        mouse_event.y > height_) {
+      Logger::LogMessage("SendMouseEvent: Main window mouse coordinates out of bounds (" +
+                         std::to_string(mouse_event.x) + ", " +
+                         std::to_string(mouse_event.y) + ")");
+      return;
+    }
   }
 
   last_mouse_x_ = event.button.x;
@@ -477,11 +521,25 @@ void SDL3Window::SendMouseEvent(const SDL_Event &event) {
       bool mouse_up = (event.type == SDL_EVENT_MOUSE_BUTTON_UP);
       int click_count = event.button.clicks;
 
+      // Update focus tracking on mouse down events
+      if (!mouse_up) {
+        if (is_editor_event) {
+          editor_has_focus_ = true;
+          main_browser_has_focus_ = false;
+          Logger::LogMessage("SendMouseEvent: Focus switched to editor");
+        } else {
+          editor_has_focus_ = false;
+          main_browser_has_focus_ = true;
+          Logger::LogMessage("SendMouseEvent: Focus switched to main browser");
+        }
+      }
+
       Logger::LogMessage("SendMouseEvent: Sending click event at (" +
                          std::to_string(mouse_event.x) + ", " +
                          std::to_string(mouse_event.y) +
                          ") button=" + std::to_string(button_type) +
-                         " up=" + std::to_string(mouse_up));
+                         " up=" + std::to_string(mouse_up) +
+                         " to " + (is_editor_event ? "editor" : "main") + " browser");
 
       host->SendMouseClickEvent(mouse_event, button_type, mouse_up,
                                 click_count);
@@ -500,14 +558,82 @@ void SDL3Window::SendKeyEvent(const SDL_Event &event) {
   if (!client_)
     return;
 
-  auto browser = client_->GetFirstBrowser();
-  if (!browser)
+  // Determine which browser to send the event to based on focus state
+  CefRefPtr<CefBrowser> target_browser;
+  
+  if (editor_has_focus_ && editor_browser_) {
+    target_browser = editor_browser_;
+    Logger::LogMessage("SendKeyEvent: Routing to editor browser (has focus)");
+  } else if (main_browser_has_focus_) {
+    target_browser = client_->GetFirstBrowser();
+    Logger::LogMessage("SendKeyEvent: Routing to main browser (has focus)");
+  } else {
+    // Fallback to main browser if no focus is set
+    target_browser = client_->GetFirstBrowser();
+    Logger::LogMessage("SendKeyEvent: Routing to main browser (fallback)");
+  }
+
+  if (!target_browser)
     return;
 
+  // Check for modifier keys
+  SDL_Keymod modifiers = SDL_GetModState();
+  bool ctrl_pressed = (modifiers & SDL_KMOD_CTRL) != 0;
+  bool shift_pressed = (modifiers & SDL_KMOD_SHIFT) != 0;
+  bool alt_pressed = (modifiers & SDL_KMOD_ALT) != 0;
+
+  // Handle copy-paste shortcuts
+  if (ctrl_pressed && event.type == SDL_EVENT_KEY_DOWN) {
+    if (event.key.key == SDLK_C) {
+      // Ctrl+C - Copy
+      Logger::LogMessage("SendKeyEvent: Handling Ctrl+C copy command");
+      target_browser->GetMainFrame()->Copy();
+      return;
+    } else if (event.key.key == SDLK_V) {
+      // Ctrl+V - Paste
+      Logger::LogMessage("SendKeyEvent: Handling Ctrl+V paste command");
+      target_browser->GetMainFrame()->Paste();
+      return;
+    } else if (event.key.key == SDLK_X) {
+      // Ctrl+X - Cut
+      Logger::LogMessage("SendKeyEvent: Handling Ctrl+X cut command");
+      target_browser->GetMainFrame()->Cut();
+      return;
+    } else if (event.key.key == SDLK_A) {
+      // Ctrl+A - Select All
+      Logger::LogMessage("SendKeyEvent: Handling Ctrl+A select all command");
+      
+      // Send the key event to CEF instead of using SelectAll() method
+      CefKeyEvent select_all_event;
+      select_all_event.type = KEYEVENT_KEYDOWN;
+      select_all_event.windows_key_code = 'A';
+      select_all_event.native_key_code = event.key.scancode;
+      select_all_event.modifiers = EVENTFLAG_CONTROL_DOWN;
+      
+      target_browser->GetHost()->SendKeyEvent(select_all_event);
+      return;
+    } else if (event.key.key == SDLK_Z) {
+      // Ctrl+Z - Undo
+      Logger::LogMessage("SendKeyEvent: Handling Ctrl+Z undo command");
+      target_browser->GetMainFrame()->Undo();
+      return;
+    } else if (event.key.key == SDLK_Y) {
+      // Ctrl+Y - Redo
+      Logger::LogMessage("SendKeyEvent: Handling Ctrl+Y redo command");
+      target_browser->GetMainFrame()->Redo();
+      return;
+    }
+  }
+
   CefKeyEvent key_event;
-  key_event.windows_key_code = event.key.key;
+  key_event.windows_key_code = MapSDLKeyToWindowsVK(event.key.key);
   key_event.native_key_code = event.key.scancode;
-  key_event.modifiers = 0; // TODO: Handle modifiers properly
+  
+  // Set modifiers properly
+  key_event.modifiers = 0;
+  if (ctrl_pressed) key_event.modifiers |= EVENTFLAG_CONTROL_DOWN;
+  if (shift_pressed) key_event.modifiers |= EVENTFLAG_SHIFT_DOWN;
+  if (alt_pressed) key_event.modifiers |= EVENTFLAG_ALT_DOWN;
 
   if (event.type == SDL_EVENT_KEY_DOWN) {
     key_event.type = KEYEVENT_KEYDOWN;
@@ -515,15 +641,40 @@ void SDL3Window::SendKeyEvent(const SDL_Event &event) {
     key_event.type = KEYEVENT_KEYUP;
   }
 
-  browser->GetHost()->SendKeyEvent(key_event);
+  target_browser->GetHost()->SendKeyEvent(key_event);
+
+  // Special handling for Enter key to generate carriage return character
+  if (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_RETURN) {
+    CefKeyEvent char_event;
+    char_event.type = KEYEVENT_CHAR;
+    char_event.character = '\r';
+    char_event.unmodified_character = '\r';
+    char_event.windows_key_code = '\r';
+    char_event.native_key_code = 0;
+    char_event.modifiers = 0;
+    
+    target_browser->GetHost()->SendKeyEvent(char_event);
+    Logger::LogMessage("SendKeyEvent: Generated carriage return character for Enter key");
+  }
 }
 
 void SDL3Window::SendScrollEvent(const SDL_Event &event) {
   if (!client_)
     return;
 
-  auto browser = client_->GetFirstBrowser();
-  if (!browser)
+  // Determine which browser to send the event to based on mouse position
+  CefRefPtr<CefBrowser> target_browser;
+  bool is_editor_event = IsPointInEditor(last_mouse_x_, last_mouse_y_);
+  
+  if (is_editor_event && editor_browser_) {
+    target_browser = editor_browser_;
+    Logger::LogMessage("SendScrollEvent: Routing to editor browser");
+  } else {
+    target_browser = client_->GetFirstBrowser();
+    Logger::LogMessage("SendScrollEvent: Routing to main browser");
+  }
+
+  if (!target_browser)
     return;
 
   CefMouseEvent mouse_event;
@@ -531,10 +682,63 @@ void SDL3Window::SendScrollEvent(const SDL_Event &event) {
   mouse_event.y = last_mouse_y_;
   mouse_event.modifiers = 0;
 
+  // If this is an editor event, adjust coordinates relative to editor area
+  if (is_editor_event) {
+    mouse_event.x -= editor_rect_.x;
+    mouse_event.y -= editor_rect_.y;
+  }
+
   int delta_x = 0;
   int delta_y = static_cast<int>(event.wheel.y * 120); // Standard wheel delta
 
-  browser->GetHost()->SendMouseWheelEvent(mouse_event, delta_x, delta_y);
+  target_browser->GetHost()->SendMouseWheelEvent(mouse_event, delta_x, delta_y);
+}
+
+void SDL3Window::SendTextInputEvent(const SDL_Event &event) {
+  if (!client_)
+    return;
+
+  // Determine which browser to send the event to based on focus state
+  CefRefPtr<CefBrowser> target_browser;
+  
+  if (editor_has_focus_ && editor_browser_) {
+    target_browser = editor_browser_;
+    Logger::LogMessage("SendTextInputEvent: Routing to editor browser (has focus)");
+  } else if (main_browser_has_focus_) {
+    target_browser = client_->GetFirstBrowser();
+    Logger::LogMessage("SendTextInputEvent: Routing to main browser (has focus)");
+  } else {
+    // Fallback to main browser if no focus is set
+    target_browser = client_->GetFirstBrowser();
+    Logger::LogMessage("SendTextInputEvent: Routing to main browser (fallback)");
+  }
+
+  if (!target_browser)
+    return;
+
+  // Convert SDL text input to CEF key event
+  const char* text = event.text.text;
+  if (!text || strlen(text) == 0) {
+    Logger::LogMessage("SendTextInputEvent: Empty text input");
+    return;
+  }
+
+  // For each character in the text input
+  for (int i = 0; text[i] != '\0'; i++) {
+    CefKeyEvent key_event;
+    key_event.type = KEYEVENT_CHAR;
+    key_event.character = text[i];
+    key_event.unmodified_character = text[i];
+    key_event.windows_key_code = text[i];
+    key_event.native_key_code = 0;
+    key_event.modifiers = 0;
+
+    target_browser->GetHost()->SendKeyEvent(key_event);
+    
+    Logger::LogMessage("SendTextInputEvent: Sent character '" + 
+                       std::string(1, text[i]) + "' to " + 
+                       (editor_has_focus_ ? "editor" : "main") + " browser");
+  }
 }
 
 void SDL3Window::UpdateTexture(const void *buffer, int width, int height) {
@@ -1285,8 +1489,25 @@ bool SDL3Window::HandleWindowDragging(const SDL_Event &event) {
   switch (event.type) {
   case SDL_EVENT_MOUSE_BUTTON_DOWN:
     if (event.button.button == SDL_BUTTON_LEFT) {
+      bool in_draggable_region = false;
+      
       // Check if the click is in a draggable region
+      // First check main browser draggable regions
       if (client_->IsPointInDragRegion(event.button.x, event.button.y)) {
+        in_draggable_region = true;
+      }
+      // If editor is active and mouse is in editor area, check if it's in title bar region
+      else if (editor_enabled_ && IsPointInEditor(event.button.x, event.button.y)) {
+        // For editor, assume title bar area (top 32px) is draggable
+        // This matches the margin_y calculation used elsewhere
+        int title_bar_height = 32;
+        if (event.button.y >= editor_rect_.y && event.button.y < editor_rect_.y + title_bar_height) {
+          in_draggable_region = true;
+          Logger::LogMessage("Mouse click in editor title bar area - allowing drag");
+        }
+      }
+      
+      if (in_draggable_region) {
         is_dragging_ = true;
         drag_start_x_ = event.button.x;
         drag_start_y_ = event.button.y;
@@ -2445,4 +2666,105 @@ std::string SimpleClient::BuildOverlayURL(const std::string &section, int x,
   Logger::LogMessage("Miko URL created: " + overlay_url);
 
   return overlay_url;
+}
+
+// Key mapping function to convert SDL key codes to Windows virtual key codes
+int SDL3Window::MapSDLKeyToWindowsVK(SDL_Keycode sdl_key) const {
+  switch (sdl_key) {
+    // Letters
+    case SDLK_A: return 'A';
+    case SDLK_B: return 'B';
+    case SDLK_C: return 'C';
+    case SDLK_D: return 'D';
+    case SDLK_E: return 'E';
+    case SDLK_F: return 'F';
+    case SDLK_G: return 'G';
+    case SDLK_H: return 'H';
+    case SDLK_I: return 'I';
+    case SDLK_J: return 'J';
+    case SDLK_K: return 'K';
+    case SDLK_L: return 'L';
+    case SDLK_M: return 'M';
+    case SDLK_N: return 'N';
+    case SDLK_O: return 'O';
+    case SDLK_P: return 'P';
+    case SDLK_Q: return 'Q';
+    case SDLK_R: return 'R';
+    case SDLK_S: return 'S';
+    case SDLK_T: return 'T';
+    case SDLK_U: return 'U';
+    case SDLK_V: return 'V';
+    case SDLK_W: return 'W';
+    case SDLK_X: return 'X';
+    case SDLK_Y: return 'Y';
+    case SDLK_Z: return 'Z';
+    
+    // Numbers
+    case SDLK_0: return '0';
+    case SDLK_1: return '1';
+    case SDLK_2: return '2';
+    case SDLK_3: return '3';
+    case SDLK_4: return '4';
+    case SDLK_5: return '5';
+    case SDLK_6: return '6';
+    case SDLK_7: return '7';
+    case SDLK_8: return '8';
+    case SDLK_9: return '9';
+    
+    // Special keys
+    case SDLK_RETURN: return 0x0D; // VK_RETURN
+    case SDLK_ESCAPE: return 0x1B; // VK_ESCAPE
+    case SDLK_BACKSPACE: return 0x08; // VK_BACK
+    case SDLK_TAB: return 0x09; // VK_TAB
+    case SDLK_SPACE: return 0x20; // VK_SPACE
+    case SDLK_DELETE: return 0x2E; // VK_DELETE
+    case SDLK_HOME: return 0x24; // VK_HOME
+    case SDLK_END: return 0x23; // VK_END
+    case SDLK_PAGEUP: return 0x21; // VK_PRIOR
+    case SDLK_PAGEDOWN: return 0x22; // VK_NEXT
+    case SDLK_LEFT: return 0x25; // VK_LEFT
+    case SDLK_UP: return 0x26; // VK_UP
+    case SDLK_RIGHT: return 0x27; // VK_RIGHT
+    case SDLK_DOWN: return 0x28; // VK_DOWN
+    case SDLK_INSERT: return 0x2D; // VK_INSERT
+    
+    // Function keys
+    case SDLK_F1: return 0x70; // VK_F1
+    case SDLK_F2: return 0x71; // VK_F2
+    case SDLK_F3: return 0x72; // VK_F3
+    case SDLK_F4: return 0x73; // VK_F4
+    case SDLK_F5: return 0x74; // VK_F5
+    case SDLK_F6: return 0x75; // VK_F6
+    case SDLK_F7: return 0x76; // VK_F7
+    case SDLK_F8: return 0x77; // VK_F8
+    case SDLK_F9: return 0x78; // VK_F9
+    case SDLK_F10: return 0x79; // VK_F10
+    case SDLK_F11: return 0x7A; // VK_F11
+    case SDLK_F12: return 0x7B; // VK_F12
+    
+    // Modifier keys
+    case SDLK_LSHIFT: return 0xA0; // VK_LSHIFT
+    case SDLK_RSHIFT: return 0xA1; // VK_RSHIFT
+    case SDLK_LCTRL: return 0xA2; // VK_LCONTROL
+    case SDLK_RCTRL: return 0xA3; // VK_RCONTROL
+    case SDLK_LALT: return 0xA4; // VK_LMENU
+    case SDLK_RALT: return 0xA5; // VK_RMENU
+    
+    // Punctuation and symbols
+    case SDLK_SEMICOLON: return 0xBA; // VK_OEM_1
+    case SDLK_EQUALS: return 0xBB; // VK_OEM_PLUS
+    case SDLK_COMMA: return 0xBC; // VK_OEM_COMMA
+    case SDLK_MINUS: return 0xBD; // VK_OEM_MINUS
+    case SDLK_PERIOD: return 0xBE; // VK_OEM_PERIOD
+    case SDLK_SLASH: return 0xBF; // VK_OEM_2
+    case SDLK_GRAVE: return 0xC0; // VK_OEM_3
+    case SDLK_LEFTBRACKET: return 0xDB; // VK_OEM_4
+    case SDLK_BACKSLASH: return 0xDC; // VK_OEM_5
+    case SDLK_RIGHTBRACKET: return 0xDD; // VK_OEM_6
+    case SDLK_APOSTROPHE: return 0xDE; // VK_OEM_7
+    
+    default:
+      // For unmapped keys, return the SDL key code as-is
+      return static_cast<int>(sdl_key);
+  }
 }

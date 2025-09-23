@@ -17,10 +17,13 @@
     "@tanstack/react-query": "^5.89.0",
     "@vscode/codicons": "^0.0.40",
     "developer-icons": "^6.0.4",
+    "i18next": "^25.5.2",
+    "i18next-po-loader": "^1.0.1",
     "lucide-react": "^0.542.0",
     "monaco-editor": "^0.52.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-i18next": "^15.7.3",
     "react-redux": "^9.2.0",
     "tailwindcss": "^4.1.13",
     "vite-plugin-singlefile": "^2.3.0"

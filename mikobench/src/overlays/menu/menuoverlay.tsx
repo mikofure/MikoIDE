@@ -4,8 +4,11 @@ import ReactDOM from "react-dom/client";
 import React from 'react';
 import './menu.css';
 import '@fontsource-variable/inter/wght.css'
+import { useTranslation } from 'react-i18next';
+import '../../i18n'; // Initialize i18n
 
 export default function MenuOverlay() {
+  const { t } = useTranslation();
   const params = new URLSearchParams(window.location.search);
   const section = params.get("section");
   const width = params.get("width");
@@ -51,7 +54,7 @@ export default function MenuOverlay() {
           className="px-3 py-1 text-xs text-[#cccccc] hover:bg-[#404040] cursor-pointer flex justify-between items-center"
           onClick={() => handleClick(item)}
         >
-          <span>{item.label}</span>
+          <span>{t(item.label)}</span>
           {item.shortcut && (
             <span className="text-[#888888] ml-4">{item.shortcut}</span>
           )}

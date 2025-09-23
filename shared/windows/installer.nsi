@@ -2,6 +2,7 @@
 ; This script creates an installer for Hyperion targeting LocalAppData
 
 !include "MUI2.nsh"
+!define MUI_ICON "assets\icon.ico"
 
 ; Create output directory if it doesn't exist
 !system 'if not exist "..\..\out" mkdir "..\..\out"'

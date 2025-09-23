@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { editorMenu, type MenuSection } from '../../shared/menu';
 import Logo from "../../assets/logo.png"
+import LanguageSwitcher from '../../components/LanguageSwitcher';
 // import { ChevronRight } from 'lucide-react';
 import { PanelLeft, PanelBottom, PanelRightIcon, Layout, Search } from 'lucide-react';
 
@@ -43,6 +45,7 @@ const getOperatingSystem = (): 'windows' | 'macos' | 'linux' | 'unknown' => {
 };
 
 export default function TitleBar() {
+  const { t } = useTranslation();
   const [isMaximized, setIsMaximized] = useState(false);
   const [supportsWCO, setSupportsWCO] = useState(false);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -243,7 +246,7 @@ export default function TitleBar() {
                 }
               }}
             >
-              {section.title}
+              {t(section.title)}
             </div>
           ))}
         </div>
@@ -258,6 +261,9 @@ export default function TitleBar() {
       {/* Window Controls */}
       <div className="flex h-full" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
         <div className='flex items-center space-x-2 pr-4'>
+          {/* Language Switcher */}
+          <LanguageSwitcher />
+          
           <button className='w-6 h-full hover:bg-white/10 flex items-center justify-center cursor-pointer'>
             <Search size={14} />
           </button>

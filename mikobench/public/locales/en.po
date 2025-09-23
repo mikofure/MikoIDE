@@ -1,0 +1,415 @@
+# MikoIDE Translation File - English
+# Generated from source code analysis
+# 
+msgid ""
+msgstr ""
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# Menu Labels - File Menu
+msgid "File"
+msgstr "File"
+
+msgid "New File"
+msgstr "New File"
+
+msgid "New Window"
+msgstr "New Window"
+
+msgid "Open File..."
+msgstr "Open File..."
+
+msgid "Open Folder..."
+msgstr "Open Folder..."
+
+msgid "Open Recent"
+msgstr "Open Recent"
+
+msgid "Save"
+msgstr "Save"
+
+msgid "Save As..."
+msgstr "Save As..."
+
+msgid "Save All"
+msgstr "Save All"
+
+msgid "Auto Save"
+msgstr "Auto Save"
+
+msgid "Close"
+msgstr "Close"
+
+msgid "Close All"
+msgstr "Close All"
+
+msgid "Revert File"
+msgstr "Revert File"
+
+msgid "Preferences"
+msgstr "Preferences"
+
+msgid "Exit / Quit"
+msgstr "Exit / Quit"
+
+# Menu Labels - Edit Menu
+msgid "Edit"
+msgstr "Edit"
+
+msgid "Undo"
+msgstr "Undo"
+
+msgid "Redo"
+msgstr "Redo"
+
+msgid "Cut"
+msgstr "Cut"
+
+msgid "Copy"
+msgstr "Copy"
+
+msgid "Paste"
+msgstr "Paste"
+
+msgid "Delete"
+msgstr "Delete"
+
+msgid "Select All"
+msgstr "Select All"
+
+msgid "Expand Selection"
+msgstr "Expand Selection"
+
+msgid "Shrink Selection"
+msgstr "Shrink Selection"
+
+msgid "Find"
+msgstr "Find"
+
+msgid "Find Next"
+msgstr "Find Next"
+
+msgid "Find Previous"
+msgstr "Find Previous"
+
+msgid "Replace"
+msgstr "Replace"
+
+msgid "Replace All"
+msgstr "Replace All"
+
+msgid "Find in Files"
+msgstr "Find in Files"
+
+msgid "Replace in Files"
+msgstr "Replace in Files"
+
+msgid "Go To Line..."
+msgstr "Go To Line..."
+
+msgid "Go To Symbol..."
+msgstr "Go To Symbol..."
+
+msgid "Toggle Line Comment"
+msgstr "Toggle Line Comment"
+
+msgid "Toggle Block Comment"
+msgstr "Toggle Block Comment"
+
+msgid "Format Document"
+msgstr "Format Document"
+
+msgid "Format Selection"
+msgstr "Format Selection"
+
+msgid "Trim Trailing Whitespace"
+msgstr "Trim Trailing Whitespace"
+
+msgid "Convert Case"
+msgstr "Convert Case"
+
+msgid "Uppercase"
+msgstr "Uppercase"
+
+msgid "Lowercase"
+msgstr "Lowercase"
+
+msgid "Capitalize"
+msgstr "Capitalize"
+
+msgid "Clipboard History"
+msgstr "Clipboard History"
+
+# Menu Labels - View Menu
+msgid "View"
+msgstr "View"
+
+msgid "Explorer / File Tree"
+msgstr "Explorer / File Tree"
+
+msgid "Open Editors"
+msgstr "Open Editors"
+
+msgid "Show Tabs"
+msgstr "Show Tabs"
+
+msgid "Show Status Bar"
+msgstr "Show Status Bar"
+
+msgid "Toggle Minimap"
+msgstr "Toggle Minimap"
+
+msgid "Zoom In"
+msgstr "Zoom In"
+
+msgid "Zoom Out"
+msgstr "Zoom Out"
+
+msgid "Reset Zoom"
+msgstr "Reset Zoom"
+
+msgid "Toggle Full Screen"
+msgstr "Toggle Full Screen"
+
+msgid "Toggle Zen Mode"
+msgstr "Toggle Zen Mode"
+
+msgid "Toggle Sidebar Position"
+msgstr "Toggle Sidebar Position"
+
+# Menu Labels - Navigate Menu
+msgid "Navigate"
+msgstr "Navigate"
+
+msgid "Go to File..."
+msgstr "Go to File..."
+
+msgid "Go to Symbol..."
+msgstr "Go to Symbol..."
+
+msgid "Go to Definition"
+msgstr "Go to Definition"
+
+msgid "Go to Declaration"
+msgstr "Go to Declaration"
+
+msgid "Go to Implementation"
+msgstr "Go to Implementation"
+
+msgid "Go to References"
+msgstr "Go to References"
+
+msgid "Go Back"
+msgstr "Go Back"
+
+msgid "Go Forward"
+msgstr "Go Forward"
+
+msgid "Navigate Editor Group"
+msgstr "Navigate Editor Group"
+
+msgid "Open Recent File"
+msgstr "Open Recent File"
+
+# Menu Labels - Selection Menu
+msgid "Selection"
+msgstr "Selection"
+
+msgid "Select Line"
+msgstr "Select Line"
+
+msgid "Select Word"
+msgstr "Select Word"
+
+msgid "Select All Occurrences of Current Word"
+msgstr "Select All Occurrences of Current Word"
+
+msgid "Add Cursor Above"
+msgstr "Add Cursor Above"
+
+msgid "Add Cursor Below"
+msgstr "Add Cursor Below"
+
+msgid "Add Next Occurrence to Multi-Cursor"
+msgstr "Add Next Occurrence to Multi-Cursor"
+
+msgid "Undo Last Cursor Operation"
+msgstr "Undo Last Cursor Operation"
+
+# Menu Labels - Tools Menu
+msgid "Tools"
+msgstr "Tools"
+
+msgid "Build / Compile"
+msgstr "Build / Compile"
+
+msgid "Run"
+msgstr "Run"
+
+msgid "Debug"
+msgstr "Debug"
+
+msgid "Start Debugging"
+msgstr "Start Debugging"
+
+msgid "Step Over"
+msgstr "Step Over"
+
+msgid "Step Into"
+msgstr "Step Into"
+
+msgid "Step Out"
+msgstr "Step Out"
+
+msgid "Restart Debugging"
+msgstr "Restart Debugging"
+
+msgid "Stop Debugging"
+msgstr "Stop Debugging"
+
+msgid "Terminal"
+msgstr "Terminal"
+
+msgid "Extensions / Plugins"
+msgstr "Extensions / Plugins"
+
+msgid "Settings / Preferences"
+msgstr "Settings / Preferences"
+
+msgid "Keyboard Shortcuts"
+msgstr "Keyboard Shortcuts"
+
+msgid "Command Palette"
+msgstr "Command Palette"
+
+msgid "Snippets Manager"
+msgstr "Snippets Manager"
+
+msgid "Linting"
+msgstr "Linting"
+
+msgid "Version Control (Git)"
+msgstr "Version Control (Git)"
+
+msgid "Commit"
+msgstr "Commit"
+
+msgid "Push"
+msgstr "Push"
+
+msgid "Pull"
+msgstr "Pull"
+
+msgid "Branching"
+msgstr "Branching"
+
+msgid "Merge"
+msgstr "Merge"
+
+msgid "View Diff"
+msgstr "View Diff"
+
+# Menu Labels - Window Menu
+msgid "Window"
+msgstr "Window"
+
+msgid "Close Window"
+msgstr "Close Window"
+
+msgid "Switch Workspace"
+msgstr "Switch Workspace"
+
+msgid "Split Editor (Vertical/Horizontal)"
+msgstr "Split Editor (Vertical/Horizontal)"
+
+msgid "Move Editor to Next/Previous Group"
+msgstr "Move Editor to Next/Previous Group"
+
+# Menu Labels - Help Menu
+msgid "Help"
+msgstr "Help"
+
+msgid "Documentation"
+msgstr "Documentation"
+
+msgid "Release Notes"
+msgstr "Release Notes"
+
+msgid "Report Issue"
+msgstr "Report Issue"
+
+msgid "Check for Updates"
+msgstr "Check for Updates"
+
+msgid "About"
+msgstr "About"
+
+# Status Bar Messages
+msgid "No file"
+msgstr "No file"
+
+msgid "tab"
+msgstr "tab"
+
+msgid "tabs"
+msgstr "tabs"
+
+msgid "open"
+msgstr "open"
+
+msgid "Unsaved changes"
+msgstr "Unsaved changes"
+
+# General UI Messages
+msgid "Explorer"
+msgstr "Explorer"
+
+msgid "Search"
+msgstr "Search"
+
+msgid "Source Control"
+msgstr "Source Control"
+
+msgid "Run and Debug"
+msgstr "Run and Debug"
+
+msgid "Extensions"
+msgstr "Extensions"
+
+msgid "New File"
+msgstr "New File"
+
+msgid "Database"
+msgstr "Database"
+
+msgid "Package Manager"
+msgstr "Package Manager"
+
+msgid "Test Explorer"
+msgstr "Test Explorer"
+
+msgid "Tools"
+msgstr "Tools"
+
+msgid "Documentation"
+msgstr "Documentation"
+
+msgid "Web Browser"
+msgstr "Web Browser"
+
+msgid "Build"
+msgstr "Build"
+
+msgid "status.no_file"
+msgstr "No file"
+
+msgid "status.tab_open"
+msgstr "tab open"
+
+msgid "status.tabs_open"
+msgstr "tabs open"
+
+msgid "status.unsaved_changes"
+msgstr "Unsaved changes"

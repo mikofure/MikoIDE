@@ -132,6 +132,13 @@ public:
     void SendMouseEvent(const SDL_Event& event);
     void SendKeyEvent(const SDL_Event& event);
     void SendScrollEvent(const SDL_Event& event);
+    void SendTextInputEvent(const SDL_Event& event);
+    
+    // Editor input helper
+    bool IsPointInEditor(int x, int y) const;
+    
+    // Key mapping helper
+    int MapSDLKeyToWindowsVK(SDL_Keycode sdl_key) const;
 
 private:
     SDL_Window* window_;
@@ -173,12 +180,16 @@ private:
     int menu_overlay_x_;
     int menu_overlay_y_;
     
-    // Editor sublayer management
+    // Editor management
     bool editor_enabled_;
     CefRect editor_rect_;
     CefRefPtr<CefBrowser> editor_browser_;
     SDL_Texture* editor_texture_;
     bool editor_texture_locked_;
+    
+    // Focus tracking
+    bool editor_has_focus_;
+    bool main_browser_has_focus_;
     
     void InitializeDwmApi();
     void UpdateWindowStyle();

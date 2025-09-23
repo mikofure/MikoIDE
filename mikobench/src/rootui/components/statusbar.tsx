@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { TabData } from '../../editor/tabbar/TabBar';
 import ResizeIcon from '../../assets/resize.png';
 
@@ -17,6 +18,7 @@ declare global {
 }
 
 const Statusbar: React.FC<StatusbarProps> = (props) => {
+  const { t } = useTranslation();
   const [isResizing, setIsResizing] = useState(false);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [startSize, setStartSize] = useState({ width: 0, height: 0 });
@@ -89,14 +91,14 @@ const Statusbar: React.FC<StatusbarProps> = (props) => {
     <div className="h-6 fixed bottom-0 left-0 w-full bg-[var(--vscode-statusBar-background)] text-[var(--vscode-statusBar-foreground)] text-[10px] flex items-center justify-between px-0 border-t border-[var(--vscode-statusBar-border)] z-[21]">
       <div className='flex items-center pl-2'>
         <span className="mr-4">
-          {props.activeTab ? `${props.activeTab.language.toUpperCase()}` : 'No file'}
+          {props.activeTab ? `${props.activeTab.language.toUpperCase()}` : t('status.no_file')}
         </span>
         <span className="mr-4">
-          {props.tabCount} tab{props.tabCount !== 1 ? 's' : ''} open
+          {props.tabCount} {props.tabCount === 1 ? t('status.tab_open') : t('status.tabs_open')}
         </span>
         {props.activeTab?.isDirty && (
           <span className="text-[var(--vscode-statusBar-prominentForeground)]">
-            ● Unsaved changes
+            ● {t('status.unsaved_changes')}
           </span>
         )}
       </div>
