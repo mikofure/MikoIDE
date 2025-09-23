@@ -22,7 +22,7 @@ add_subdirectory(external/SDL3)
 # -------------------------------------------------
 # Dependencies - CEF
 # -------------------------------------------------
-set(CEF_VERSION "138.0.27+g0b28f18+chromium-138.0.7204.158")
+set(CEF_VERSION "140.1.14+geb1c06e+chromium-140.0.7339.185")
 
 if(WIN32)
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
