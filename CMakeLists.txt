@@ -207,6 +207,12 @@ add_executable(hyprn
     app/cli/core/executor.c
 )
 
+add_executable(toolchainmanager
+    test/toolchainmanager/main.cpp
+    app/toolchain/toolchain.cpp
+    app/toolchain/windowed.cpp
+)
+
 # -------------------------------------------------
 # Resources
 # -------------------------------------------------
@@ -286,6 +292,15 @@ target_link_libraries(mikoterminal
 
 if(WIN32)
     target_link_libraries(mikoterminal d2d1 dwrite d3d11 dxgi)
+endif()
+
+target_link_libraries(toolchainmanager
+    SDL3::SDL3
+    SDL3::SDL3-shared
+)
+
+if(WIN32)
+    target_link_libraries(toolchainmanager d2d1 dwrite d3d11 dxgi windowscodecs)
 endif()
 
 # -------------------------------------------------
