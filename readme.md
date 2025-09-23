@@ -4,84 +4,95 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows-blue.svg)
 ![C++](https://img.shields.io/badge/C%2B%2B-17-blue.svg)
+![CEF](https://img.shields.io/badge/CEF-140.1.14-blue.svg)
+![Chromium](https://img.shields.io/badge/Chromium-140.0.7339.185-blue.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue.svg)
 ![React](https://img.shields.io/badge/React-18.3-blue.svg)
 ![Bun](https://img.shields.io/badge/Bun-latest-orange.svg)
+![Windows](https://img.shields.io/badge/Windows-11-blue.svg)
 
 <img src="docs/resources/hyperion.png">
 
-A modern, high-performance IDE built with C++ and React/TypeScript, featuring Chromium Embedded Framework (CEF) for seamless web-native integration and Language Server Protocol (LSP) support for multiple programming languages.
+A modern, high-performance IDE built with C++ and React/TypeScript, featuring Chromium Embedded Framework (CEF) for seamless web-native integration. The project includes multiple executables: the main Hyperion IDE, terminal utilities (mikoterminal, termibench), and web helper components (mikowebhelper).
 
 ## Features
 
 - 🚀 **Native Performance**: C++ backend with CEF-powered React frontend for optimal speed
-- 🔧 **LSP Support**: Built-in language servers for C, C++, and TypeScript development
 - 🎨 **Modern UI**: Clean, responsive interface built with React, Redux Toolkit, and Tailwind CSS
 - 🖥️ **Custom Window Management**: Borderless window with custom title bar and drag regions
-- 📦 **Binary Resource Embedding**: Web assets compiled directly into the executable
+- 📦 **Binary Resource Embedding**: Web assets compiled directly into the executable via miko:// protocol
 - 🔍 **Monaco Editor**: Advanced code editing with syntax highlighting and IntelliSense
-- 🎯 **Multi-Target Building**: Automated build system for main app and LSP extensions
+- 🎯 **Multi-Target Building**: Automated build system for main app and utility tools
 - 🖼️ **Off-Screen Rendering**: CEF OSR for seamless integration with native window management
+- 🔧 **Terminal Integration**: Built-in terminal utilities (mikoterminal, termibench)
+- 🌐 **Web Helper Components**: Dedicated web helper processes for enhanced functionality
 
 ## Architecture
 
 ```
 MikoIDE/
-├── app/                          # C++ Native Application
-│   ├── main.cpp                 # Application entry point with CEF initialization
-│   ├── client/                  # CEF browser client implementation
-│   │   ├── client.cpp          # Main client with OSR and event handling
-│   │   └── app.cpp             # CEF application class
-│   ├── resources/              # Binary resource management
-│   │   ├── resources.cpp       # Resource provider for miko:// protocol
-│   │   ├── webapp.cpp          # Embedded web application resources
-│   │   ├── editor.cpp          # Embedded editor resources
-│   │   └── menuoverlay.cpp     # Embedded menu overlay resources
-│   ├── renderer/               # Graphics rendering
-│   │   └── dx11_renderer.cpp   # DirectX 11 renderer for CEF integration
-│   ├── utils/                  # Utilities and configuration
-│   │   ├── logger.cpp          # Logging system
-│   │   └── config.hpp          # Application configuration
-│   ├── internal/               # Internal communication
-│   │   └── simpleipc.cpp       # Inter-process communication
-│   └── bootstrap/              # Application bootstrap
-│       └── bootstrap.cpp       # Initialization and setup
-├── mikobench/                   # React/TypeScript Frontend
-│   ├── src/
-│   │   ├── rootui/             # Main application UI
-│   │   │   ├── App.tsx         # Root application component
-│   │   │   ├── components/     # UI components (TitleBar, Navbar, etc.)
-│   │   │   ├── contexts/       # React contexts (WorkbenchContext)
-│   │   │   └── mikoide/        # Core IDE components (Workbench)
-│   │   ├── editor/             # Code editor implementation
-│   │   │   ├── EditorApp.tsx   # Main editor application
-│   │   │   ├── MonacoEditor.tsx # Monaco editor integration
-│   │   │   └── tabbar/         # Editor tab management
-│   │   ├── components/         # Reusable UI components
-│   │   │   ├── DOMEditor.tsx   # DOM-based editor
-│   │   │   └── DOMTabBar.tsx   # Tab bar component
-│   │   ├── overlays/           # UI overlays
-│   │   │   ├── command/        # Command palette
-│   │   │   └── menu/           # Context menus
-│   │   ├── store/              # State management
-│   │   │   ├── index.ts        # Redux store configuration
-│   │   │   └── editorSlice.ts  # Editor state slice
-│   │   └── shared/             # Shared utilities
-│   │       ├── context.ts      # Shared context definitions
-│   │       └── menu.ts         # Menu utilities
-│   └── buildweb.ts             # Custom build script for web assets
-├── extensions/                  # LSP Extensions
-│   └── lsp/
-│       ├── c/                  # C language server
-│       ├── cpp/                # C++ language server
-│       └── typescript/         # TypeScript language server
-└── tools/                      # Build and Development Tools
-    ├── build.ts                # Multi-project CMake build automation
-    ├── clean.ts                # Project cleanup utility
-    ├── prod.ts                 # Production build and packaging
-    └── utils/                  # Build utilities
-        ├── buildtobin.ts       # HTML to C++ binary converter
-        └── iconconvert.ts      # Icon format converter
+├── app/                                # C++ Native Application
+│   ├── main.cpp                        # Application entry point with CEF initialization
+│   ├── client/                         # CEF browser client implementation
+│   │   ├── client.cpp                  # Main client with OSR and event handling
+│   │   └── app.cpp                     # CEF application class
+│   ├── resources/                      # Binary resource management
+│   │   ├── resources.cpp               # Resource provider for miko:// protocol
+│   │   ├── webapp.cpp                  # Embedded web application resources
+│   │   ├── editor.cpp                  # Embedded editor resources
+│   │   └── menuoverlay.cpp             # Embedded menu overlay resources
+│   ├── renderer/                       # Graphics rendering
+│   │   ├── linux/                      # Linux-specific renderer
+│   │   │   └── vulkan_renderer.cpp     # Vulkan renderer for Linux
+│   │   └── dx11_renderer.cpp           # DirectX 11 renderer for CEF integration
+│   ├── utils/                          # Utilities and configuration
+│   │   ├── logger.cpp                  # Logging system
+│   │   └── config.hpp                  # Application configuration
+│   ├── internal/                       # Internal communication
+│   │   └── simpleipc.cpp               # Inter-process communication
+│   ├── bootstrap/                      # Application bootstrap
+│   │   └── bootstrap.cpp               # Initialization and setup
+│   ├── cli/                            # Command-line utilities
+│   │   ├── core/                       # Core utilities and configuration
+│   │   └── main.c                      # Command-line entry point
+│   ├── terminal/                       # Terminal UI
+│   │   ├── processmanager.cpp          # Process management for terminal utilities
+│   │   ├── renderer.cpp                # Terminal renderer
+│   │   └── terminalbuffer.cpp          # Terminal buffer management
+├── mikobench/                          # React/TypeScript Frontend
+│   ├── src/                            # WEBUI Source code directory
+│   │   ├── rootui/                     # Main application UI
+│   │   │   ├── App.tsx                 # Root application component
+│   │   │   ├── components/             # UI components (TitleBar, Navbar, Statusbar)
+│   │   │   ├── contexts/               # React contexts (WorkbenchContext)
+│   │   │   └── mikoide/                # Core IDE components (Workbench, TabBar)
+│   │   ├── editor/                      # Code editor implementation
+│   │   │   ├── MonacoEditor.tsx        # Monaco editor integration
+│   │   │   ├── core/                   # Editor core functionality
+│   │   │   └── tabbar/                 # Editor tab management
+│   │   ├── components/                 # Reusable UI components
+│   │   │   ├── DOMEditor.tsx           # DOM-based editor
+│   │   │   ├── DOMTabBar.tsx           # Tab bar component
+│   │   │   └── LanguageSwitcher.tsx    # Language selection
+│   │   ├── overlays/                   # UI overlays
+│   │   │   ├── command/                # Command palette
+│   │   │   └── menu/                   # Context menus
+│   │   ├── store/                      # State management
+│   │   │   ├── index.ts                # Redux store configuration
+│   │   │   └── editorSlice.ts          # Editor state slice
+│   │   ├── providers/                  # React providers
+│   │   │   └── QueryProvider.tsx       # Query provider for data fetching
+│   │   └── shared/                     # Shared utilities
+│   │       ├── context.ts              # Shared context definitions
+│   │       └── menu.ts                 # Menu utilities
+│   └── buildweb.ts                     # Custom build script for web assets
+└── tools/                              # Build and Development Tools
+    ├── build.ts                        # Multi-project CMake build automation
+    ├── clean.ts                        # Project cleanup utility
+    ├── prod.ts                         # Production build and packaging
+    └── utils/                          # Build utilities
+        ├── buildtobin.ts               # HTML to C++ binary converter
+        └── iconconvert.ts              # Icon format converter
 ```
 
 ## Prerequisites
@@ -114,7 +125,7 @@ bun install
 bun run build:win
 ```
 
-#### Option B: Step-by-Step Build
+#### Step-by-Step Build
 ```bash
 # 1. Build React frontend
 bun run build
@@ -123,18 +134,13 @@ bun run build
 bun run buildtobin
 
 # 3. Build main application
-bun run build:cmake main --verbose
-
-# 4. Build LSP extensions (optional)
-bun run build:cmake c-lsp --verbose
-bun run build:cmake cpp-lsp --verbose
-bun run build:cmake typescript-lsp --verbose
+bun run build:cmake
 ```
 
 ### 4. Run MikoIDE
 
 ```bash
-.\build\Release\MikoIDE.exe
+.\build\Release\Hyperion.exe
 ```
 
 ## Development
@@ -147,7 +153,7 @@ bun run build:cmake typescript-lsp --verbose
 - `bun run preview` - Preview built frontend
 
 #### Backend Development
-- `bun run build:cmake <project>` - Build specific CMake project (main, c-lsp, cpp-lsp, typescript-lsp)
+- `bun run build:cmake <project>` - Build specific CMake project (main, mikoterminal, termibench, mikowebhelper, hyprn)
 - `bun run clean:cmake <project>` - Clean specific CMake project
 
 #### Resource Management
@@ -178,14 +184,16 @@ Native C++ application featuring:
 - **Off-Screen Rendering (OSR)** for seamless CEF integration
 - **Binary Resource Provider** for embedded web assets via `miko://` protocol
 - **Custom window management** with borderless design and drag regions
-- **Inter-process communication** for LSP integration
+- **Inter-process communication** for component integration
+- **Terminal utilities** including mikoterminal and termibench
+- **Web helper processes** for enhanced functionality
 
-#### LSP Extensions (extensions/lsp/)
-Language servers providing:
-- **Syntax highlighting** and error detection
-- **Code completion** and IntelliSense
-- **Go-to definition** and symbol search
-- **Real-time diagnostics** and linting
+#### CLI Tools (app/cli/)
+Command-line utilities providing:
+- **mikoterminal** - Terminal application with advanced features
+- **termibench** - Terminal benchmarking and performance testing
+- **mikowebhelper** - Web helper process for browser integration
+- **hyprn** - CLI tool for system operations and utilities
 
 ### Build System
 
@@ -234,9 +242,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Chromium Embedded Framework for seamless web-native integration
 
 ## Credits
-
-- [Codicons](https://github.com/microsoft/vscode-codicons) by Microsoft, licensed under [Creative Commons Attribution 4.0 International Public License (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/legalcode) and [MIT License](https://opensource.org/licenses/MIT).
-- Visual Studio Code and its icons are trademarks of Microsoft. This project is not affiliated with or endorsed by Microsoft.
+see in [credit.md](credit.md)
 
 ---
 **MikoIDE** - Modern IDE for Modern Development 🚀

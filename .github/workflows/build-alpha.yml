@@ -1,0 +1,213 @@
+name: Build MikoIDE Alpha
+
+on:
+  schedule:
+    # Run daily at 2:00 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    # Allow manual triggering
+
+jobs:
+  build-alpha-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      
+      - name: Setup MSVC
+        uses: microsoft/setup-msbuild@v2
+      
+      - name: Setup CMake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.25'
+      
+      - name: Setup .NET Framework
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.x'
+          cache: false
+      
+      - name: Setup NSIS
+        run: |
+          choco install nsis -y
+          echo "C:\Program Files (x86)\NSIS" | Out-File -FilePath $env:GITHUB_PATH -Append
+        shell: pwsh
+      
+      - name: Install dependencies
+        run: bun install
+      
+      - name: Build frontend
+        run: bun run build
+      
+      - name: Convert HTML to binary
+        run: bun run buildtobin
+      
+      - name: Build main application
+        run: bun run build:cmake main --verbose
+      
+      - name: Build CLI utilities
+        run: |
+          bun run build:cmake mikoterminal --verbose
+          bun run build:cmake termibench --verbose
+          bun run build:cmake mikowebhelper --verbose
+          bun run build:cmake hyprn --verbose
+        shell: pwsh
+      
+      - name: Create portable package
+        run: bun run tools/prod.ts --portable
+        shell: pwsh
+      
+      - name: Create installer package (no compression)
+        run: makensis shared/windows/installer.nsi
+        shell: pwsh
+      
+      - name: Create webhelper package
+        run: |
+          if (Test-Path "build\Release\bin\cef\windows64") {
+            Compress-Archive -Path "build\Release\bin\cef\windows64\*" -DestinationPath "out\mikowebhelper-win64.zip" -Force
+            Write-Host "Created mikowebhelper-win64.zip"
+          } else {
+            Write-Host "CEF windows64 directory not found, skipping webhelper package"
+          }
+        shell: pwsh
+      
+      - name: Generate build info
+        id: build_info
+        run: |
+          $date = Get-Date -Format "yyyy-MM-dd HH:mm:ss UTC"
+          $commit = git rev-parse --short HEAD
+          echo "date=$date" >> $env:GITHUB_OUTPUT
+          echo "commit=$commit" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+      
+      - name: Delete existing release assets
+        run: |
+          $headers = @{
+            'Authorization' = 'token ${{ secrets.GITHUB_TOKEN }}'
+            'Accept' = 'application/vnd.github.v3+json'
+          }
+          
+          try {
+            $release = Invoke-RestMethod -Uri "https://api.github.com/repos/${{ github.repository }}/releases/tags/alpha" -Headers $headers
+            $assets = $release.assets
+            
+            foreach ($asset in $assets) {
+              Write-Host "Deleting asset: $($asset.name)"
+              Invoke-RestMethod -Uri $asset.url -Method DELETE -Headers $headers
+            }
+          } catch {
+            Write-Host "No existing alpha release found or error occurred: $($_.Exception.Message)"
+          }
+        shell: pwsh
+      
+      - name: Create or Update Alpha Release
+        id: release
+        run: |
+          $headers = @{
+            'Authorization' = 'token ${{ secrets.GITHUB_TOKEN }}'
+            'Accept' = 'application/vnd.github.v3+json'
+            'Content-Type' = 'application/json'
+          }
+          
+          $body = @{
+            tag_name = "alpha"
+            target_commitish = "${{ github.sha }}"
+            name = "Hyperion Alpha"
+            body = @"
+          ## Hyperion Alpha Build
+          
+          **Last Updated:** ${{ steps.build_info.outputs.date }}  
+          **Commit:** [${{ steps.build_info.outputs.commit }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+          
+          This is an automated alpha build of Hyperion IDE that gets updated daily.
+          
+          ### What's included:
+          - 🚀 **Installer**: Full installation package with file associations
+          - 📦 **Portable**: Standalone executable package  
+          - 🌐 **WebHelper**: CEF components for web functionality
+          
+          ### Installation Options:
+          1. **Installer** (`Hyperion-Setup.exe`): Recommended for most users
+          2. **Portable** (`mikoide_win-portable.zip`): Extract and run anywhere
+          3. **WebHelper** (`mikowebhelper-win64.zip`): CEF components for advanced users
+          
+          ⚠️ **Alpha Warning**: This is a development build and may contain bugs or incomplete features.
+          "@
+            draft = $false
+            prerelease = $true
+          } | ConvertTo-Json -Depth 10
+          
+          try {
+            # Try to update existing release
+            $release = Invoke-RestMethod -Uri "https://api.github.com/repos/${{ github.repository }}/releases/tags/alpha" -Headers $headers -Method PATCH -Body $body
+            Write-Host "Updated existing alpha release"
+          } catch {
+            # Create new release if it doesn't exist
+            $release = Invoke-RestMethod -Uri "https://api.github.com/repos/${{ github.repository }}/releases" -Headers $headers -Method POST -Body $body
+            Write-Host "Created new alpha release"
+          }
+          
+          echo "upload_url=$($release.upload_url)" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+      
+      - name: Upload installer to release
+        run: |
+          $headers = @{
+            'Authorization' = 'token ${{ secrets.GITHUB_TOKEN }}'
+            'Content-Type' = 'application/octet-stream'
+          }
+          
+          $uploadUrl = "${{ steps.release.outputs.upload_url }}".Replace('{?name,label}', '?name=Hyperion-Setup.exe')
+          
+          Invoke-RestMethod -Uri $uploadUrl -Method POST -Headers $headers -InFile "out/Hyperion-Setup.exe"
+          Write-Host "Uploaded Hyperion-Setup.exe"
+        shell: pwsh
+      
+      - name: Upload portable to release
+        run: |
+          $headers = @{
+            'Authorization' = 'token ${{ secrets.GITHUB_TOKEN }}'
+            'Content-Type' = 'application/zip'
+          }
+          
+          $uploadUrl = "${{ steps.release.outputs.upload_url }}".Replace('{?name,label}', '?name=mikoide_win-portable.zip')
+          
+          Invoke-RestMethod -Uri $uploadUrl -Method POST -Headers $headers -InFile "out/mikoide_win-portable.zip"
+          Write-Host "Uploaded mikoide_win-portable.zip"
+        shell: pwsh
+      
+      - name: Upload webhelper to release (if exists)
+        run: |
+          if (Test-Path "out/mikowebhelper-win64.zip") {
+            $headers = @{
+              'Authorization' = 'token ${{ secrets.GITHUB_TOKEN }}'
+              'Content-Type' = 'application/zip'
+            }
+            
+            $uploadUrl = "${{ steps.release.outputs.upload_url }}".Replace('{?name,label}', '?name=mikowebhelper-win64.zip')
+            
+            Invoke-RestMethod -Uri $uploadUrl -Method POST -Headers $headers -InFile "out/mikowebhelper-win64.zip"
+            Write-Host "Uploaded mikowebhelper-win64.zip"
+          } else {
+            Write-Host "mikowebhelper-win64.zip not found, skipping upload"
+          }
+        shell: pwsh
+        continue-on-error: true
+      
+      - name: Upload artifacts for backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: hyperion-alpha-backup
+          path: |
+            out/Hyperion-Setup.exe
+            out/mikoide_win-portable.zip
+            out/mikowebhelper-win64.zip
+          retention-days: 7
