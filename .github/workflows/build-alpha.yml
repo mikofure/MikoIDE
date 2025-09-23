@@ -108,7 +108,7 @@ jobs:
             ⚠️ **Alpha Warning**: This is a development build and may contain bugs or incomplete features.
           files: |
             out/Hyperion-Setup.exe
-            out/mikoide_win-portable.zip
+            out/hyperion_win-portable.zip
             out/mikowebhelper-win64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
