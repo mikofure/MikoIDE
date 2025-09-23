@@ -207,7 +207,7 @@ add_executable(hyprn
     app/cli/core/executor.c
 )
 
-add_executable(toolchainmanager
+add_executable(toolchainmanager WIN32
     test/toolchainmanager/main.cpp
     app/toolchain/toolchain.cpp
     app/toolchain/windowed.cpp

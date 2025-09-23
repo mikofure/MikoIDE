@@ -1,10 +1,11 @@
 #include <iostream>
 #include <memory>
+#include <windows.h>
 #include <SDL3/SDL.h>
 #include "../../app/toolchain/toolchain.hpp"
 #include "../../app/toolchain/windowed.hpp"
 
-int main(int argc, char* argv[]) {
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     // Initialize SDL3
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) {
         std::cerr << "Failed to initialize SDL3: " << SDL_GetError() << std::endl;
