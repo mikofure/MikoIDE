@@ -473,7 +473,23 @@ void SDL3Window::SendMouseEvent(const SDL_Event &event) {
   CefMouseEvent mouse_event;
   mouse_event.x = event.button.x;
   mouse_event.y = event.button.y;
-  mouse_event.modifiers = 0; // TODO: Handle modifiers
+  
+  // Get current modifier state from SDL and convert to CEF modifiers
+  SDL_Keymod sdl_modifiers = SDL_GetModState();
+  mouse_event.modifiers = 0;
+  
+  if (sdl_modifiers & SDL_KMOD_SHIFT) {
+    mouse_event.modifiers |= EVENTFLAG_SHIFT_DOWN;
+  }
+  if (sdl_modifiers & SDL_KMOD_CTRL) {
+    mouse_event.modifiers |= EVENTFLAG_CONTROL_DOWN;
+  }
+  if (sdl_modifiers & SDL_KMOD_ALT) {
+    mouse_event.modifiers |= EVENTFLAG_ALT_DOWN;
+  }
+  if (sdl_modifiers & SDL_KMOD_GUI) {
+    mouse_event.modifiers |= EVENTFLAG_COMMAND_DOWN;
+  }
 
   // If this is an editor event, adjust coordinates relative to editor area
   if (is_editor_event) {

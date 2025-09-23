@@ -22,9 +22,6 @@
 #include <dwrite.h>
 #include <wincodec.h>
 
-// Miniz includes
-
-
 #pragma comment(lib, "shlwapi.lib")
 #pragma comment(lib, "shell32.lib")
 #pragma comment(lib, "wininet.lib")

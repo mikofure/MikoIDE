@@ -285,7 +285,7 @@ target_link_libraries(mikoterminal
 )
 
 if(WIN32)
-    target_link_libraries(mikoterminal d2d1 dwrite)
+    target_link_libraries(mikoterminal d2d1 dwrite d3d11 dxgi)
 endif()
 
 # -------------------------------------------------

@@ -395,7 +395,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
         // Configure browser settings
         CefBrowserSettings browser_settings;
-        browser_settings.windowless_frame_rate = 0; // 60 FPS for smooth rendering (0 means unlimited, which can cause issues)
+        browser_settings.windowless_frame_rate = 120; // 60 FPS for smooth rendering (0 means unlimited, which can cause issues)
         browser_settings.background_color = CefColorSetARGB(0, 0, 0, 0); // Fully transparent background (ARGB format)
         
         
