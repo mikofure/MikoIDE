@@ -1,8 +1,18 @@
 // CEF OSR Render Handler
+#pragma once
+
 #include "include/cef_render_handler.h"
 #include <SDL3/SDL.h>
 #include <mutex>
 #include <vector>
+
+// Forward declaration
+class SDL3Window;
+
+#include "../utils/logger.hpp"
+#include "../utils/config.hpp"
+#include "../renderer/dx11_renderer.hpp"
+
 class OSRRenderHandler : public CefRenderHandler {
 public:
   OSRRenderHandler(SDL3Window *window);

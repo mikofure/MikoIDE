@@ -157,6 +157,9 @@ add_executable(${PROJECT_NAME} WIN32
     app/utils/logger.cpp
     app/client/client.cpp
     app/client/app.cpp
+    app/client/mikoclient.cpp
+    app/client/offscreenrender.cpp
+    app/client/windowed.cpp
     app/resources/webapp.cpp
     app/resources/editor.cpp
     app/resources/menuoverlay.cpp

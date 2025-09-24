@@ -1,3 +1,4 @@
+#include <windows.h>
 #include <commdlg.h>
 #include <dwmapi.h>
 #include <fcntl.h>
@@ -6,7 +7,6 @@
 #include <shellapi.h>
 #include <shlobj.h>
 #include <shlwapi.h>
-#include <windows.h>
 
 // Undefine conflicting Windows macros
 #undef min
@@ -628,35 +628,6 @@ std::string GetDataURI(const std::string &data, const std::string &mime_type) {
   }
 
   return data_uri;
-}
-
-std::string GetDownloadPath(const std::string &suggested_name) {
-  // Get the Downloads folder path
-  PWSTR downloads_path = nullptr;
-  HRESULT hr =
-      SHGetKnownFolderPath(FOLDERID_Downloads, 0, nullptr, &downloads_path);
-
-  std::string download_path;
-  if (SUCCEEDED(hr) && downloads_path) {
-    // Convert wide string to narrow string
-    int size = WideCharToMultiByte(CP_UTF8, 0, downloads_path, -1, nullptr, 0,
-                                   nullptr, nullptr);
-    if (size > 0) {
-      std::string temp(size - 1, '\0');
-      WideCharToMultiByte(CP_UTF8, 0, downloads_path, -1, &temp[0], size,
-                          nullptr, nullptr);
-      download_path = temp + "\\" + suggested_name;
-    }
-    CoTaskMemFree(downloads_path);
-  }
-
-  // Fallback to current directory if Downloads folder not found
-  if (download_path.empty()) {
-    download_path = suggested_name;
-  }
-
-  Logger::LogMessage("Download path: " + download_path);
-  return download_path;
 }
 
 // SDL3 main function wrapper

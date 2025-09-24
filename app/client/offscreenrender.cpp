@@ -1,4 +1,7 @@
-// OSRRenderHandler implementation
+#include "offscreenrender.hpp"
+#include "windowed.hpp"
+
+
 OSRRenderHandler::OSRRenderHandler(SDL3Window *window) : window_(window) {}
 
 void OSRRenderHandler::GetViewRect(CefRefPtr<CefBrowser> browser,

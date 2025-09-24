@@ -1,7 +1,24 @@
 // SDL3 includes
+#pragma once
+
 #include "include/cef_app.h"
 #include "include/wrapper/cef_helpers.h"
 #include <SDL3/SDL.h>
+
+#include <algorithm>
+#include <mutex>
+#include <memory>
+#include <string>
+
+// Windows includes
+#include <windows.h>
+
+#include "../utils/logger.hpp"
+
+// Forward declarations
+class HyperionClient;
+class DX11Renderer;
+
 // SDL3 Window wrapper with CEF OSR integration and dwmapi rounded edges
 class SDL3Window {
 public:
@@ -39,7 +56,7 @@ public:
   // CEF OSR integration
   void UpdateTexture(const void *buffer, int width, int height);
   void Resize(int width, int height);
-  void SetClient(CefRefPtr<HyperionClient> client) { client_ = client; }
+  void SetClient(CefRefPtr<HyperionClient> client);
 
   // Menu overlay management
   void ShowMenuOverlay(const std::string &section, int x, int y);
@@ -70,9 +87,7 @@ public:
   std::mutex editor_texture_mutex_;
 
   // DX11 Renderer integration
-  bool IsDX11Available() const {
-    return dx11_renderer_ && dx11_renderer_->IsInitialized();
-  }
+  bool IsDX11Available() const;
   void EnableDX11Rendering(bool enable);
   DX11Renderer *GetDX11Renderer() const { return dx11_renderer_.get(); }
 
@@ -104,7 +119,6 @@ private:
   SDL_Renderer *renderer_;
   SDL_Texture *texture_;
   HWND hwnd_;
-
   CefRefPtr<HyperionClient> client_;
 
   int width_;

@@ -8,6 +8,11 @@
 #include <SDL3/SDL.h>
 
 // CEF includes
+#include "include/cef_task.h"
+#include "include/wrapper/cef_helpers.h"
+
+// Forward declarations
+class HyperionClient;
 #include "../renderer/dx11_renderer.hpp"
 #include "../resources/resources.hpp"
 
@@ -16,11 +21,14 @@
 #include <mutex>
 #include <string>
 
+// import
+#include "mikoclient.hpp"
+#include "offscreenrender.hpp"
+#include "windowed.hpp"
+
 // Forward declarations
 std::string GetDataURI(const std::string &data, const std::string &mime_type);
 std::string GetDownloadPath(const std::string &suggested_name);
-
-class HyperionClient;
 
 // Task class for CefPostTask compatibility
 class CloseBrowserTask : public CefTask {

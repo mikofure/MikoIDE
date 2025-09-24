@@ -1,8 +1,17 @@
 #include <dwmapi.h>
 #include <shellapi.h>
+#include <SDL3/SDL.h>
+#include "windowed.hpp"
+#include "mikoclient.hpp"
+
+// DirectX 11 Renderer for performance optimization
+#include "../renderer/dx11_renderer.hpp"
+#include "../utils/config.hpp"
 
 // Link dwmapi library
 #pragma comment(lib, "dwmapi.lib")
+
+
 SDL3Window::SDL3Window()
     : window_(nullptr), renderer_(nullptr), texture_(nullptr), hwnd_(nullptr),
       client_(nullptr), width_(DEFAULT_WINDOW_WIDTH),
@@ -34,7 +43,7 @@ bool SDL3Window::Initialize(int width, int height) {
     window_flags |= SDL_WINDOW_BORDERLESS;
   }
 
-  window_ = SDL_CreateWindow("MikoIDE", width_, height_, window_flags);
+  window_ = SDL_CreateWindow("Hyperion", width_, height_, window_flags);
 
   if (!window_) {
     SDL_Quit();
@@ -1425,4 +1434,12 @@ int SDL3Window::MapSDLKeyToWindowsVK(SDL_Keycode sdl_key) const {
     // For unmapped keys, return the SDL key code as-is
     return static_cast<int>(sdl_key);
   }
+}
+
+bool SDL3Window::IsDX11Available() const {
+  return dx11_renderer_ && dx11_renderer_->IsInitialized();
+}
+
+void SDL3Window::SetClient(CefRefPtr<HyperionClient> client) {
+  client_ = client;
 }

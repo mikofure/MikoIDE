@@ -1,4 +1,6 @@
 // Simple CEF client implementation with OSR support
+#pragma once
+
 #include "include/cef_client.h"
 #include "include/cef_context_menu_handler.h"
 #include "include/cef_display_handler.h"
@@ -11,7 +13,15 @@
 #include "include/cef_request_handler.h"
 #include "include/cef_task.h"
 #include "include/wrapper/cef_message_router.h"
-#include "windowed.hpp"
+
+// Forward declarations
+class SDL3Window;
+class OSRRenderHandler;
+
+#include "../utils/logger.hpp"
+#include "../resources/resources.hpp"
+#include "../resources/resourceutil.hpp"
+
 class HyperionClient : public CefClient,
                        public CefDisplayHandler,
                        public CefLifeSpanHandler,
