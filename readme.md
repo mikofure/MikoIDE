@@ -34,7 +34,10 @@ MikoIDE/
 ├── app/                                # C++ Native Application
 │   ├── main.cpp                        # Application entry point with CEF initialization
 │   ├── client/                         # CEF browser client implementation
-│   │   ├── client.cpp                  # Main client with OSR and event handling
+│   │   ├── client.cpp                  # Main client 
+│   │   ├── offscreenrender.cpp         # CEF Offscreen Rendering  
+│   │   ├── windowed.cpp                # SDL Window Management   
+│   │   ├── mikoclient.cpp              # CEF Client (HyperionClient class)
 │   │   └── app.cpp                     # CEF application class
 │   ├── resources/                      # Binary resource management
 │   │   ├── resources.cpp               # Resource provider for miko:// protocol
@@ -107,7 +110,7 @@ MikoIDE/
 ### 1. Clone the Repository
 
 ```bash
-git clone --recursive https://github.com/mikofure/mikoide.git
+git clone --recursive https://github.com/mikofure/hyperion.git
 cd mikoide
 ```
 
@@ -153,8 +156,8 @@ bun run build:cmake
 - `bun run preview` - Preview built frontend
 
 #### Backend Development
-- `bun run build:cmake <project>` - Build specific CMake project (main, mikoterminal, termibench, mikowebhelper, hyprn)
-- `bun run clean:cmake <project>` - Clean specific CMake project
+- `bun run build:cmake` - Build specific CMake project (main, mikoterminal, termibench, mikowebhelper, hyprn)
+- `bun run clean:cmake` - Clean specific CMake project
 
 #### Resource Management
 - `bun run buildtobin` - Convert HTML/CSS/JS to C++ binary resources
@@ -162,8 +165,8 @@ bun run build:cmake
 
 #### Production Builds
 - `bun run build:win` - Complete development build
-- `bun run build:win:portable` - Build portable executable
-- `bun run build:win:installer` - Build with installer
+- `bun run tools/prod.ts --portable` - Build portable executable
+- `makensis shared\windows\installer.nsi` - Build with installer
 
 ### Project Structure Details
 
