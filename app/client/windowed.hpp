@@ -6,8 +6,8 @@
 #include <SDL3/SDL.h>
 
 #include <algorithm>
-#include <mutex>
 #include <memory>
+#include <mutex>
 #include <string>
 
 // Windows includes

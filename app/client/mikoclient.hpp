@@ -18,9 +18,9 @@
 class SDL3Window;
 class OSRRenderHandler;
 
-#include "../utils/logger.hpp"
 #include "../resources/resources.hpp"
 #include "../resources/resourceutil.hpp"
+#include "../utils/logger.hpp"
 
 class HyperionClient : public CefClient,
                        public CefDisplayHandler,

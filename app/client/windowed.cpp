@@ -1,8 +1,8 @@
-#include <dwmapi.h>
-#include <shellapi.h>
-#include <SDL3/SDL.h>
 #include "windowed.hpp"
 #include "mikoclient.hpp"
+#include <SDL3/SDL.h>
+#include <dwmapi.h>
+#include <shellapi.h>
 
 // DirectX 11 Renderer for performance optimization
 #include "../renderer/dx11_renderer.hpp"
@@ -10,7 +10,6 @@
 
 // Link dwmapi library
 #pragma comment(lib, "dwmapi.lib")
-
 
 SDL3Window::SDL3Window()
     : window_(nullptr), renderer_(nullptr), texture_(nullptr), hwnd_(nullptr),

@@ -1,12 +1,12 @@
 #include "mikoclient.hpp"
-#include "windowed.hpp"
-#include "offscreenrender.hpp"
-#include "client.hpp"
 #include "../internal/simpleipc.hpp"
+#include "client.hpp"
+#include "offscreenrender.hpp"
+#include "windowed.hpp"
 
 // Windows API includes
-#include <windows.h>
 #include <shellapi.h>
+#include <windows.h>
 
 bool HyperionClient::OnCursorChange(CefRefPtr<CefBrowser> browser,
                                     CefCursorHandle cursor,

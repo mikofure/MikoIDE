@@ -9,9 +9,9 @@
 // Forward declaration
 class SDL3Window;
 
-#include "../utils/logger.hpp"
-#include "../utils/config.hpp"
 #include "../renderer/dx11_renderer.hpp"
+#include "../utils/config.hpp"
+#include "../utils/logger.hpp"
 
 class OSRRenderHandler : public CefRenderHandler {
 public:
