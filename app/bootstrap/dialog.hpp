@@ -11,7 +11,7 @@
 #pragma comment(lib, "dwrite.lib")
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
-
+#include "../utils/logger.hpp"
 // Dialog resource IDs
 #define IDD_DOWNLOAD_DIALOG 1001
 #define IDC_DOWNLOAD_LABEL 1002

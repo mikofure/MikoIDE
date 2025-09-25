@@ -172,6 +172,8 @@ add_executable(${PROJECT_NAME} WIN32
     app/renderer/dx11_renderer.cpp
     app/internal/simpleipc.cpp
     app/bootstrap/bootstrap.cpp
+    app/bootstrap/dialog.cpp
+    app/bootstrap/splashscreen.cpp
 )
 
 # Add platform-specific renderer sources
@@ -186,6 +188,7 @@ add_executable(mikowebhelper WIN32
     app/utils/logger.cpp
     app/client/app.cpp
     app/bootstrap/bootstrap.cpp
+    app/bootstrap/dialog.cpp
     app/resources/splash.cpp
 )
 

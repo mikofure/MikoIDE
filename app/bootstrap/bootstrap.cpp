@@ -1,7 +1,8 @@
 #include "bootstrap.hpp"
 #include "../utils/config.hpp"
 #include "../utils/logger.hpp"
-
+#include <windows.h>
+#include <windowsx.h>
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -19,7 +20,6 @@
 #include <thread>
 #include <vector>
 #include <wincodec.h>
-#include <windowsx.h>
 #include <wininet.h>
 
 #pragma comment(lib, "shlwapi.lib")

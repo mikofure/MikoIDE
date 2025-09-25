@@ -1,15 +1,15 @@
 #pragma once
-#include <string>
 #include <fstream>
+#include <string>
 
 class Logger {
 public:
-    static void Initialize();
-    static void Shutdown();
-    static void LogMessage(const std::string& message);
+  static void Initialize();
+  static void Shutdown();
+  static void LogMessage(const std::string &message);
 
 private:
-    static std::string GetTimestampedLogFileName();
-    static void EnsureLogDirectoryExists();
-    static std::string currentLogFile;
+  static std::string GetTimestampedLogFileName();
+  static void EnsureLogDirectoryExists();
+  static std::string currentLogFile;
 };

@@ -1,10 +1,9 @@
 #ifndef BOOTSTRAP_HPP
 #define BOOTSTRAP_HPP
 
-#include <commctrl.h>
 #include <windows.h>
+#include <commctrl.h>
 #include <wininet.h>
-
 #include <wincodec.h>
 
 #include <atomic>
@@ -19,6 +18,7 @@
 #pragma comment(lib, "windowscodecs.lib")
 
 #include "dialog.hpp"
+#include "splashscreen.hpp"
 
 // Bootstrap result codes
 enum class BootstrapResult {
