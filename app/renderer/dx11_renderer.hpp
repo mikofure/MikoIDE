@@ -144,6 +144,9 @@ private:
   bool CreateStates();
   bool CreateCEFTexture(int width, int height);
 
+  // Add this helper for shared texture creation
+  bool CreateSharedTexture(int width, int height, Microsoft::WRL::ComPtr<ID3D11Texture2D>& sharedTexture);
+
   void CleanupRenderTargets();
   void CleanupCEFTexture();
 

@@ -4,6 +4,7 @@
 build/
 **/build/**
 out/**
+build_linux/
 
 # -------------------------------------------------
 # IDE / Editor files

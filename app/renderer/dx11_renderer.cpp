@@ -504,16 +504,45 @@ bool DX11Renderer::CreateTextureFromBuffer(const void *buffer, int width,
   return UpdateTexture(buffer, width, height);
 }
 
+// Add a helper for creating a shared texture
+bool DX11Renderer::CreateSharedTexture(int width, int height, ComPtr<ID3D11Texture2D>& sharedTexture) {
+  D3D11_TEXTURE2D_DESC desc = {};
+  desc.Width = width;
+  desc.Height = height;
+  desc.MipLevels = 1;
+  desc.ArraySize = 1;
+  desc.Format = textureFormat_;
+  desc.SampleDesc.Count = 1;
+  desc.Usage = D3D11_USAGE_STAGING;
+  desc.BindFlags = 0;
+  desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE | D3D11_CPU_ACCESS_READ;
+  desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
+
+  HRESULT hr = device_->CreateTexture2D(&desc, nullptr, &sharedTexture);
+  if (FAILED(hr)) {
+    LogError("Failed to create shared texture", hr);
+    return false;
+  }
+  return true;
+}
+
+// Replace UpdateTexture implementation
 bool DX11Renderer::UpdateTexture(const void *buffer, int width, int height) {
   if (!cefTexture_ || !buffer) {
     return false;
   }
 
+  // Create a shared staging texture
+  ComPtr<ID3D11Texture2D> sharedTexture;
+  if (!CreateSharedTexture(width, height, sharedTexture)) {
+    return false;
+  }
+
+  // Map the shared texture and copy buffer data
   D3D11_MAPPED_SUBRESOURCE mappedResource;
-  HRESULT hr = context_->Map(cefTexture_.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
-                             &mappedResource);
+  HRESULT hr = context_->Map(sharedTexture.Get(), 0, D3D11_MAP_WRITE, 0, &mappedResource);
   if (FAILED(hr)) {
-    LogError("Failed to map CEF texture", hr);
+    LogError("Failed to map shared texture", hr);
     return false;
   }
 
@@ -525,7 +554,11 @@ bool DX11Renderer::UpdateTexture(const void *buffer, int width, int height) {
     memcpy(dst + y * mappedResource.RowPitch, src + y * srcPitch, srcPitch);
   }
 
-  context_->Unmap(cefTexture_.Get(), 0);
+  context_->Unmap(sharedTexture.Get(), 0);
+
+  // Copy from shared texture to CEF texture using GPU
+  context_->CopyResource(cefTexture_.Get(), sharedTexture.Get());
+
   return true;
 }
 
