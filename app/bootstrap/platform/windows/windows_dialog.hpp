@@ -59,17 +59,18 @@ private:
     ID2D1SolidColorBrush* m_pSecondaryTextBrush;
     ID2D1SolidColorBrush* m_pBorderBrush;
     ID2D1SolidColorBrush* m_pProgressBgBrush;
+    ID2D1SolidColorBrush* m_pProgressFillBrush;
     
     // State
-    std::atomic<bool> m_cancelled;
-    std::string m_statusText;
-    std::string m_titleText;
-    std::string m_messageText;
+    std::wstring m_titleText;
+    std::wstring m_statusText;
+    std::wstring m_speedText;
+    std::wstring m_sizeText;
     int m_progress;
+    bool m_cancelled;
     size_t m_bytesDownloaded;
     size_t m_totalBytes;
     size_t m_downloadSpeed;
-    bool m_visible;
     
     // Dialog state
     DialogResult m_result;
@@ -105,12 +106,12 @@ private:
     void DrawMessage();
     void DrawButtons();
     
-    // Input handling
+    // Helper methods
     void OnMouseMove(int x, int y);
     void OnMouseClick(int x, int y);
     void OnMouseDown(int x, int y);
     void OnMouseUp(int x, int y);
-    bool IsPointInRect(int x, int y, const D2D1_RECT_F& rect);
+    bool IsPointInRect(POINT pt, const RECT& rect);
     
 public:
     WindowsModernDialog();
@@ -127,14 +128,7 @@ public:
     bool IsCancelled() const override { return m_cancelled; }
     NativeWindowHandle GetNativeHandle() const override { return m_hwnd; }
     
-    // Additional methods for dialog functionality
-    void SetTitle(const std::string& title);
-    void SetMessage(const std::string& message);
-    void AddButton(const std::string& text, DialogResult result);
-    void ClearButtons();
-    DialogResult ShowModal();
-    
-    // Native D2D progress dialog methods
+    // Native D2D methods
     void UpdateProgress(int percentage, const std::wstring& status, 
                        const std::wstring& speed = L"", const std::wstring& size = L"");
 };
