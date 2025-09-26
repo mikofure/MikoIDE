@@ -22,6 +22,9 @@
 #include "utils/config.hpp"
 
 #include "bootstrap/bootstrap.hpp"
+#include "bootstrap/ui_interface.hpp"
+#include "bootstrap/ui_factory.hpp"
+#include "bootstrap/platform/windows/windows_splash.hpp"
 #include "client/app.hpp"
 #include "client/client.hpp"
 #include "internal/simpleipc.hpp"
@@ -40,7 +43,7 @@
 // Global variables
 CefRefPtr<HyperionClient> g_client;
 std::unique_ptr<SDL3Window> g_sdl_window;
-std::unique_ptr<SplashScreen> g_splash_screen;
+std::unique_ptr<ISplashScreen> g_splash_screen;
 bool g_is_closing = false;
 
 // Application settings now come from config.hpp
@@ -132,13 +135,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
   Logger::LogMessage("MikoIDE starting up...");
 
   // Preload splash image for faster display
-  SplashScreen::PreloadSplashImage();
+  WindowsSplashScreen::PreloadSplashImage();
 
   // Create and show splash screen
-  g_splash_screen = std::make_unique<SplashScreen>();
-  if (g_splash_screen->Create(hInstance, L"MikoIDE")) {
+  g_splash_screen = UIFactory::CreateSplashScreen();
+  if (g_splash_screen->Create(hInstance, "MikoIDE")) {
     g_splash_screen->Show();
-    g_splash_screen->UpdateStatus(L"Initializing application...");
+    g_splash_screen->UpdateStatus("Initializing application...");
   }
 
   // Set application properties
@@ -149,7 +152,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
   // Enable High DPI awareness with modern Windows 10+ APIs
   // Try the most modern approach first (Windows 10 1703+)
   if (g_splash_screen) {
-    g_splash_screen->UpdateStatus(L"Configuring display settings...");
+    g_splash_screen->UpdateStatus("Configuring display settings...");
   }
 
   HMODULE user32 = GetModuleHandleW(L"user32.dll");
@@ -211,7 +214,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
   Logger::LogMessage("Setting up CEF paths...");
 
   if (g_splash_screen) {
-    g_splash_screen->UpdateStatus(L"Setting up CEF paths...");
+    g_splash_screen->UpdateStatus("Setting up CEF paths...");
   }
 
   // Compute paths BEFORE CEF
@@ -228,7 +231,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
   Logger::LogMessage("Bootstrap: Checking CEF helper availability...");
 
   if (g_splash_screen) {
-    g_splash_screen->UpdateStatus(L"Checking CEF components...");
+    g_splash_screen->UpdateStatus("Checking CEF components...");
   }
 
   BootstrapResult bootstrapResult =
@@ -307,7 +310,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
   CefRefPtr<SimpleApp> app(new SimpleApp);
 
   if (g_splash_screen) {
-    g_splash_screen->UpdateStatus(L"Initializing CEF framework...");
+    g_splash_screen->UpdateStatus("Initializing CEF framework...");
   }
 
   // Execute the secondary process, if any
@@ -387,7 +390,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
   Logger::LogMessage("CEF initialized successfully");
 
   if (g_splash_screen) {
-    g_splash_screen->UpdateStatus(L"Setting up browser engine...");
+    g_splash_screen->UpdateStatus("Setting up browser engine...");
   }
 
   // Register scheme handler factory for miko:// protocol
@@ -408,7 +411,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
   Logger::LogMessage("SDL3 window initialized successfully");
 
   if (g_splash_screen) {
-    g_splash_screen->UpdateStatus(L"Creating application window...");
+    g_splash_screen->UpdateStatus("Creating application window...");
   }
 
   // Create CEF client and browser with exception handling
@@ -416,7 +419,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     g_client = new HyperionClient(g_sdl_window.get());
 
     if (g_splash_screen) {
-      g_splash_screen->UpdateStatus(L"Loading application...");
+      g_splash_screen->UpdateStatus("Loading application...");
     }
 
     // Configure browser settings
@@ -435,7 +438,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     // Configure window info for off-screen rendering
     CefWindowInfo window_info;
-    window_info.SetAsWindowless(g_sdl_window->GetHWND());
+    window_info.SetAsWindowless(static_cast<HWND>(g_sdl_window->GetNativeHandle()));
 
     // Create the browser synchronously to prevent race conditions
     CefRefPtr<CefBrowser> browser = CefBrowserHost::CreateBrowserSync(
@@ -546,7 +549,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
   }
 
   // Cleanup preloaded splash image
-  SplashScreen::CleanupPreloadedImage();
+  WindowsSplashScreen::CleanupPreloadedImage();
 
   // Shutdown CEF
   CefShutdown();

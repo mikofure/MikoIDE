@@ -9,7 +9,7 @@
 // Forward declaration
 class SDL3Window;
 
-#include "../renderer/dx11_renderer.hpp"
+#include "../renderer/renderer_interface.hpp"
 #include "../utils/config.hpp"
 #include "../utils/logger.hpp"
 

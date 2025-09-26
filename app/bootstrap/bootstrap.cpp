@@ -1,36 +1,35 @@
 #include "bootstrap.hpp"
 #include "../utils/config.hpp"
 #include "../utils/logger.hpp"
+#include "ui_factory.hpp"
+
+#ifdef _WIN32
 #include <windows.h>
 #include <windowsx.h>
+#include <comdef.h>
+#include <shellapi.h>
+#include <shlobj.h>
+#include <shlwapi.h>
+#include <wininet.h>
+#pragma comment(lib, "shlwapi.lib")
+#pragma comment(lib, "shell32.lib")
+#pragma comment(lib, "wininet.lib")
+#endif
+
 #include <algorithm>
 #include <atomic>
 #include <chrono>
-#include <comdef.h>
-#include <d2d1.h>
-#include <dwrite.h>
 #include <fstream>
 #include <iomanip>
 #include <memory>
 #include <mutex>
-#include <shellapi.h>
-#include <shlobj.h>
-#include <shlwapi.h>
 #include <sstream>
 #include <thread>
 #include <vector>
-#include <wincodec.h>
-#include <wininet.h>
-
-#pragma comment(lib, "shlwapi.lib")
-#pragma comment(lib, "shell32.lib")
-#pragma comment(lib, "wininet.lib")
-#pragma comment(lib, "d2d1.lib")
-#pragma comment(lib, "dwrite.lib")
-#pragma comment(lib, "windowscodecs.lib")
 
 // Static member definitions
-std::unique_ptr<ModernDialog> Bootstrap::s_modern_dialog = nullptr;
+std::unique_ptr<IModernDialog> Bootstrap::s_modern_dialog = nullptr;
+std::unique_ptr<ISplashScreen> Bootstrap::s_splash_screen = nullptr;
 std::atomic<bool> Bootstrap::s_cancelled{false};
 std::string Bootstrap::s_current_status = "";
 std::atomic<int> Bootstrap::s_current_progress{0};
@@ -215,8 +214,8 @@ void Bootstrap::UpdateProgress(int percentage, const std::string &status,
     std::wstring speedWStr(speedStr.begin(), speedStr.end());
     std::wstring sizeWStr(sizeStr.begin(), sizeStr.end());
 
-    s_modern_dialog->UpdateProgress(percentage, statusWStr, speedWStr,
-                                    sizeWStr);
+    s_modern_dialog->UpdateProgress(percentage, statusWStr, bytesDownloaded,
+                                    totalBytes);
   }
 }
 
@@ -345,8 +344,11 @@ bool Bootstrap::DownloadChunk(const std::string &url, ::DownloadChunk &chunk) {
 
   return chunk.completed;
 }
-bool Bootstrap::ShowModernDownloadDialog(HINSTANCE hInstance, HWND hParent) {
-  s_modern_dialog = std::make_unique<ModernDialog>();
+bool Bootstrap::ShowModernDownloadDialog(PlatformInstance hInstance, PlatformWindow hParent) {
+  // Initialize platform UI if not already done
+  UIFactory::InitializePlatform();
+  
+  s_modern_dialog = UIFactory::CreateModernDialog();
 
   if (!s_modern_dialog->Create(hInstance, hParent, L"Downloading CEF Helper")) {
     s_modern_dialog.reset();
@@ -773,8 +775,8 @@ bool Bootstrap::DownloadUnzipBinary() {
   return true;
 }
 
-BootstrapResult Bootstrap::CheckAndDownloadCEFHelper(HINSTANCE hInstance,
-                                                     HWND hParent) {
+BootstrapResult Bootstrap::CheckAndDownloadCEFHelper(PlatformInstance hInstance,
+                                                     PlatformWindow hParent) {
   Logger::LogMessage("Bootstrap: Checking CEF helper...");
 
   // Reset completion flags
@@ -848,8 +850,8 @@ BootstrapResult Bootstrap::CheckAndDownloadCEFHelper(HINSTANCE hInstance,
         s_cancelled = true;
         break;
       }
-      if (s_modern_dialog && s_modern_dialog->GetHWND()) {
-        if (!IsDialogMessage(s_modern_dialog->GetHWND(), &msg)) {
+      if (s_modern_dialog && s_modern_dialog->GetNativeHandle()) {
+                if (!IsDialogMessage(s_modern_dialog->GetNativeHandle(), &msg)) {
           TranslateMessage(&msg);
           DispatchMessage(&msg);
         }
@@ -906,8 +908,8 @@ BootstrapResult Bootstrap::CheckAndDownloadCEFHelper(HINSTANCE hInstance,
         s_cancelled = true;
         break;
       }
-      if (s_modern_dialog && s_modern_dialog->GetHWND()) {
-        if (!IsDialogMessage(s_modern_dialog->GetHWND(), &msg)) {
+      if (s_modern_dialog && s_modern_dialog->GetNativeHandle()) {
+                if (!IsDialogMessage(s_modern_dialog->GetNativeHandle(), &msg)) {
           TranslateMessage(&msg);
           DispatchMessage(&msg);
         }

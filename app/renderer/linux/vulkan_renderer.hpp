@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../renderer_interface.hpp"
 #include <memory>
 #include <optional>
 #include <string>
@@ -11,7 +12,7 @@
 struct SDL_Window;
 
 // Vulkan Renderer for high-performance CEF + SDL3 integration on Linux
-class VulkanRenderer {
+class VulkanRenderer : public IRenderer {
 public:
   // Performance optimization structures
   struct BufferUpdateStats {
@@ -42,39 +43,43 @@ public:
   ~VulkanRenderer();
 
   // Core functionality
-  bool Initialize(SDL_Window *window, int width, int height);
-  void Shutdown();
-  bool IsInitialized() const { return initialized_; }
+  bool Initialize(void* window_handle, int width, int height) override;
+  void Shutdown() override;
+  bool IsInitialized() const override { return initialized_; }
 
   // Rendering operations
-  bool BeginFrame();
-  bool EndFrame();
-  bool Present();
-  bool Render();
+  bool BeginFrame() override;
+  bool EndFrame() override;
+  bool Present() override;
+  bool Render() override;
 
   // Texture management for CEF OSR integration
-  bool CreateTextureFromBuffer(const void *buffer, int width, int height);
-  bool UpdateTexture(const void *buffer, int width, int height);
-  bool ResizeTextures(int width, int height);
+  bool CreateTextureFromBuffer(const void *buffer, int width, int height) override;
+  bool UpdateTexture(const void *buffer, int width, int height) override;
+  bool ResizeTextures(int width, int height) override;
 
   // Performance optimizations
-  void EnableVSync(bool enable);
-  void SetMultiSampleCount(int samples);
-  void EnablePartialUpdates(bool enable);
-  void ClearTextureCache();
-  void SetDirtyRegion(int x, int y, int width, int height);
-  BufferUpdateStats GetBufferStats() const { return bufferStats_; }
+  void EnableVSync(bool enable) override;
+  void SetMultiSampleCount(int samples) override;
+  void EnablePartialUpdates(bool enable) override;
+  void ClearTextureCache() override;
+  void SetDirtyRegion(int x, int y, int width, int height) override;
+  BufferUpdateStats GetBufferStats() const override { return bufferStats_; }
 
-  // Getters for integration
+  // Renderer identification
+  RendererType GetRendererType() const override { return RendererType::Vulkan; }
+  std::string GetRendererName() const override { return "Vulkan"; }
+
+  // Utility methods
+  bool CheckFeatureSupport() override;
+  std::string GetAdapterInfo() override;
+  void LogPerformanceStats() override;
+
+  // Getters for Vulkan-specific integration
   VkDevice GetDevice() const { return device_; }
   VkPhysicalDevice GetPhysicalDevice() const { return physicalDevice_; }
   VkCommandPool GetCommandPool() const { return commandPool_; }
   VkQueue GetGraphicsQueue() const { return graphicsQueue_; }
-
-  // Utility methods
-  bool CheckFeatureSupport();
-  std::string GetAdapterInfo();
-  void LogPerformanceStats();
 
 private:
   // Core Vulkan objects

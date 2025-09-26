@@ -13,7 +13,7 @@
 
 // Forward declarations
 class HyperionClient;
-#include "../renderer/dx11_renderer.hpp"
+#include "../renderer/renderer_interface.hpp"
 #include "../resources/resources.hpp"
 
 #include <list>

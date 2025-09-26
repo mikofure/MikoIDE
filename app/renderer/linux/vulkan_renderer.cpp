@@ -51,12 +51,12 @@ VulkanRenderer::VulkanRenderer()
 
 VulkanRenderer::~VulkanRenderer() { Shutdown(); }
 
-bool VulkanRenderer::Initialize(SDL_Window *window, int width, int height) {
+bool VulkanRenderer::Initialize(void* window_handle, int width, int height) {
   if (initialized_) {
     return true;
   }
 
-  window_ = window;
+  window_ = static_cast<SDL_Window*>(window_handle);
   width_ = width;
   height_ = height;
 

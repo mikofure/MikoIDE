@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../renderer_interface.hpp"
 #include <d3d11.h>
 #include <dxgi1_2.h>
 #include <memory>
@@ -7,6 +8,7 @@
 #include <unordered_map>
 #include <windows.h>
 #include <wrl/client.h>
+#include <cstdint>
 
 // Link D3D11 and DXGI libraries
 #pragma comment(lib, "d3d11.lib")
@@ -18,13 +20,13 @@ using Microsoft::WRL::ComPtr;
 class SDL3Window;
 
 // DX11 Renderer for high-performance CEF + SDL3 integration
-class DX11Renderer {
+class DX11Renderer : public IRenderer {
 public:
   // Performance optimization structures
   struct BufferUpdateStats {
-    UINT64 totalUpdates;
-    UINT64 cacheHits;
-    UINT64 cacheMisses;
+    uint64_t totalUpdates;
+    uint64_t cacheHits;
+    uint64_t cacheMisses;
     double avgUpdateTime;
   };
 
@@ -32,28 +34,28 @@ public:
   ~DX11Renderer();
 
   // Core functionality
-  bool Initialize(HWND hwnd, int width, int height);
-  void Shutdown();
-  bool IsInitialized() const { return initialized_; }
+  bool Initialize(void* window_handle, int width, int height) override;
+  void Shutdown() override;
+  bool IsInitialized() const override { return initialized_; }
 
   // Rendering operations
-  bool BeginFrame();
-  bool EndFrame();
-  bool Present();
-  bool Render();
+  bool BeginFrame() override;
+  bool EndFrame() override;
+  bool Present() override;
+  bool Render() override;
 
   // Texture management for CEF OSR integration
-  bool CreateTextureFromBuffer(const void *buffer, int width, int height);
-  bool UpdateTexture(const void *buffer, int width, int height);
-  bool ResizeTextures(int width, int height);
+  bool CreateTextureFromBuffer(const void *buffer, int width, int height) override;
+  bool UpdateTexture(const void *buffer, int width, int height) override;
+  bool ResizeTextures(int width, int height) override;
 
   // Performance optimizations
-  void EnableVSync(bool enable);
-  void SetMultiSampleCount(int samples);
-  void EnablePartialUpdates(bool enable);
-  void ClearTextureCache();
-  void SetDirtyRegion(int x, int y, int width, int height);
-  BufferUpdateStats GetBufferStats() const { return bufferStats_; }
+  void EnableVSync(bool enable) override;
+  void SetMultiSampleCount(int samples) override;
+  void EnablePartialUpdates(bool enable) override;
+  void ClearTextureCache() override;
+  void SetDirtyRegion(int x, int y, int width, int height) override;
+  IRenderer::BufferUpdateStats GetBufferStats() const override { return {bufferStats_.totalUpdates, bufferStats_.cacheHits, bufferStats_.cacheMisses, bufferStats_.avgUpdateTime}; }
 
   // Getters for integration
   ID3D11Device *GetDevice() const { return device_.Get(); }
@@ -61,9 +63,13 @@ public:
   IDXGISwapChain1 *GetSwapChain() const { return swapChain_.Get(); }
 
   // Utility methods
-  bool CheckFeatureSupport();
-  std::string GetAdapterInfo();
-  void LogPerformanceStats();
+  bool CheckFeatureSupport() override;
+  std::string GetAdapterInfo() override;
+  void LogPerformanceStats() override;
+
+  // Renderer identification
+  RendererType GetRendererType() const override { return RendererType::DirectX11; }
+  std::string GetRendererName() const override { return "DirectX 11"; }
 
 private:
   // Core D3D11 objects
@@ -158,12 +164,6 @@ private:
   // Error handling
   void LogError(const std::string &message, HRESULT hr = S_OK);
   std::string HResultToString(HRESULT hr);
-};
-
-// Vertex structure for fullscreen quad rendering
-struct QuadVertex {
-  float position[3]; // x, y, z
-  float texCoord[2]; // u, v
 };
 
 // Constants for shader compilation

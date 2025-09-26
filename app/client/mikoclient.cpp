@@ -1113,7 +1113,7 @@ void HyperionClient::OpenMenuOverlay(const std::string &section, int x, int y,
 
         // Create a new browser window for the menu overlay
         CefWindowInfo window_info;
-        window_info.SetAsPopup(window_->GetHWND(), "MenuOverlay");
+        window_info.SetAsPopup(static_cast<HWND>(window_->GetNativeHandle()), "MenuOverlay");
 
         // Set window style for transparency and layered window
         window_info.ex_style = WS_EX_LAYERED | WS_EX_TOPMOST |

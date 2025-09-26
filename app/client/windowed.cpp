@@ -1,24 +1,19 @@
 #include "windowed.hpp"
 #include "mikoclient.hpp"
 #include <SDL3/SDL.h>
-#include <dwmapi.h>
-#include <shellapi.h>
 
-// DirectX 11 Renderer for performance optimization
-#include "../renderer/dx11_renderer.hpp"
+// Cross-platform renderer system
+#include "../renderer/renderer_factory.hpp"
 #include "../utils/config.hpp"
 
-// Link dwmapi library
-#pragma comment(lib, "dwmapi.lib")
-
 SDL3Window::SDL3Window()
-    : window_(nullptr), renderer_(nullptr), texture_(nullptr), hwnd_(nullptr),
+    : window_(nullptr), renderer_(nullptr), texture_(nullptr), platform_window_(nullptr),
       client_(nullptr), width_(DEFAULT_WINDOW_WIDTH),
       height_(DEFAULT_WINDOW_HEIGHT), minimized_(false), maximized_(false),
       should_close_(false), borderless_(true), mouse_captured_(false),
       last_mouse_x_(0), last_mouse_y_(0), is_dragging_(false), drag_start_x_(0),
       drag_start_y_(0), window_start_x_(0), window_start_y_(0),
-      dx11_renderer_(nullptr), dx11_enabled_(false), dpi_scale_(1.0f),
+      cross_platform_renderer_(nullptr), dpi_scale_(1.0f),
       menu_overlay_visible_(false), menu_overlay_x_(0), menu_overlay_y_(0),
       editor_enabled_(false), editor_rect_({0, 0, 0, 0}),
       editor_browser_(nullptr), editor_texture_(nullptr),
@@ -69,23 +64,29 @@ bool SDL3Window::Initialize(int width, int height) {
   // IMPORTANT: Avoid blending (OSR may deliver alpha=0 everywhere)
   SDL_SetTextureBlendMode(texture_, SDL_BLENDMODE_NONE);
 
-  // Get Windows HWND for dwmapi
-  hwnd_ =
-      (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(window_),
-                                   SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
+  // Initialize platform-specific window features
+  platform_window_ = PlatformFactory::CreatePlatformWindow();
+  if (platform_window_ && platform_window_->Initialize(window_)) {
+    platform_window_->SetRoundedCorners(true);
+    platform_window_->SetDarkMode(true);
+    platform_window_->SetBorderless(borderless_);
+    platform_window_->ExtendFrameIntoClientArea();
+  }
 
-  // Initialize dwmapi and apply rounded corners
-  InitializeDwmApi();
-  ApplyRoundedCorners();
-  UpdateWindowStyle();
-
-  // Initialize DX11 renderer for performance boost
-  dx11_renderer_ = std::make_unique<DX11Renderer>();
-  if (dx11_renderer_->Initialize(hwnd_, width_, height_)) {
-    dx11_enabled_ = true;
-  } else {
-    dx11_enabled_ = false;
-    dx11_renderer_.reset();
+  // Initialize cross-platform renderer for performance boost
+  cross_platform_renderer_ = RendererFactory::CreateRenderer(
+      RendererFactory::RendererPreference::Performance
+  );
+  
+  if (cross_platform_renderer_) {
+    auto native_handle = platform_window_ ? platform_window_->GetNativeHandle() : nullptr;
+    if (native_handle && cross_platform_renderer_->Initialize(native_handle, width_, height_)) {
+      Logger::LogMessage("Cross-platform renderer initialized successfully: " + 
+                         cross_platform_renderer_->GetRendererName());
+    } else {
+      Logger::LogMessage("Failed to initialize cross-platform renderer");
+      cross_platform_renderer_.reset();
+    }
   }
 
   // Initialize DPI scaling
@@ -98,11 +99,16 @@ bool SDL3Window::Initialize(int width, int height) {
 }
 
 void SDL3Window::Shutdown() {
-  // Cleanup DX11 renderer first
-  if (dx11_renderer_) {
-    dx11_renderer_->Shutdown();
-    dx11_renderer_.reset();
-    dx11_enabled_ = false;
+  // Cleanup cross-platform renderer first
+  if (cross_platform_renderer_) {
+    cross_platform_renderer_->Shutdown();
+    cross_platform_renderer_.reset();
+  }
+
+  // Cleanup platform window
+  if (platform_window_) {
+    platform_window_->Shutdown();
+    platform_window_.reset();
   }
 
   if (editor_texture_) {
@@ -163,84 +169,35 @@ void SDL3Window::Restore() {
 
 void SDL3Window::Close() { should_close_ = true; }
 
-HWND SDL3Window::GetHWND() const { return hwnd_; }
+PlatformWindowHandle SDL3Window::GetNativeHandle() const { 
+  return platform_window_ ? platform_window_->GetNativeHandle() : nullptr; 
+}
 
 void SDL3Window::ApplyRoundedCorners() {
-  if (!hwnd_)
-    return;
-
-  // Apply rounded corners using DWM API (Windows 11 style)
-  DWM_WINDOW_CORNER_PREFERENCE cornerPreference = DWMWCP_ROUND;
-  DwmSetWindowAttribute(hwnd_, DWMWA_WINDOW_CORNER_PREFERENCE,
-                        &cornerPreference, sizeof(cornerPreference));
-
-  // Enable immersive dark mode if available
-  BOOL darkMode = TRUE;
-  DwmSetWindowAttribute(hwnd_, DWMWA_USE_IMMERSIVE_DARK_MODE, &darkMode,
-                        sizeof(darkMode));
-
-  Logger::LogMessage("Applied rounded corners and dark mode to window");
+  if (platform_window_) {
+    platform_window_->SetRoundedCorners(true);
+    platform_window_->SetDarkMode(true);
+    Logger::LogMessage("Applied rounded corners and dark mode to window");
+  }
 }
 
 void SDL3Window::SetBorderless(bool borderless) {
   borderless_ = borderless;
-  UpdateWindowStyle();
-}
-
-void SDL3Window::UpdateWindowStyle() {
-  if (!hwnd_)
-    return;
-
-  LONG_PTR style = GetWindowLongPtr(hwnd_, GWL_STYLE);
-  if (borderless_) {
-    style &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX |
-               WS_SYSMENU);
-    style |= WS_POPUP;
-  } else {
-    style |= (WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX |
-              WS_SYSMENU);
-    style &= ~WS_POPUP;
+  if (platform_window_) {
+    platform_window_->SetBorderless(borderless);
   }
-  SetWindowLongPtr(hwnd_, GWL_STYLE, style);
-
-  // Update extended style for proper taskbar appearance
-  LONG_PTR exStyle = GetWindowLongPtr(hwnd_, GWL_EXSTYLE);
-  exStyle |= WS_EX_APPWINDOW;
-  SetWindowLongPtr(hwnd_, GWL_EXSTYLE, exStyle);
-
-  // Force window to redraw
-  SetWindowPos(hwnd_, nullptr, 0, 0, 0, 0,
-               SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER |
-                   SWP_NOOWNERZORDER);
-}
-
-void SDL3Window::InitializeDwmApi() {
-  if (!hwnd_)
-    return;
-
-  // Check DWM composition status (always enabled on Windows 10/11)
-  BOOL composition_enabled = FALSE;
-  DwmIsCompositionEnabled(&composition_enabled);
-
-  // Extend frame into client area for better visual effects
-  MARGINS margins = {0, 0, 0, 1};
-  DwmExtendFrameIntoClientArea(hwnd_, &margins);
 }
 
 void SDL3Window::UpdateDPIScale() {
-  if (!hwnd_) {
+  if (platform_window_) {
+    platform_window_->UpdateDPIScale();
+    dpi_scale_ = platform_window_->GetDPIScale();
+  } else {
     dpi_scale_ = 1.0f;
-    return;
   }
 
-  // Get DPI for the window's monitor
-  UINT dpi = GetDpiForWindow(hwnd_);
-  dpi_scale_ =
-      static_cast<float>(dpi) / 96.0f; // 96 DPI is the standard baseline
-
   Logger::LogMessage(
-      "HiDPI: Detected DPI scale factor: " + std::to_string(dpi_scale_) +
-      " (DPI: " + std::to_string(dpi) + ")");
+      "HiDPI: Detected DPI scale factor: " + std::to_string(dpi_scale_));
 
   // Update CEF browser size if client exists
   if (client_) {
@@ -761,10 +718,10 @@ void SDL3Window::UpdateTexture(const void *buffer, int width, int height) {
     return;
   }
 
-  // Try DX11 texture update first if available and enabled
-  if (dx11_enabled_ && dx11_renderer_) {
-    if (dx11_renderer_->UpdateTexture(buffer, width, height)) {
-      return;
+  // Try cross-platform renderer texture update first if available
+  if (cross_platform_renderer_) {
+    if (cross_platform_renderer_->UpdateTexture(buffer, width, height)) {
+      return; // Successfully updated using cross-platform renderer
     } else {
       // Fall back to SDL3 texture update
     }
@@ -846,11 +803,11 @@ void SDL3Window::Resize(int width, int height) {
 }
 
 void SDL3Window::Render() {
-  // 1. Main render (DX11 or SDL)
+  // 1. Main render (cross-platform renderer or SDL)
   bool main_rendered = false;
 
-  if (dx11_enabled_ && dx11_renderer_) {
-    if (dx11_renderer_->Render()) {
+  if (cross_platform_renderer_) {
+    if (cross_platform_renderer_->Render()) {
       main_rendered = true;
     }
   }
@@ -1435,8 +1392,8 @@ int SDL3Window::MapSDLKeyToWindowsVK(SDL_Keycode sdl_key) const {
   }
 }
 
-bool SDL3Window::IsDX11Available() const {
-  return dx11_renderer_ && dx11_renderer_->IsInitialized();
+bool SDL3Window::IsHardwareAccelerated() const {
+  return cross_platform_renderer_ && cross_platform_renderer_->IsInitialized();
 }
 
 void SDL3Window::SetClient(CefRefPtr<HyperionClient> client) {

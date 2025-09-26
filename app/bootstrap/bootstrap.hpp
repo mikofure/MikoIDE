@@ -1,10 +1,11 @@
 #ifndef BOOTSTRAP_HPP
 #define BOOTSTRAP_HPP
 
+#ifdef _WIN32
 #include <windows.h>
-#include <commctrl.h>
 #include <wininet.h>
-#include <wincodec.h>
+#pragma comment(lib, "wininet.lib")
+#endif
 
 #include <atomic>
 #include <filesystem>
@@ -13,12 +14,7 @@
 #include <thread>
 #include <vector>
 
-#pragma comment(lib, "wininet.lib")
-#pragma comment(lib, "comctl32.lib")
-#pragma comment(lib, "windowscodecs.lib")
-
-#include "dialog.hpp"
-#include "splashscreen.hpp"
+#include "ui_interface.hpp"
 
 // Bootstrap result codes
 enum class BootstrapResult {
@@ -53,7 +49,8 @@ struct DownloadChunk {
 // Bootstrap class for managing CEF helper download and extraction
 class Bootstrap {
 private:
-  static std::unique_ptr<ModernDialog> s_modern_dialog;
+  static std::unique_ptr<IModernDialog> s_modern_dialog;
+  static std::unique_ptr<ISplashScreen> s_splash_screen;
   static std::atomic<bool> s_cancelled;
   static std::string s_current_status;
   static std::atomic<int> s_current_progress;
@@ -73,7 +70,7 @@ private:
                          ProgressCallback callback);
   static void UpdateProgress(int percentage, const std::string &status,
                              size_t bytesDownloaded = 0, size_t totalBytes = 0);
-  static bool ShowModernDownloadDialog(HINSTANCE hInstance, HWND hParent);
+  static bool ShowModernDownloadDialog(PlatformInstance hInstance, PlatformWindow hParent);
   static bool DownloadUnzipBinary();
   static bool ExtractZipWithUnzip(const std::filesystem::path &zipPath,
                                   const std::filesystem::path &extractPath,
@@ -85,8 +82,8 @@ public:
   static std::filesystem::path GetAppDirectory();
   static bool IsPathWithinAppDirectory(const std::filesystem::path &path);
   static bool ValidateAndCreateDirectory(const std::filesystem::path &path);
-  static BootstrapResult CheckAndDownloadCEFHelper(HINSTANCE hInstance,
-                                                   HWND hParent = nullptr);
+  static BootstrapResult CheckAndDownloadCEFHelper(PlatformInstance hInstance,
+                                                   PlatformWindow hParent = nullptr);
   static std::string GetCEFHelperURL();
   static bool RelaunchApplication();
   static void InitializeGraphics();

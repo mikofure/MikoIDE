@@ -160,6 +160,8 @@ add_executable(${PROJECT_NAME} WIN32
     app/client/mikoclient.cpp
     app/client/offscreenrender.cpp
     app/client/windowed.cpp
+    app/client/renderermethods.cpp
+    app/client/platform/sysplatform.cpp
     app/resources/webapp.cpp
     app/resources/editor.cpp
     app/resources/menuoverlay.cpp
@@ -169,16 +171,36 @@ add_executable(${PROJECT_NAME} WIN32
     app/terminal/renderer.cpp
     app/terminal/processmanager.cpp
     app/terminal/terminalbuffer.cpp
-    app/renderer/dx11_renderer.cpp
+    app/renderer/renderer_interface.cpp
+    app/renderer/renderer_factory.cpp
+    app/renderer/windows/dx11_renderer.cpp
+    app/utils/logger.cpp
     app/internal/simpleipc.cpp
     app/bootstrap/bootstrap.cpp
-    app/bootstrap/dialog.cpp
-    app/bootstrap/splashscreen.cpp
+    app/bootstrap/ui_factory.cpp
 )
+
+# Add platform-specific sources
+if(WIN32)
+    target_sources(${PROJECT_NAME} PRIVATE
+        app/client/platform/windows/windowsplatform.cpp
+        app/bootstrap/platform/windows/windows_splash.cpp
+        app/bootstrap/platform/windows/windows_dialog.cpp
+    )
+endif()
+
+if(UNIX AND NOT APPLE)
+    target_sources(${PROJECT_NAME} PRIVATE
+        app/client/platform/linux/linuxplatform.cpp
+        app/bootstrap/platform/linux/linux_splash.cpp
+        app/bootstrap/platform/linux/linux_dialog.cpp
+    )
+endif()
 
 # Add platform-specific renderer sources
 if(UNIX AND NOT APPLE)
     target_sources(${PROJECT_NAME} PRIVATE
+        app/renderer/linux/opengl_renderer.cpp
         app/renderer/linux/vulkan_renderer.cpp
     )
 endif()
@@ -188,9 +210,24 @@ add_executable(mikowebhelper WIN32
     app/utils/logger.cpp
     app/client/app.cpp
     app/bootstrap/bootstrap.cpp
-    app/bootstrap/dialog.cpp
+    app/bootstrap/ui_factory.cpp
     app/resources/splash.cpp
 )
+
+# Add platform-specific sources to mikowebhelper
+if(WIN32)
+    target_sources(mikowebhelper PRIVATE
+        app/bootstrap/platform/windows/windows_splash.cpp
+        app/bootstrap/platform/windows/windows_dialog.cpp
+    )
+endif()
+
+if(UNIX AND NOT APPLE)
+    target_sources(mikowebhelper PRIVATE
+        app/bootstrap/platform/linux/linux_splash.cpp
+        app/bootstrap/platform/linux/linux_dialog.cpp
+    )
+endif()
 
 add_executable(mikoterminal
     app/terminal/renderer.cpp
@@ -282,6 +319,7 @@ endif()
 if(UNIX AND NOT APPLE)
     target_link_libraries(${PROJECT_NAME}
         vulkan
+        X11
     )   
 endif()
 

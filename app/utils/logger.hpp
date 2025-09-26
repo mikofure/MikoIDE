@@ -1,15 +1,26 @@
 #pragma once
-#include <fstream>
-#include <string>
 
+#include <string>
+#include <iostream>
+
+// Simple logger utility
 class Logger {
 public:
-  static void Initialize();
-  static void Shutdown();
-  static void LogMessage(const std::string &message);
+    enum class Level {
+        Debug,
+        Info,
+        Warning,
+        Error
+    };
 
-private:
-  static std::string GetTimestampedLogFileName();
-  static void EnsureLogDirectoryExists();
-  static std::string currentLogFile;
+    static void Log(Level level, const std::string& message);
+    static void Debug(const std::string& message);
+    static void Info(const std::string& message);
+    static void Warning(const std::string& message);
+    static void Error(const std::string& message);
+    
+    // Legacy methods for backward compatibility
+    static void LogMessage(const std::string& message);
+    static void Initialize();
+    static void Shutdown();
 };

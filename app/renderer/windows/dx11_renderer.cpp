@@ -1,5 +1,5 @@
 #include "dx11_renderer.hpp"
-#include "../utils/logger.hpp"
+#include "../../utils/logger.hpp"
 #include <d3dcompiler.h>
 #include <iomanip>
 #include <sstream>
@@ -62,7 +62,8 @@ DX11Renderer::DX11Renderer()
 
 DX11Renderer::~DX11Renderer() { Shutdown(); }
 
-bool DX11Renderer::Initialize(HWND hwnd, int width, int height) {
+bool DX11Renderer::Initialize(void* window_handle, int width, int height) {
+  HWND hwnd = static_cast<HWND>(window_handle);
   if (initialized_) {
     Logger::LogMessage("DX11Renderer: Already initialized");
     return true;

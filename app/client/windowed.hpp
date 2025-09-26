@@ -9,15 +9,15 @@
 #include <memory>
 #include <mutex>
 #include <string>
-
-// Windows includes
-#include <windows.h>
+#include <vector>
 
 #include "../utils/logger.hpp"
+#include "offscreenrender.hpp"
+#include "platform/sysplatform.hpp"
+#include "../renderer/renderer_interface.hpp"
 
 // Forward declarations
 class HyperionClient;
-class DX11Renderer;
 
 // SDL3 Window wrapper with CEF OSR integration and dwmapi rounded edges
 class SDL3Window {
@@ -47,9 +47,9 @@ public:
 
   // Getters
   SDL_Window *GetSDLWindow() const { return window_; }
-  SDL_Renderer *GetRenderer() const { return renderer_; }
+  SDL_Renderer *GetSDLRenderer() const { return renderer_; }
   SDL_Texture *GetTexture() const { return texture_; }
-  HWND GetHWND() const;
+  PlatformWindowHandle GetNativeHandle() const;
   int GetWidth() const { return width_; }
   int GetHeight() const { return height_; }
 
@@ -83,13 +83,10 @@ public:
   CefRefPtr<CefBrowser> GetEditorBrowser() const { return editor_browser_; }
   void UpdateEditorTexture(const void *buffer, int width, int height);
 
-  // Thread safety for editor texture updates
-  std::mutex editor_texture_mutex_;
-
-  // DX11 Renderer integration
-  bool IsDX11Available() const;
-  void EnableDX11Rendering(bool enable);
-  DX11Renderer *GetDX11Renderer() const { return dx11_renderer_.get(); }
+  // Hardware acceleration support
+  bool IsHardwareAccelerated() const;
+  void EnableHardwareAcceleration(bool enable);
+  IRenderer *GetRenderer() const { return cross_platform_renderer_.get(); }
 
   // Window state
   bool IsMinimized() const { return minimized_; }
@@ -118,7 +115,7 @@ private:
   SDL_Window *window_;
   SDL_Renderer *renderer_;
   SDL_Texture *texture_;
-  HWND hwnd_;
+  std::unique_ptr<IPlatformWindow> platform_window_;
   CefRefPtr<HyperionClient> client_;
 
   int width_;
@@ -140,9 +137,8 @@ private:
   int window_start_x_;
   int window_start_y_;
 
-  // DX11 Renderer for performance optimization
-  std::unique_ptr<DX11Renderer> dx11_renderer_;
-  bool dx11_enabled_;
+  // Cross-platform renderer for performance optimization
+  std::unique_ptr<IRenderer> cross_platform_renderer_;
 
   // DPI scaling support
   float dpi_scale_;
@@ -164,6 +160,8 @@ private:
   bool editor_has_focus_;
   bool main_browser_has_focus_;
 
-  void InitializeDwmApi();
+  // Thread safety for editor texture updates
+  std::mutex editor_texture_mutex_;
+
   void UpdateWindowStyle();
 };
