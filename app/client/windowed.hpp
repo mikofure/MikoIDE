@@ -4,12 +4,14 @@
 #include "include/cef_app.h"
 #include "include/wrapper/cef_helpers.h"
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_render.h>
 
 #include <algorithm>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
+#include <limits>
 
 #include "../utils/logger.hpp"
 #include "offscreenrender.hpp"
@@ -43,7 +45,7 @@ public:
   // Event handling
   bool HandleEvent(const SDL_Event &event);
   bool HandleWindowDragging(const SDL_Event &event);
-  void Render();
+  bool Render();
 
   // Getters
   SDL_Window *GetSDLWindow() const { return window_; }
@@ -54,7 +56,7 @@ public:
   int GetHeight() const { return height_; }
 
   // CEF OSR integration
-  void UpdateTexture(const void *buffer, int width, int height);
+  bool UpdateTexture(const void *buffer, int width, int height);
   void Resize(int width, int height);
   void SetClient(CefRefPtr<HyperionClient> client);
 
@@ -81,7 +83,7 @@ public:
   bool IsEditorEnabled() const { return editor_enabled_; }
   CefRect GetEditorRect() const { return editor_rect_; }
   CefRefPtr<CefBrowser> GetEditorBrowser() const { return editor_browser_; }
-  void UpdateEditorTexture(const void *buffer, int width, int height);
+  bool UpdateEditorTexture(const void *buffer, int width, int height);
 
   // Hardware acceleration support
   bool IsHardwareAccelerated() const;
@@ -104,14 +106,26 @@ public:
   void SendKeyEvent(const SDL_Event &event);
   void SendScrollEvent(const SDL_Event &event);
   void SendTextInputEvent(const SDL_Event &event);
+  void SendTextEditingEvent(const SDL_Event &event);
 
   // Editor input helper
   bool IsPointInEditor(int x, int y) const;
+
+  // Focus helper
+  CefRefPtr<CefBrowser> GetFocusedBrowser();
+
+  // Hit testing and drag helpers
+  SDL_HitTestResult HitTest(const SDL_Point &point) const;
+  static SDL_HitTestResult SDLCALL HitTestCallback(SDL_Window *window,
+                                                   const SDL_Point *area,
+                                                   void *data);
 
   // Key mapping helper
   int MapSDLKeyToWindowsVK(SDL_Keycode sdl_key) const;
 
 private:
+  static constexpr int kResizeBorder = 8;
+
   SDL_Window *window_;
   SDL_Renderer *renderer_;
   SDL_Texture *texture_;

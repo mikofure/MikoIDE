@@ -3,11 +3,14 @@
 #include "../renderer_interface.hpp"
 #include <d3d11.h>
 #include <dxgi1_2.h>
+#include <dxgi1_6.h>
+#include <wrl/client.h>
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <chrono>
+#include <thread>
 #include <windows.h>
-#include <wrl/client.h>
 #include <cstdint>
 
 // Link D3D11 and DXGI libraries
@@ -109,6 +112,7 @@ private:
   bool vsyncEnabled_;
   int multiSampleCount_;
   DXGI_FORMAT textureFormat_;
+  bool using_high_performance_adapter_;
 
   // Performance tracking
   mutable LARGE_INTEGER lastFrameTime_;
@@ -126,7 +130,14 @@ private:
     bool isDirty;
   };
 
-  std::unordered_map<std::string, TextureCache> textureCache_;
+  // Custom hash function for std::pair<int, int>
+  struct PairHash {
+      std::size_t operator()(const std::pair<int, int>& p) const {
+          return std::hash<int>()(p.first) ^ (std::hash<int>()(p.second) << 1);
+      }
+  };
+
+  std::unordered_map<std::pair<int, int>, TextureCache, PairHash> textureCache_;
   static constexpr size_t MAX_CACHED_TEXTURES = 16;
   static constexpr UINT64 CACHE_TIMEOUT_MS = 5000; // 5 seconds
 
@@ -142,6 +153,7 @@ private:
   bool enablePartialUpdates_;
 
   // Private helper methods
+  bool CreateDeviceInternal(bool preferHighPerformance);
   bool CreateDevice();
   bool CreateSwapChain();
   bool CreateRenderTargets();

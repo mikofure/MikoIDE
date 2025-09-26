@@ -21,6 +21,8 @@
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <chrono>
+#include <thread>
 
 #ifdef _WIN32
 // Undefine conflicting Windows macros
@@ -59,6 +61,11 @@
 #include <filesystem>
 #include <memory>
 #include <string>
+
+extern "C" {
+__declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
+__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
 
 // Global variables
 CefRefPtr<HyperionClient> g_client;
@@ -477,6 +484,18 @@ int PlatformMain(int argc, char* argv[]) {
     return 1;
   }
 
+#ifdef _WIN32
+  // Set taskbar icon for main window
+  HWND hwnd = static_cast<HWND>(g_sdl_window->GetNativeHandle());
+  HWND hwndRoot = hwnd ? GetAncestor(hwnd, GA_ROOT) : nullptr;
+  HICON hIcon = LoadIcon(GetModuleHandle(nullptr), MAKEINTRESOURCE(101));
+  if (hwndRoot && hIcon) {
+    SendMessage(hwndRoot, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+    SendMessage(hwndRoot, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
+    Logger::LogMessage("Set main window icon for taskbar (root window)");
+  }
+#endif
+
   Logger::LogMessage("SDL3 window initialized successfully");
 
   if (g_splash_screen) {
@@ -562,10 +581,17 @@ int PlatformMain(int argc, char* argv[]) {
     g_splash_screen.reset();
   }
 
-  // Main message loop with exception handling
+  // Main message loop optimized for 120 FPS performance
+  Logger::LogMessage("Starting optimized 120 FPS message loop");
+  
+  auto lastFrameTime = std::chrono::high_resolution_clock::now();
+  const auto targetFrameTime = std::chrono::microseconds(8333);  // 1/120 second = 8333 microseconds
+  
   while (!g_is_closing) {
     try {
-      // Handle SDL events
+      auto frameStart = std::chrono::high_resolution_clock::now();
+      
+      // Handle SDL events with minimal latency
       HandleEvents();
 
       // Render the window
@@ -581,13 +607,32 @@ int PlatformMain(int argc, char* argv[]) {
         // Continue running to maintain stability
       }
 
-      // Small delay to prevent 100% CPU usage
-      SDL_Delay(1);
+      // Precise frame pacing for 120 FPS (replaces SDL_Delay(1))
+      auto frameEnd = std::chrono::high_resolution_clock::now();
+      auto frameTime = std::chrono::duration_cast<std::chrono::microseconds>(frameEnd - frameStart);
+      
+      if (frameTime < targetFrameTime) {
+        auto sleepTime = targetFrameTime - frameTime;
+        
+        // Use high-precision timing for 120 FPS
+        if (sleepTime > std::chrono::microseconds(1000)) {
+          // Sleep for most of the remaining time
+          std::this_thread::sleep_for(sleepTime - std::chrono::microseconds(500));
+        }
+        
+        // Spin-wait for the remaining time for maximum precision
+        while (std::chrono::duration_cast<std::chrono::microseconds>(
+                   std::chrono::high_resolution_clock::now() - frameStart) < targetFrameTime) {
+          std::this_thread::yield();
+        }
+      }
 
       // Check if all browsers are closed
       if (g_client && !g_client->HasBrowsers() && g_is_closing) {
         break;
       }
+      
+      lastFrameTime = frameStart;
     } catch (...) {
       Logger::LogMessage("Main loop exception caught - continuing execution");
       // Continue the loop to maintain application stability

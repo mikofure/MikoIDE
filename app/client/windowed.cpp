@@ -1,10 +1,39 @@
 #include "windowed.hpp"
 #include "mikoclient.hpp"
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_render.h>
+#include "include/cef_render_handler.h"
+#include <algorithm>
 
 // Cross-platform renderer system
 #include "../renderer/renderer_factory.hpp"
 #include "../utils/config.hpp"
+
+namespace {
+
+SDL_Point GetEventPosition(const SDL_Event &event) {
+  SDL_Point point{0, 0};
+  switch (event.type) {
+  case SDL_EVENT_MOUSE_MOTION:
+    point.x = static_cast<int>(event.motion.x);
+    point.y = static_cast<int>(event.motion.y);
+    break;
+  case SDL_EVENT_MOUSE_BUTTON_DOWN:
+  case SDL_EVENT_MOUSE_BUTTON_UP:
+    point.x = static_cast<int>(event.button.x);
+    point.y = static_cast<int>(event.button.y);
+    break;
+  case SDL_EVENT_MOUSE_WHEEL:
+    point.x = 0;
+    point.y = 0;
+    break;
+  default:
+    break;
+  }
+  return point;
+}
+
+} // namespace
 
 SDL3Window::SDL3Window()
     : window_(nullptr), renderer_(nullptr), texture_(nullptr), platform_window_(nullptr),
@@ -94,6 +123,12 @@ bool SDL3Window::Initialize(int width, int height) {
 
   // Enable text input for the window
   SDL_StartTextInput(window_);
+
+  if (!SDL_SetWindowHitTest(window_, HitTestCallback, this)) {
+    const char *error = SDL_GetError();
+    Logger::Warning("SDL_SetWindowHitTest failed: " +
+                    std::string(error ? error : "unknown"));
+  }
 
   return true;
 }
@@ -376,6 +411,10 @@ bool SDL3Window::HandleEvent(const SDL_Event &event) {
     SendTextInputEvent(event);
     return true;
 
+  case SDL_EVENT_TEXT_EDITING:
+    SendTextEditingEvent(event);
+    return true;
+
   default:
     return false;
   }
@@ -387,16 +426,38 @@ bool SDL3Window::IsPointInEditor(int x, int y) const {
          y < editor_rect_.y + editor_rect_.height;
 }
 
+CefRefPtr<CefBrowser> SDL3Window::GetFocusedBrowser() {
+  if (editor_has_focus_ && editor_browser_) {
+    return editor_browser_;
+  }
+
+  if (main_browser_has_focus_ && client_) {
+    if (auto browser = client_->GetFirstBrowser()) {
+      return browser;
+    }
+  }
+
+  if (editor_browser_) {
+    return editor_browser_;
+  }
+
+  if (client_) {
+    return client_->GetFirstBrowser();
+  }
+
+  return nullptr;
+}
+
 void SDL3Window::SendMouseEvent(const SDL_Event &event) {
   if (!client_) {
     Logger::LogMessage("SendMouseEvent: Client is null");
     return;
   }
 
-  // Determine which browser to send the event to
-  CefRefPtr<CefBrowser> target_browser;
-  bool is_editor_event = IsPointInEditor(event.button.x, event.button.y);
+  SDL_Point window_point = GetEventPosition(event);
+  bool is_editor_event = IsPointInEditor(window_point.x, window_point.y);
 
+  CefRefPtr<CefBrowser> target_browser;
   if (is_editor_event && editor_browser_) {
     target_browser = editor_browser_;
     Logger::LogMessage("SendMouseEvent: Routing to editor browser");
@@ -416,14 +477,12 @@ void SDL3Window::SendMouseEvent(const SDL_Event &event) {
     return;
   }
 
-  CefMouseEvent mouse_event;
-  mouse_event.x = event.button.x;
-  mouse_event.y = event.button.y;
-
-  // Get current modifier state from SDL and convert to CEF modifiers
-  SDL_Keymod sdl_modifiers = SDL_GetModState();
+  CefMouseEvent mouse_event{};
+  mouse_event.x = window_point.x;
+  mouse_event.y = window_point.y;
   mouse_event.modifiers = 0;
 
+  SDL_Keymod sdl_modifiers = SDL_GetModState();
   if (sdl_modifiers & SDL_KMOD_SHIFT) {
     mouse_event.modifiers |= EVENTFLAG_SHIFT_DOWN;
   }
@@ -437,43 +496,44 @@ void SDL3Window::SendMouseEvent(const SDL_Event &event) {
     mouse_event.modifiers |= EVENTFLAG_COMMAND_DOWN;
   }
 
-  // If this is an editor event, adjust coordinates relative to editor area
+  Uint32 mouse_buttons = SDL_GetMouseState(nullptr, nullptr);
+  if (mouse_buttons & SDL_BUTTON_LMASK) {
+    mouse_event.modifiers |= EVENTFLAG_LEFT_MOUSE_BUTTON;
+  }
+  if (mouse_buttons & SDL_BUTTON_MMASK) {
+    mouse_event.modifiers |= EVENTFLAG_MIDDLE_MOUSE_BUTTON;
+  }
+  if (mouse_buttons & SDL_BUTTON_RMASK) {
+    mouse_event.modifiers |= EVENTFLAG_RIGHT_MOUSE_BUTTON;
+  }
+
   if (is_editor_event) {
     mouse_event.x -= editor_rect_.x;
     mouse_event.y -= editor_rect_.y;
 
-    // Validate coordinates are within editor bounds
     if (mouse_event.x < 0 || mouse_event.y < 0 ||
         mouse_event.x > editor_rect_.width ||
         mouse_event.y > editor_rect_.height) {
-      Logger::LogMessage(
-          "SendMouseEvent: Editor mouse coordinates out of bounds (" +
-          std::to_string(mouse_event.x) + ", " + std::to_string(mouse_event.y) +
-          ") editor size: " + std::to_string(editor_rect_.width) + "x" +
-          std::to_string(editor_rect_.height));
+      Logger::LogMessage("SendMouseEvent: Editor mouse coordinates out of bounds");
       return;
     }
   } else {
-    // Validate coordinates are within main window bounds
     if (mouse_event.x < 0 || mouse_event.y < 0 || mouse_event.x > width_ ||
         mouse_event.y > height_) {
-      Logger::LogMessage(
-          "SendMouseEvent: Main window mouse coordinates out of bounds (" +
-          std::to_string(mouse_event.x) + ", " + std::to_string(mouse_event.y) +
-          ")");
+      Logger::LogMessage("SendMouseEvent: Main window mouse coordinates out of bounds");
       return;
     }
   }
 
-  last_mouse_x_ = event.button.x;
-  last_mouse_y_ = event.button.y;
+  last_mouse_x_ = window_point.x;
+  last_mouse_y_ = window_point.y;
 
   try {
     switch (event.type) {
-    case SDL_EVENT_MOUSE_MOTION:
+    case SDL_EVENT_MOUSE_MOTION: {
       host->SendMouseMoveEvent(mouse_event, false);
       break;
-
+    }
     case SDL_EVENT_MOUSE_BUTTON_DOWN:
     case SDL_EVENT_MOUSE_BUTTON_UP: {
       CefBrowserHost::MouseButtonType button_type = MBT_LEFT;
@@ -486,134 +546,121 @@ void SDL3Window::SendMouseEvent(const SDL_Event &event) {
       bool mouse_up = (event.type == SDL_EVENT_MOUSE_BUTTON_UP);
       int click_count = event.button.clicks;
 
-      // Update focus tracking on mouse down events
       if (!mouse_up) {
         if (is_editor_event) {
           editor_has_focus_ = true;
           main_browser_has_focus_ = false;
-          Logger::LogMessage("SendMouseEvent: Focus switched to editor");
         } else {
           editor_has_focus_ = false;
           main_browser_has_focus_ = true;
-          Logger::LogMessage("SendMouseEvent: Focus switched to main browser");
+        }
+
+        host->SetFocus(true);
+
+        if (is_editor_event) {
+          if (auto main_browser = client_ ? client_->GetFirstBrowser() : nullptr) {
+            if (main_browser && main_browser != target_browser) {
+              main_browser->GetHost()->SetFocus(false);
+            }
+          }
+        } else if (editor_browser_ && editor_browser_ != target_browser) {
+          editor_browser_->GetHost()->SetFocus(false);
         }
       }
 
       Logger::LogMessage("SendMouseEvent: Sending click event at (" +
                          std::to_string(mouse_event.x) + ", " +
-                         std::to_string(mouse_event.y) +
-                         ") button=" + std::to_string(button_type) +
-                         " up=" + std::to_string(mouse_up) + " to " +
-                         (is_editor_event ? "editor" : "main") + " browser");
+                         std::to_string(mouse_event.y) + ")");
 
-      host->SendMouseClickEvent(mouse_event, button_type, mouse_up,
-                                click_count);
+      host->SendMouseClickEvent(mouse_event, button_type, mouse_up, click_count);
       break;
     }
+    default:
+      break;
     }
   } catch (const std::exception &ex) {
-    Logger::LogMessage("SendMouseEvent: Exception caught - " +
-                       std::string(ex.what()));
+    Logger::LogMessage("SendMouseEvent: Exception caught - " + std::string(ex.what()));
   } catch (...) {
     Logger::LogMessage("SendMouseEvent: Unknown exception caught");
   }
 }
 
 void SDL3Window::SendKeyEvent(const SDL_Event &event) {
-  if (!client_)
+  if (!client_) {
     return;
-
-  // Determine which browser to send the event to based on focus state
-  CefRefPtr<CefBrowser> target_browser;
-
-  if (editor_has_focus_ && editor_browser_) {
-    target_browser = editor_browser_;
-    Logger::LogMessage("SendKeyEvent: Routing to editor browser (has focus)");
-  } else if (main_browser_has_focus_) {
-    target_browser = client_->GetFirstBrowser();
-    Logger::LogMessage("SendKeyEvent: Routing to main browser (has focus)");
-  } else {
-    // Fallback to main browser if no focus is set
-    target_browser = client_->GetFirstBrowser();
-    Logger::LogMessage("SendKeyEvent: Routing to main browser (fallback)");
   }
 
-  if (!target_browser)
+  CefRefPtr<CefBrowser> target_browser = GetFocusedBrowser();
+  if (!target_browser) {
     return;
+  }
 
-  // Check for modifier keys
+  auto host = target_browser->GetHost();
+  if (!host) {
+    return;
+  }
+
+  host->SetFocus(true);
+
   SDL_Keymod modifiers = SDL_GetModState();
   bool ctrl_pressed = (modifiers & SDL_KMOD_CTRL) != 0;
   bool shift_pressed = (modifiers & SDL_KMOD_SHIFT) != 0;
   bool alt_pressed = (modifiers & SDL_KMOD_ALT) != 0;
 
-  // Handle copy-paste shortcuts
   if (ctrl_pressed && event.type == SDL_EVENT_KEY_DOWN) {
-    if (event.key.key == SDLK_C) {
-      // Ctrl+C - Copy
+    switch (event.key.key) {
+    case SDLK_C:
       Logger::LogMessage("SendKeyEvent: Handling Ctrl+C copy command");
       target_browser->GetMainFrame()->Copy();
-      return;
-    } else if (event.key.key == SDLK_V) {
-      // Ctrl+V - Paste
+      break;
+    case SDLK_V:
       Logger::LogMessage("SendKeyEvent: Handling Ctrl+V paste command");
       target_browser->GetMainFrame()->Paste();
-      return;
-    } else if (event.key.key == SDLK_X) {
-      // Ctrl+X - Cut
+      break;
+    case SDLK_X:
       Logger::LogMessage("SendKeyEvent: Handling Ctrl+X cut command");
       target_browser->GetMainFrame()->Cut();
-      return;
-    } else if (event.key.key == SDLK_A) {
-      // Ctrl+A - Select All
+      break;
+    case SDLK_A: {
       Logger::LogMessage("SendKeyEvent: Handling Ctrl+A select all command");
-
-      // Send the key event to CEF instead of using SelectAll() method
-      CefKeyEvent select_all_event;
-      select_all_event.type = KEYEVENT_KEYDOWN;
-      select_all_event.windows_key_code = 'A';
-      select_all_event.native_key_code = event.key.scancode;
-      select_all_event.modifiers = EVENTFLAG_CONTROL_DOWN;
-
-      target_browser->GetHost()->SendKeyEvent(select_all_event);
-      return;
-    } else if (event.key.key == SDLK_Z) {
-      // Ctrl+Z - Undo
+      target_browser->GetMainFrame()->SelectAll();
+      break;
+    }
+    case SDLK_Z:
       Logger::LogMessage("SendKeyEvent: Handling Ctrl+Z undo command");
       target_browser->GetMainFrame()->Undo();
-      return;
-    } else if (event.key.key == SDLK_Y) {
-      // Ctrl+Y - Redo
+      break;
+    case SDLK_Y:
       Logger::LogMessage("SendKeyEvent: Handling Ctrl+Y redo command");
       target_browser->GetMainFrame()->Redo();
-      return;
+      break;
+    default:
+      break;
     }
   }
 
-  CefKeyEvent key_event;
+  CefKeyEvent key_event{};
   key_event.windows_key_code = MapSDLKeyToWindowsVK(event.key.key);
   key_event.native_key_code = event.key.scancode;
-
-  // Set modifiers properly
   key_event.modifiers = 0;
-  if (ctrl_pressed)
-    key_event.modifiers |= EVENTFLAG_CONTROL_DOWN;
-  if (shift_pressed)
-    key_event.modifiers |= EVENTFLAG_SHIFT_DOWN;
-  if (alt_pressed)
-    key_event.modifiers |= EVENTFLAG_ALT_DOWN;
 
-  if (event.type == SDL_EVENT_KEY_DOWN) {
-    key_event.type = KEYEVENT_KEYDOWN;
-  } else {
-    key_event.type = KEYEVENT_KEYUP;
+  if (ctrl_pressed) {
+    key_event.modifiers |= EVENTFLAG_CONTROL_DOWN;
+  }
+  if (shift_pressed) {
+    key_event.modifiers |= EVENTFLAG_SHIFT_DOWN;
+  }
+  if (alt_pressed) {
+    key_event.modifiers |= EVENTFLAG_ALT_DOWN;
   }
 
-  target_browser->GetHost()->SendKeyEvent(key_event);
+  key_event.type = (event.type == SDL_EVENT_KEY_DOWN) ? KEYEVENT_KEYDOWN
+                                                      : KEYEVENT_KEYUP;
 
-  // Special handling for Enter key to generate carriage return character
+  host->SendKeyEvent(key_event);
+
   if (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_RETURN) {
-    CefKeyEvent char_event;
+    CefKeyEvent char_event{};
     char_event.type = KEYEVENT_CHAR;
     char_event.character = '\r';
     char_event.unmodified_character = '\r';
@@ -621,9 +668,7 @@ void SDL3Window::SendKeyEvent(const SDL_Event &event) {
     char_event.native_key_code = 0;
     char_event.modifiers = 0;
 
-    target_browser->GetHost()->SendKeyEvent(char_event);
-    Logger::LogMessage(
-        "SendKeyEvent: Generated carriage return character for Enter key");
+    host->SendKeyEvent(char_event);
   }
 }
 
@@ -646,289 +691,411 @@ void SDL3Window::SendScrollEvent(const SDL_Event &event) {
   if (!target_browser)
     return;
 
-  CefMouseEvent mouse_event;
+  CefMouseEvent mouse_event{};
   mouse_event.x = last_mouse_x_;
   mouse_event.y = last_mouse_y_;
   mouse_event.modifiers = 0;
 
-  // If this is an editor event, adjust coordinates relative to editor area
+  SDL_Keymod sdl_modifiers = SDL_GetModState();
+  if (sdl_modifiers & SDL_KMOD_SHIFT) {
+    mouse_event.modifiers |= EVENTFLAG_SHIFT_DOWN;
+  }
+  if (sdl_modifiers & SDL_KMOD_CTRL) {
+    mouse_event.modifiers |= EVENTFLAG_CONTROL_DOWN;
+  }
+  if (sdl_modifiers & SDL_KMOD_ALT) {
+    mouse_event.modifiers |= EVENTFLAG_ALT_DOWN;
+  }
+  if (sdl_modifiers & SDL_KMOD_GUI) {
+    mouse_event.modifiers |= EVENTFLAG_COMMAND_DOWN;
+  }
+
+  Uint32 mouse_buttons = SDL_GetMouseState(nullptr, nullptr);
+  if (mouse_buttons & SDL_BUTTON_LMASK) {
+    mouse_event.modifiers |= EVENTFLAG_LEFT_MOUSE_BUTTON;
+  }
+  if (mouse_buttons & SDL_BUTTON_MMASK) {
+    mouse_event.modifiers |= EVENTFLAG_MIDDLE_MOUSE_BUTTON;
+  }
+  if (mouse_buttons & SDL_BUTTON_RMASK) {
+    mouse_event.modifiers |= EVENTFLAG_RIGHT_MOUSE_BUTTON;
+  }
+
   if (is_editor_event) {
     mouse_event.x -= editor_rect_.x;
     mouse_event.y -= editor_rect_.y;
   }
 
-  int delta_x = 0;
-  int delta_y = static_cast<int>(event.wheel.y * 120); // Standard wheel delta
+  int delta_x = static_cast<int>(event.wheel.x * 120);
+  int delta_y = static_cast<int>(event.wheel.y * 120);
 
   target_browser->GetHost()->SendMouseWheelEvent(mouse_event, delta_x, delta_y);
 }
 
 void SDL3Window::SendTextInputEvent(const SDL_Event &event) {
-  if (!client_)
+  if (!client_) {
     return;
-
-  // Determine which browser to send the event to based on focus state
-  CefRefPtr<CefBrowser> target_browser;
-
-  if (editor_has_focus_ && editor_browser_) {
-    target_browser = editor_browser_;
-    Logger::LogMessage(
-        "SendTextInputEvent: Routing to editor browser (has focus)");
-  } else if (main_browser_has_focus_) {
-    target_browser = client_->GetFirstBrowser();
-    Logger::LogMessage(
-        "SendTextInputEvent: Routing to main browser (has focus)");
-  } else {
-    // Fallback to main browser if no focus is set
-    target_browser = client_->GetFirstBrowser();
-    Logger::LogMessage(
-        "SendTextInputEvent: Routing to main browser (fallback)");
   }
 
-  if (!target_browser)
+  CefRefPtr<CefBrowser> target_browser = GetFocusedBrowser();
+  if (!target_browser) {
     return;
+  }
 
-  // Convert SDL text input to CEF key event
+  auto host = target_browser->GetHost();
+  if (!host) {
+    return;
+  }
+
   const char *text = event.text.text;
-  if (!text || strlen(text) == 0) {
+  if (!text || *text == '\0') {
     Logger::LogMessage("SendTextInputEvent: Empty text input");
     return;
   }
 
-  // For each character in the text input
-  for (int i = 0; text[i] != '\0'; i++) {
-    CefKeyEvent key_event;
-    key_event.type = KEYEVENT_CHAR;
-    key_event.character = text[i];
-    key_event.unmodified_character = text[i];
-    key_event.windows_key_code = text[i];
-    key_event.native_key_code = 0;
-    key_event.modifiers = 0;
+  std::string utf8_text(text);
+  CefString cef_text(utf8_text);
 
-    target_browser->GetHost()->SendKeyEvent(key_event);
-
-    Logger::LogMessage("SendTextInputEvent: Sent character '" +
-                       std::string(1, text[i]) + "' to " +
-                       (editor_has_focus_ ? "editor" : "main") + " browser");
-  }
+  const int no_replace = std::numeric_limits<int>::max();
+  host->ImeCommitText(cef_text, CefRange(no_replace, no_replace), 0);
+  host->ImeFinishComposingText(false);
 }
 
-void SDL3Window::UpdateTexture(const void *buffer, int width, int height) {
-  if (!buffer) {
+void SDL3Window::SendTextEditingEvent(const SDL_Event &event) {
+  if (!client_) {
     return;
   }
 
-  // Try cross-platform renderer texture update first if available
-  if (cross_platform_renderer_) {
-    if (cross_platform_renderer_->UpdateTexture(buffer, width, height)) {
-      return; // Successfully updated using cross-platform renderer
-    } else {
-      // Fall back to SDL3 texture update
-    }
-  }
-
-  // SDL3 fallback texture update
-  if (!renderer_) {
+  CefRefPtr<CefBrowser> target_browser = GetFocusedBrowser();
+  if (!target_browser) {
     return;
   }
 
-  // Check if we need to create or recreate the texture
-  bool needNewTexture = false;
-
-  if (!texture_) {
-    needNewTexture = true;
-  } else {
-    // Check if texture dimensions match the incoming data (use float types for
-    // SDL3)
-    float tex_width = 0.0f, tex_height = 0.0f;
-    if (SDL_GetTextureSize(texture_, &tex_width, &tex_height) != 0) {
-      // Assume we need a new texture if we can't get the size
-      needNewTexture = true;
-    } else if ((int)tex_width != width || (int)tex_height != height) {
-      needNewTexture = true;
-    }
+  auto host = target_browser->GetHost();
+  if (!host) {
+    return;
   }
 
-  // Create or recreate texture if needed
-  if (needNewTexture) {
-    if (texture_) {
-      SDL_DestroyTexture(texture_);
-      texture_ = nullptr;
+  std::string composition_text = event.edit.text;
+  CefString cef_text(composition_text);
+  const int text_length = static_cast<int>(cef_text.length());
+
+  std::vector<CefCompositionUnderline> underlines;
+  if (text_length > 0) {
+    CefCompositionUnderline underline;
+    underline.range = CefRange(0, text_length);
+    underline.color = 0xFF000000;
+    underline.background_color = 0x00000000;
+    underline.thick = false;
+    underlines.push_back(underline);
+  }
+
+  int composition_start = std::max(0, event.edit.start);
+  composition_start = std::min(composition_start, text_length);
+
+  int composition_length = std::max(0, event.edit.length);
+  composition_length = std::min(composition_length, text_length - composition_start);
+
+  int caret_position = composition_start + composition_length;
+  caret_position = std::clamp(caret_position, composition_start,
+                              composition_start + composition_length);
+
+  CefRange replacement_range(composition_start,
+                              composition_start + composition_length);
+  CefRange selection_range(caret_position, caret_position);
+
+  host->ImeSetComposition(cef_text, underlines, replacement_range,
+                          selection_range);
+}
+
+bool SDL3Window::UpdateTexture(const void* buffer, int width, int height) {
+    if (!buffer || width <= 0 || height <= 0) {
+        Logger::Error("UpdateTexture: Invalid parameters");
+        return false;
     }
 
-    texture_ = SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_BGRA32,
-                                 SDL_TEXTUREACCESS_STREAMING, width, height);
+    // Priority: Use cross-platform renderer for optimal performance
+    if (cross_platform_renderer_ && cross_platform_renderer_->IsInitialized()) {
+        bool success = cross_platform_renderer_->UpdateTexture(buffer, width, height);
+        if (success) {
+            return true;
+        }
+        Logger::Warning("UpdateTexture: Cross-platform renderer failed, falling back to SDL3");
+    }
 
+    // Optimized SDL3 fallback with texture caching
+    if (!renderer_) {
+        Logger::Error("UpdateTexture: SDL renderer is null");
+        return false;
+    }
+
+    // Check if we need to recreate texture (avoid frequent recreation)
+    bool needNewTexture = false;
     if (!texture_) {
-      return;
+        needNewTexture = true;
+    } else {
+        int currentWidth, currentHeight;
+        float texWidth, texHeight;
+        if (SDL_GetTextureSize(texture_, &texWidth, &texHeight)) {
+            currentWidth = (int)texWidth;
+            currentHeight = (int)texHeight;
+            if (currentWidth != width || currentHeight != height) {
+                needNewTexture = true;
+            }
+        } else {
+            needNewTexture = true;
+        }
     }
-    // IMPORTANT: Use NONE blend mode for main texture to avoid interference
-    // with editor overlay
-    SDL_SetTextureBlendMode(texture_, SDL_BLENDMODE_NONE);
-  }
 
-  // 🔑 Copy CEF buffer → texture
-  void *pixels = nullptr;
-  int pitch = 0;
-  if (SDL_LockTexture(texture_, nullptr, &pixels, &pitch)) {
-    const uint8_t *src = static_cast<const uint8_t *>(buffer);
-    const int rowBytes = width * 4; // BGRA32
-    for (int y = 0; y < height; y++) {
-      std::memcpy(static_cast<uint8_t *>(pixels) + y * pitch,
-                  src + y * rowBytes, rowBytes);
+    if (needNewTexture) {
+        if (texture_) {
+            SDL_DestroyTexture(texture_);
+        }
+        
+        // Create optimized texture for 120 FPS performance
+        texture_ = SDL_CreateTexture(renderer_, 
+                                   SDL_PIXELFORMAT_BGRA32,
+                                   SDL_TEXTUREACCESS_STREAMING,  // Optimized for frequent updates
+                                   width, height);
+        if (!texture_) {
+            Logger::Error("UpdateTexture: Failed to create SDL texture: " + std::string(SDL_GetError()));
+            return false;
+        }
+
+        // Optimize texture for performance
+        SDL_SetTextureBlendMode(texture_, SDL_BLENDMODE_NONE);  // Disable blending for main texture
+        SDL_SetTextureScaleMode(texture_, SDL_SCALEMODE_LINEAR);  // Better scaling quality
+        
+        Logger::LogMessage("UpdateTexture: Created new texture " + 
+                          std::to_string(width) + "x" + std::to_string(height));
     }
+
+    // Fast texture update with optimized locking
+    void* pixels;
+    int pitch;
+    
+    // Use non-blocking lock for 120 FPS performance
+    if (!SDL_LockTexture(texture_, nullptr, &pixels, &pitch)) {
+        Logger::Error("UpdateTexture: Failed to lock texture: " + std::string(SDL_GetError()));
+        return false;
+    }
+
+    // Optimized memory copy
+    const uint8_t* srcData = static_cast<const uint8_t*>(buffer);
+    uint8_t* dstData = static_cast<uint8_t*>(pixels);
+    const int srcPitch = width * 4;  // BGRA format
+    
+    if (pitch == srcPitch) {
+        // Direct memory copy when pitches match (fastest path)
+        std::memcpy(dstData, srcData, height * srcPitch);
+    } else {
+        // Row-by-row copy when pitches differ
+        for (int y = 0; y < height; ++y) {
+            std::memcpy(dstData + y * pitch, srcData + y * srcPitch, srcPitch);
+        }
+    }
+
     SDL_UnlockTexture(texture_);
-  }
+    return true;
 }
 
-void SDL3Window::Resize(int width, int height) {
-  width_ = width;
-  height_ = height;
+bool SDL3Window::UpdateEditorTexture(const void* buffer, int width, int height) {
+    if (!buffer || width <= 0 || height <= 0) {
+        Logger::Error("UpdateEditorTexture: Invalid parameters");
+        return false;
+    }
 
-  // Recreate texture with new dimensions
-  if (texture_) {
-    SDL_DestroyTexture(texture_);
-    texture_ = nullptr;
-  }
+    if (!renderer_) {
+        Logger::Error("UpdateEditorTexture: SDL renderer is null");
+        return false;
+    }
 
-  // Notify CEF browser of size change
-  if (client_ && client_->GetFirstBrowser()) {
-    client_->GetFirstBrowser()->GetHost()->WasResized();
-  }
+    // Optimized editor texture management
+    bool needNewTexture = false;
+    if (!editor_texture_) {
+        needNewTexture = true;
+    } else {
+        int currentWidth, currentHeight;
+        float texWidth, texHeight;
+        if (SDL_GetTextureSize(editor_texture_, &texWidth, &texHeight)) {
+            currentWidth = (int)texWidth;
+            currentHeight = (int)texHeight;
+            if (currentWidth != width || currentHeight != height) {
+                needNewTexture = true;
+            }
+        } else {
+            needNewTexture = true;
+        }
+    }
 
-  // Trigger display change event
-  if (client_ && client_->GetFirstBrowser()) {
-    client_->GetFirstBrowser()->GetHost()->NotifyScreenInfoChanged();
-  }
+    if (needNewTexture) {
+        if (editor_texture_) {
+            SDL_DestroyTexture(editor_texture_);
+        }
+        
+        // Create optimized editor texture
+        editor_texture_ = SDL_CreateTexture(renderer_, 
+                                          SDL_PIXELFORMAT_BGRA32,
+                                          SDL_TEXTUREACCESS_STREAMING,
+                                          width, height);
+        if (!editor_texture_) {
+            Logger::Error("UpdateEditorTexture: Failed to create texture: " + std::string(SDL_GetError()));
+            return false;
+        }
+
+        // Enable alpha blending for editor overlay
+        SDL_SetTextureBlendMode(editor_texture_, SDL_BLENDMODE_BLEND);
+        SDL_SetTextureScaleMode(editor_texture_, SDL_SCALEMODE_LINEAR);
+        
+        Logger::LogMessage("UpdateEditorTexture: Created new editor texture " + 
+                          std::to_string(width) + "x" + std::to_string(height));
+    }
+
+    // Fast texture update
+    void* pixels;
+    int pitch;
+    
+    if (!SDL_LockTexture(editor_texture_, nullptr, &pixels, &pitch)) {
+        Logger::Error("UpdateEditorTexture: Failed to lock texture: " + std::string(SDL_GetError()));
+        return false;
+    }
+
+    // Optimized memory copy for editor texture
+    const uint8_t* srcData = static_cast<const uint8_t*>(buffer);
+    uint8_t* dstData = static_cast<uint8_t*>(pixels);
+    const int srcPitch = width * 4;
+    
+    if (pitch == srcPitch) {
+        std::memcpy(dstData, srcData, height * srcPitch);
+    } else {
+        for (int y = 0; y < height; ++y) {
+            std::memcpy(dstData + y * pitch, srcData + y * srcPitch, srcPitch);
+        }
+    }
+
+    SDL_UnlockTexture(editor_texture_);
+    return true;
 }
 
-void SDL3Window::Render() {
-  // 1. Main render (cross-platform renderer or SDL)
-  bool main_rendered = false;
-
-  if (cross_platform_renderer_) {
-    if (cross_platform_renderer_->Render()) {
-      main_rendered = true;
+bool SDL3Window::Render() {
+    // Priority: Use cross-platform renderer for optimal 120 FPS performance
+    if (cross_platform_renderer_ && cross_platform_renderer_->IsInitialized()) {
+        if (cross_platform_renderer_->BeginFrame()) {
+            cross_platform_renderer_->Render();
+            cross_platform_renderer_->EndFrame();
+            bool success = cross_platform_renderer_->Present();
+            if (success) {
+                return true;
+            }
+        }
+        Logger::Warning("Render: Cross-platform renderer failed, falling back to SDL3");
     }
-  }
 
-  if (!main_rendered) {
-    if (!renderer_ || !texture_) {
-      return;
+    // Optimized SDL3 fallback rendering
+    if (!renderer_) {
+        Logger::Error("Render: SDL renderer is null");
+        return false;
     }
 
-    SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
+    // Fast clear with optimized color
+    SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);  // Black background
     SDL_RenderClear(renderer_);
 
-    if (SDL_RenderTexture(renderer_, texture_, nullptr, nullptr) != 0) {
-      SDL_FRect destRect = {0, 0, (float)width_, (float)height_};
-      SDL_RenderTexture(renderer_, texture_, nullptr, &destRect);
+    // Render main texture with optimized settings
+    if (texture_) {
+        // Use hardware acceleration when available
+        SDL_RenderTexture(renderer_, texture_, nullptr, nullptr);
     }
-  }
 
-  // 2. Editor overlay (always try on top)
-  if (editor_enabled_ && editor_texture_) {
-    // Ensure editor texture has proper alpha blending enabled
-    SDL_SetTextureBlendMode(editor_texture_, SDL_BLENDMODE_BLEND);
+    // Render editor overlay if enabled
+    if (editor_enabled_ && editor_texture_) {
+        SDL_FRect editor_rect = {
+            static_cast<float>(editor_rect_.x),
+            static_cast<float>(editor_rect_.y),
+            static_cast<float>(editor_rect_.width),
+            static_cast<float>(editor_rect_.height)
+        };
+        
+        // Ensure proper alpha blending for overlay
+        SDL_RenderTexture(renderer_, editor_texture_, nullptr, &editor_rect);
+    }
 
-    SDL_FRect editorDestRect = {(float)editor_rect_.x, (float)editor_rect_.y,
-                                (float)editor_rect_.width,
-                                (float)editor_rect_.height};
-
-    SDL_RenderTexture(renderer_, editor_texture_, nullptr, &editorDestRect);
-  }
-
-  // 3. Present final frame
-  if (renderer_) {
+    // Present with optimized timing for 120 FPS
     SDL_RenderPresent(renderer_);
-  }
+    
+    return true;
 }
 
 bool SDL3Window::HandleWindowDragging(const SDL_Event &event) {
-  if (!client_)
+  if (!client_) {
     return false;
+  }
+
+  SDL_Point window_point = GetEventPosition(event);
 
   switch (event.type) {
-  case SDL_EVENT_MOUSE_BUTTON_DOWN:
-    if (event.button.button == SDL_BUTTON_LEFT) {
-      bool in_draggable_region = false;
-
-      // Check if the click is in a draggable region
-      // First check main browser draggable regions
-      if (client_->IsPointInDragRegion(event.button.x, event.button.y)) {
-        in_draggable_region = true;
-      }
-      // If editor is active and mouse is in editor area, check if it's in title
-      // bar region
-      else if (editor_enabled_ &&
-               IsPointInEditor(event.button.x, event.button.y)) {
-        // For editor, assume title bar area (top 32px) is draggable
-        // This matches the margin_y calculation used elsewhere
-        int title_bar_height = 32;
-        if (event.button.y >= editor_rect_.y &&
-            event.button.y < editor_rect_.y + title_bar_height) {
-          in_draggable_region = true;
-          Logger::LogMessage(
-              "Mouse click in editor title bar area - allowing drag");
-        }
-      }
-
-      if (in_draggable_region) {
-        is_dragging_ = true;
-        drag_start_x_ = event.button.x;
-        drag_start_y_ = event.button.y;
-
-        // Get current window position
-        SDL_GetWindowPosition(window_, &window_start_x_, &window_start_y_);
-
-        // Capture mouse to ensure we get all mouse events
-        SDL_CaptureMouse(true);
-
-        Logger::LogMessage(
-            "Window dragging started at (" + std::to_string(event.button.x) +
-            ", " + std::to_string(event.button.y) + ") - in draggable region");
-        return true; // Consume the event
-      } else {
-        // Point is not in a draggable region, don't start dragging
-        // Let the event pass through to CEF for normal interaction
-        Logger::LogMessage("Mouse click at (" + std::to_string(event.button.x) +
-                           ", " + std::to_string(event.button.y) +
-                           ") - not in draggable region, passing to CEF");
-        return false;
-      }
+  case SDL_EVENT_MOUSE_BUTTON_DOWN: {
+    if (event.button.button != SDL_BUTTON_LEFT) {
+      break;
     }
-    break;
 
-  case SDL_EVENT_MOUSE_BUTTON_UP:
+    if (IsPointInEditor(window_point.x, window_point.y)) {
+      return false;
+    }
+
+    bool in_drag_region = client_->IsPointInDragRegion(window_point.x, window_point.y);
+    if (!in_drag_region && client_ && !client_->HasDraggableRegions() &&
+        window_point.y >= 0 && window_point.y < 32) {
+      in_drag_region = true;
+    }
+
+    if (!in_drag_region) {
+      return false;
+    }
+
+    is_dragging_ = true;
+    drag_start_x_ = window_point.x;
+    drag_start_y_ = window_point.y;
+
+    SDL_GetWindowPosition(window_, &window_start_x_, &window_start_y_);
+
+    if (SDL_CaptureMouse(true) == 0) {
+      mouse_captured_ = true;
+    }
+
+    Logger::LogMessage("Window dragging started at (" +
+                        std::to_string(window_point.x) + ", " +
+                        std::to_string(window_point.y) + ")");
+    return true;
+  }
+  case SDL_EVENT_MOUSE_BUTTON_UP: {
     if (event.button.button == SDL_BUTTON_LEFT && is_dragging_) {
       is_dragging_ = false;
-
-      // Release mouse capture
-      SDL_CaptureMouse(false);
-
+      if (mouse_captured_) {
+        SDL_CaptureMouse(false);
+        mouse_captured_ = false;
+      }
       Logger::LogMessage("Window dragging stopped");
-      return true; // Consume the event
+      return true;
     }
     break;
-
-  case SDL_EVENT_MOUSE_MOTION:
+  }
+  case SDL_EVENT_MOUSE_MOTION: {
     if (is_dragging_) {
-      // Use global mouse position for more accurate dragging
-      float global_x, global_y;
+      float global_x = 0.0f;
+      float global_y = 0.0f;
       SDL_GetGlobalMouseState(&global_x, &global_y);
 
-      // Calculate offset from drag start position
-      int offset_x = (int)global_x - (window_start_x_ + drag_start_x_);
-      int offset_y = (int)global_y - (window_start_y_ + drag_start_y_);
+      int offset_x = static_cast<int>(global_x) - (window_start_x_ + drag_start_x_);
+      int offset_y = static_cast<int>(global_y) - (window_start_y_ + drag_start_y_);
 
-      // Calculate new window position
-      int new_x = window_start_x_ + offset_x;
-      int new_y = window_start_y_ + offset_y;
-
-      // Move the window
-      SDL_SetWindowPosition(window_, new_x, new_y);
-      return true; // Consume the event
+      SDL_SetWindowPosition(window_, window_start_x_ + offset_x,
+                            window_start_y_ + offset_y);
+      return true;
     }
+    break;
+  }
+  default:
     break;
   }
 
@@ -1014,190 +1181,6 @@ void SDL3Window::ResizeMenuOverlay(int height) {
   // The browser window itself will be resized by CEF based on the content
 }
 
-void SDL3Window::UpdateEditorTexture(const void *buffer, int width,
-                                     int height) {
-  Logger::LogMessage(
-      "UpdateEditorTexture called: " + std::to_string(width) + "x" +
-      std::to_string(height) +
-      ", editor_enabled_=" + (editor_enabled_ ? "true" : "false") +
-      ", editor_browser_=" + (editor_browser_ ? "valid" : "null"));
-
-  if (!buffer) {
-    Logger::LogMessage("UpdateEditorTexture: Buffer is null!");
-    return;
-  }
-
-  if (width <= 0 || height <= 0) {
-    Logger::LogMessage("UpdateEditorTexture: Invalid dimensions - width: " +
-                       std::to_string(width) +
-                       ", height: " + std::to_string(height));
-    return;
-  }
-
-  if (!editor_enabled_ || !editor_browser_) {
-    Logger::LogMessage("UpdateEditorTexture: Early return - editor not enabled "
-                       "or browser null");
-    return;
-  }
-
-  if (!renderer_) {
-    Logger::LogMessage("UpdateEditorTexture: Renderer is null!");
-    return;
-  }
-
-  // Store current texture dimensions for comparison
-  static int current_texture_width = 0;
-  static int current_texture_height = 0;
-
-  // Create or recreate editor texture if dimensions changed
-  if (!editor_texture_ || current_texture_width != width ||
-      current_texture_height != height) {
-
-    Logger::LogMessage("UpdateEditorTexture: Creating new texture (old: " +
-                       std::to_string(current_texture_width) + "x" +
-                       std::to_string(current_texture_height) +
-                       ", new: " + std::to_string(width) + "x" +
-                       std::to_string(height) + ")");
-
-    if (editor_texture_) {
-      SDL_DestroyTexture(editor_texture_);
-      Logger::LogMessage("UpdateEditorTexture: Destroyed old texture");
-    }
-
-    // Try RGBA32 format first, then fallback to BGRA32
-    editor_texture_ =
-        SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_BGRA32,
-                          SDL_TEXTUREACCESS_STREAMING, width, height);
-
-    if (!editor_texture_) {
-      Logger::LogMessage("UpdateEditorTexture: RGBA32 failed, trying BGRA32");
-      editor_texture_ =
-          SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_BGRA32,
-                            SDL_TEXTUREACCESS_STREAMING, width, height);
-    }
-
-    if (!editor_texture_) {
-      const char *error = SDL_GetError();
-      Logger::LogMessage("UpdateEditorTexture: Failed to create editor texture "
-                         "with both formats: " +
-                         std::string(error ? error : "Unknown error"));
-      return;
-    }
-
-    // Enable alpha blending for the editor texture
-    int blend_result =
-        SDL_SetTextureBlendMode(editor_texture_, SDL_BLENDMODE_BLEND);
-    if (blend_result != 0) {
-      const char *error = SDL_GetError();
-      Logger::LogMessage(
-          "UpdateEditorTexture: Failed to set blend mode (result=" +
-          std::to_string(blend_result) +
-          "): " + std::string(error ? error : "Unknown error"));
-      // Continue anyway - blend mode failure is not critical
-    } else {
-      Logger::LogMessage("UpdateEditorTexture: Successfully set blend mode");
-    }
-
-    // Update stored dimensions
-    current_texture_width = width;
-    current_texture_height = height;
-
-    Logger::LogMessage(
-        "UpdateEditorTexture: Successfully created editor texture: " +
-        std::to_string(width) + "x" + std::to_string(height));
-  }
-
-  // Update texture with CEF buffer data
-  void *pixels;
-  int pitch;
-
-  // Clear any previous SDL errors
-  SDL_ClearError();
-
-  bool lock_success =
-      SDL_LockTexture(editor_texture_, nullptr, &pixels, &pitch);
-  if (lock_success) {
-    Logger::LogMessage(
-        "UpdateEditorTexture: Successfully locked texture - pitch=" +
-        std::to_string(pitch) +
-        ", expected_row_bytes=" + std::to_string(width * 4));
-
-    if (!pixels) {
-      Logger::LogMessage(
-          "UpdateEditorTexture: Locked texture but pixels pointer is null");
-      SDL_UnlockTexture(editor_texture_);
-      return;
-    }
-
-    // Copy row by row to handle potential pitch differences
-    const uint8_t *src = static_cast<const uint8_t *>(buffer);
-    uint8_t *dst = static_cast<uint8_t *>(pixels);
-    const int rowBytes = width * 4; // 4 bytes per pixel (BGRA)
-
-    if (pitch < rowBytes) {
-      Logger::LogMessage("UpdateEditorTexture: Invalid pitch " +
-                         std::to_string(pitch) + " < " +
-                         std::to_string(rowBytes));
-      SDL_UnlockTexture(editor_texture_);
-      return;
-    }
-
-    for (int y = 0; y < height; y++) {
-      memcpy(dst + y * pitch, src + y * rowBytes, rowBytes);
-    }
-
-    SDL_UnlockTexture(editor_texture_);
-    Logger::LogMessage(
-        "UpdateEditorTexture: Successfully updated texture data");
-  } else {
-    const char *error = SDL_GetError();
-    Logger::LogMessage("UpdateEditorTexture: Failed to lock editor texture: " +
-                       std::string(error ? error : "Unknown error"));
-
-    // If texture is already locked, this might be a threading issue
-    // Try to unlock it first and then retry once
-    if (error &&
-        std::string(error).find("already locked") != std::string::npos) {
-      Logger::LogMessage("UpdateEditorTexture: Texture already locked, "
-                         "attempting to unlock and retry");
-      SDL_UnlockTexture(editor_texture_);
-      SDL_ClearError();
-
-      // Retry lock once
-      lock_success = SDL_LockTexture(editor_texture_, nullptr, &pixels, &pitch);
-      if (lock_success) {
-        Logger::LogMessage(
-            "UpdateEditorTexture: Retry lock successful - pitch=" +
-            std::to_string(pitch));
-
-        if (pixels) {
-          const uint8_t *src = static_cast<const uint8_t *>(buffer);
-          uint8_t *dst = static_cast<uint8_t *>(pixels);
-          const int rowBytes = width * 4;
-
-          if (pitch >= rowBytes) {
-            for (int y = 0; y < height; y++) {
-              memcpy(dst + y * pitch, src + y * rowBytes, rowBytes);
-            }
-            Logger::LogMessage("UpdateEditorTexture: Successfully updated "
-                               "texture data on retry");
-          } else {
-            Logger::LogMessage("UpdateEditorTexture: Invalid pitch on retry " +
-                               std::to_string(pitch) + " < " +
-                               std::to_string(rowBytes));
-          }
-        }
-        SDL_UnlockTexture(editor_texture_);
-      } else {
-        const char *retry_error = SDL_GetError();
-        Logger::LogMessage(
-            "UpdateEditorTexture: Retry lock also failed: " +
-            std::string(retry_error ? retry_error : "Unknown error"));
-      }
-    }
-  }
-}
-
 // Menu overlay position and state setter methods
 void SDL3Window::SetMenuOverlayPosition(int x, int y) {
   menu_overlay_x_ = x;
@@ -1212,6 +1195,65 @@ void SDL3Window::SetCurrentMenuSection(const std::string &section) {
   current_menu_section_ = section;
 }
 // Key mapping function to convert SDL key codes to Windows virtual key codes
+SDL_HitTestResult SDL3Window::HitTest(const SDL_Point &point) const {
+  const int border = kResizeBorder;
+  const bool left = point.x >= 0 && point.x < border;
+  const bool right = point.x <= width_ && point.x > width_ - border;
+  const bool top = point.y >= 0 && point.y < border;
+  const bool bottom = point.y <= height_ && point.y > height_ - border;
+
+  if (top && left) {
+    return SDL_HITTEST_RESIZE_TOPLEFT;
+  }
+  if (top && right) {
+    return SDL_HITTEST_RESIZE_TOPRIGHT;
+  }
+  if (bottom && left) {
+    return SDL_HITTEST_RESIZE_BOTTOMLEFT;
+  }
+  if (bottom && right) {
+    return SDL_HITTEST_RESIZE_BOTTOMRIGHT;
+  }
+  if (top) {
+    return SDL_HITTEST_RESIZE_TOP;
+  }
+  if (bottom) {
+    return SDL_HITTEST_RESIZE_BOTTOM;
+  }
+  if (left) {
+    return SDL_HITTEST_RESIZE_LEFT;
+  }
+  if (right) {
+    return SDL_HITTEST_RESIZE_RIGHT;
+  }
+
+  if (IsPointInEditor(point.x, point.y)) {
+    return SDL_HITTEST_NORMAL;
+  }
+
+  if (client_) {
+    if (client_->IsPointInDragRegion(point.x, point.y)) {
+      return SDL_HITTEST_DRAGGABLE;
+    }
+
+    if (!client_->HasDraggableRegions() && point.y >= 0 && point.y < 32) {
+      return SDL_HITTEST_DRAGGABLE;
+    }
+  }
+
+  return SDL_HITTEST_NORMAL;
+}
+
+SDL_HitTestResult SDLCALL SDL3Window::HitTestCallback(SDL_Window *window,
+                                                     const SDL_Point *area,
+                                                     void *data) {
+  auto *self = static_cast<SDL3Window *>(data);
+  if (!self || !area) {
+    return SDL_HITTEST_NORMAL;
+  }
+  return self->HitTest(*area);
+}
+
 int SDL3Window::MapSDLKeyToWindowsVK(SDL_Keycode sdl_key) const {
   switch (sdl_key) {
   // Letters

@@ -49,6 +49,7 @@ public:
 
   // Draggable region support
   bool IsPointInDragRegion(int x, int y) const;
+  bool HasDraggableRegions() const;
 
   // CefMessageRouterBrowserSide::Handler methods
   virtual bool

@@ -555,6 +555,10 @@ void HyperionClient::OnDraggableRegionsChanged(
   }
 }
 
+bool HyperionClient::HasDraggableRegions() const {
+  return !draggable_regions_.empty();
+}
+
 bool HyperionClient::IsPointInDragRegion(int x, int y) const {
   // First, check if point is in any non-draggable region
   // Non-draggable regions take priority over draggable ones
@@ -660,21 +664,32 @@ void HyperionClient::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
     Logger::LogMessage("OnAfterCreated: Checking URL for browser #" +
                        std::to_string(browser_list_.size()) + ": " + url);
     if (url.find("miko://menuoverlay/") == 0) {
-      // Get the native window handle for the overlay
+      menu_overlay_browser_ = browser;
+
       HWND overlay_hwnd = browser->GetHost()->GetWindowHandle();
       if (overlay_hwnd) {
-        // Apply full transparency settings to the overlay window
-        // Use RGB(0,0,0) as transparent color key and set alpha to 0 for full
-        // transparency
+        // Apply transparency so only the menu content is visible
         SetLayeredWindowAttributes(overlay_hwnd, RGB(0, 0, 0), 0,
                                    LWA_COLORKEY | LWA_ALPHA);
         Logger::LogMessage(
             "Applied full transparency to menu overlay window (alpha=0)");
 
-        // Ensure the window stays on top
-        SetWindowPos(overlay_hwnd, HWND_TOPMOST, 0, 0, 0, 0,
-                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-        Logger::LogMessage("Set menu overlay window to stay on top");
+        int overlayX = 0;
+        int overlayY = 0;
+        if (window_) {
+          overlayX = window_->GetMenuOverlayX();
+          overlayY = window_->GetMenuOverlayY();
+        }
+
+        UINT positionFlags = SWP_NOSIZE | SWP_NOACTIVATE;
+        if (SetWindowPos(overlay_hwnd, HWND_TOPMOST, overlayX, overlayY, 0, 0,
+                          positionFlags)) {
+          Logger::LogMessage("Positioned menu overlay window at (" +
+                              std::to_string(overlayX) + ", " +
+                              std::to_string(overlayY) + ")");
+        } else {
+          Logger::LogMessage("Failed to position menu overlay window");
+        }
       } else {
         Logger::LogMessage(
             "Failed to get overlay window handle for transparency");

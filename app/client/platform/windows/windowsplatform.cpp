@@ -83,25 +83,22 @@ void WindowsPlatformWindow::SetBorderless(bool borderless) {
     LONG_PTR style = GetWindowLongPtr(hwnd_, GWL_STYLE);
     
     if (borderless) {
-        // Remove window decorations
         style &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU);
     } else {
-        // Add window decorations back
         style |= (WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU);
     }
     
     SetWindowLongPtr(hwnd_, GWL_STYLE, style);
     
-    // Update extended style for borderless
     LONG_PTR exStyle = GetWindowLongPtr(hwnd_, GWL_EXSTYLE);
     if (borderless) {
-        exStyle |= WS_EX_TOOLWINDOW;
+        exStyle &= ~WS_EX_TOOLWINDOW;
+        exStyle |= WS_EX_APPWINDOW;
     } else {
         exStyle &= ~WS_EX_TOOLWINDOW;
     }
     SetWindowLongPtr(hwnd_, GWL_EXSTYLE, exStyle);
     
-    // Force window to redraw
     SetWindowPos(hwnd_, nullptr, 0, 0, 0, 0,
                  SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
 }
