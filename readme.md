@@ -219,6 +219,10 @@ Native C++ application featuring:
 - **Chromium Embedded Framework (CEF)** for rendering React frontend
 - **SDL3** for cross-platform window management and input handling
 - **DirectX 11** renderer for optimal graphics performance
+- **Vulkan** renderer for cross-platform graphics support
+- **OpenGL** renderer for fallback support
+- **Direct2D** Native UI renderer for Windows
+- **GTK3/Cairo** renderer for Linux
 - **Off-Screen Rendering (OSR)** for seamless CEF integration
 - **Binary Resource Provider** for embedded web assets via `miko://` protocol
 - **Custom window management** with borderless design and drag regions
