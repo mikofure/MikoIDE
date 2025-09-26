@@ -106,6 +106,21 @@ list(APPEND CMAKE_MODULE_PATH "${CEF_ROOT}/cmake")
 find_package(CEF REQUIRED)
 
 # -------------------------------------------------
+# Dependencies - GTK3 for Linux
+# -------------------------------------------------
+if(UNIX AND NOT APPLE)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(GTK3 gtk+-3.0)
+    
+    if(GTK3_FOUND)
+        message(STATUS "GTK3 found - enabling GTK support")
+        add_definitions(-DHAVE_GTK3)
+    else()
+        message(STATUS "GTK3 not found - using X11 fallback")
+    endif()
+endif()
+
+# -------------------------------------------------
 # Dependencies - Miniz (REMOVED - using unzip.exe instead)
 # -------------------------------------------------
 
@@ -320,7 +335,16 @@ if(UNIX AND NOT APPLE)
     target_link_libraries(${PROJECT_NAME}
         vulkan
         X11
-    )   
+    )
+    
+    # Enable exceptions for Linux builds
+    target_compile_options(${PROJECT_NAME} PRIVATE -fexceptions)
+    
+    if(GTK3_FOUND)
+        target_link_libraries(${PROJECT_NAME} ${GTK3_LIBRARIES})
+        target_include_directories(${PROJECT_NAME} PRIVATE ${GTK3_INCLUDE_DIRS})
+        target_compile_options(${PROJECT_NAME} PRIVATE ${GTK3_CFLAGS_OTHER})
+    endif()
 endif()
 
 target_link_libraries(mikowebhelper

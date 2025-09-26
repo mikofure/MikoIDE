@@ -1,8 +1,11 @@
 #pragma once
 
+// Platform-specific includes
+#ifdef _WIN32
 // Windows includes for dwmapi
 #include <dwmapi.h>
 #include <windows.h>
+#endif
 
 // SDL3 includes
 #include <SDL3/SDL.h>

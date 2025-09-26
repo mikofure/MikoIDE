@@ -4,9 +4,12 @@
 #include "offscreenrender.hpp"
 #include "windowed.hpp"
 
+
+#ifdef _WIN32
 // Windows API includes
 #include <shellapi.h>
 #include <windows.h>
+#endif
 
 bool HyperionClient::OnCursorChange(CefRefPtr<CefBrowser> browser,
                                     CefCursorHandle cursor,

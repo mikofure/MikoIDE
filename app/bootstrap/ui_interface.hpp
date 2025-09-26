@@ -12,11 +12,21 @@ using NativeInstanceHandle = HINSTANCE;
 using PlatformWindow = HWND;
 using PlatformInstance = HINSTANCE;
 #elif defined(__linux__)
+// Try to include GTK if available, otherwise use X11 fallback
+#ifdef HAVE_GTK3
 #include <gtk/gtk.h>
 using NativeWindowHandle = GtkWidget*;
 using NativeInstanceHandle = void*;
 using PlatformWindow = GtkWidget*;
 using PlatformInstance = void*;
+#else
+// X11 fallback when GTK is not available
+#include <X11/Xlib.h>
+using NativeWindowHandle = Window;
+using NativeInstanceHandle = Display*;
+using PlatformWindow = Window;
+using PlatformInstance = Display*;
+#endif
 #endif
 
 // Progress callback function type

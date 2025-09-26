@@ -1,17 +1,33 @@
+#ifdef _WIN32
 #include <windows.h>
 #include <commdlg.h>
 #include <dwmapi.h>
 #include <fcntl.h>
 #include <io.h>
-#include <iostream>
 #include <shellapi.h>
 #include <shlobj.h>
 #include <shlwapi.h>
+#endif
 
+#ifdef __linux__
+#include <unistd.h>
+#include <cstdlib>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#endif
+
+#include <iostream>
+#include <filesystem>
+#include <memory>
+#include <string>
+
+#ifdef _WIN32
 // Undefine conflicting Windows macros
 #undef min
 #undef max
 #undef GetMessage
+#endif
 
 #include "include/base/cef_bind.h"
 #include "include/cef_app.h"
@@ -24,14 +40,18 @@
 #include "bootstrap/bootstrap.hpp"
 #include "bootstrap/ui_interface.hpp"
 #include "bootstrap/ui_factory.hpp"
+#ifdef _WIN32
 #include "bootstrap/platform/windows/windows_splash.hpp"
+#endif
 #include "client/app.hpp"
 #include "client/client.hpp"
 #include "internal/simpleipc.hpp"
 #include "resources/resources.hpp"
 #include "utils/config.hpp"
 #include "utils/logger.hpp"
+#ifdef _WIN32
 #pragma comment(lib, "shlwapi.lib")
+#endif
 
 #define SDL_MAIN_HANDLED
 #include <SDL3/SDL.h>
@@ -49,10 +69,12 @@ bool g_is_closing = false;
 // Application settings now come from config.hpp
 
 // Forward declarations
+#ifdef _WIN32
 void LoadApplicationIcon();
 void SetPermanentTaskbarIcon();
 void SetApplicationUserModelID();
 CefRefPtr<CefImage> ConvertIconToCefImage(HICON hIcon);
+#endif
 std::string GetDataURI(const std::string &data, const std::string &mime_type);
 std::string GetDownloadPath(const std::string &suggested_name);
 
@@ -74,11 +96,8 @@ void HandleEvents() {
         if (g_client) {
           try {
             g_client->CloseAllBrowsers(false);
-          } catch (const std::exception &ex) {
-            Logger::LogMessage("Exception during browser close: " +
-                               std::string(ex.what()));
           } catch (...) {
-            Logger::LogMessage("Unknown exception during browser close");
+            Logger::LogMessage("Exception during browser close");
           }
         }
         break;
@@ -94,23 +113,19 @@ void HandleEvents() {
       if (g_client) {
         try {
           g_client->CloseAllBrowsers(false);
-        } catch (const std::exception &ex) {
-          Logger::LogMessage("Exception during window close: " +
-                             std::string(ex.what()));
         } catch (...) {
-          Logger::LogMessage("Unknown exception during window close");
+          Logger::LogMessage("Exception during window close");
         }
       }
     }
-  } catch (const std::exception &ex) {
-    Logger::LogMessage("Exception in HandleEvents: " + std::string(ex.what()));
   } catch (...) {
-    Logger::LogMessage("Unknown exception in HandleEvents");
+    Logger::LogMessage("Exception in HandleEvents");
   }
 }
 
 // Utility function to get executable directory
 std::filesystem::path GetExeDir() {
+#ifdef _WIN32
   wchar_t exePath[MAX_PATH];
   DWORD result = GetModuleFileNameW(nullptr, exePath, MAX_PATH);
   if (result == 0 || result == MAX_PATH) {
@@ -122,18 +137,27 @@ std::filesystem::path GetExeDir() {
 
   std::filesystem::path path(exePath);
   return path.parent_path();
+#else
+  // Linux implementation
+  char exePath[PATH_MAX];
+  ssize_t len = readlink("/proc/self/exe", exePath, sizeof(exePath) - 1);
+  if (len == -1) {
+    Logger::LogMessage(
+        "Warning: Failed to get executable path, using current directory");
+    return std::filesystem::current_path();
+  }
+  
+  exePath[len] = '\0';
+  std::filesystem::path path(exePath);
+  return path.parent_path();
+#endif
 }
 
-// Main application entry point
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
-                   LPSTR lpCmdLine, int nCmdShow) {
-  UNREFERENCED_PARAMETER(hPrevInstance);
-  UNREFERENCED_PARAMETER(lpCmdLine);
-
-  // Initialize logger
-  Logger::Initialize();
-  Logger::LogMessage("MikoIDE starting up...");
-
+#ifdef _WIN32
+// Windows-specific initialization
+void InitializePlatformWindows(HINSTANCE hInstance) {
+  Logger::LogMessage("Platform: Windows initialization starting");
+  
   // Preload splash image for faster display
   WindowsSplashScreen::PreloadSplashImage();
 
@@ -209,6 +233,47 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     SetProcessDPIAware();
     Logger::LogMessage("HiDPI: Using basic DPI awareness (fallback)");
   }
+
+  Logger::LogMessage("Platform: Windows initialization completed");
+}
+#else
+// Linux-specific initialization
+void InitializePlatformLinux() {
+  Logger::LogMessage("Platform: Linux initialization starting");
+  
+  // Create and show splash screen (Linux implementation)
+  g_splash_screen = UIFactory::CreateSplashScreen();
+  if (g_splash_screen->Create(nullptr, "MikoIDE")) {
+    g_splash_screen->Show();
+    g_splash_screen->UpdateStatus("Initializing application...");
+  }
+
+  // Linux-specific initialization
+  // Set up environment variables for CEF
+  setenv("DISPLAY", ":0", 0);  // Ensure X11 display is set
+  
+  // Initialize X11 threading support if needed
+  // XInitThreads(); // Uncomment if using X11 directly
+  
+  Logger::LogMessage("Platform: Linux initialization completed");
+}
+#endif
+
+// Cross-platform main function
+int PlatformMain(int argc, char* argv[]) {
+  // Initialize logger
+  Logger::Initialize();
+  Logger::LogMessage("MikoIDE starting up...");
+
+  // Platform-specific initialization
+#ifdef _WIN32
+  HINSTANCE hInstance = GetModuleHandle(nullptr);
+  UNREFERENCED_PARAMETER(argc);
+  UNREFERENCED_PARAMETER(argv);
+  InitializePlatformWindows(hInstance);
+#else
+  InitializePlatformLinux();
+#endif
 
   // ---- Set CEF DLL directories ----
   Logger::LogMessage("Setting up CEF paths...");
@@ -306,7 +371,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 #endif
 
   // Initialize CEF
+#ifdef _WIN32
   CefMainArgs main_args(hInstance);
+#else
+  CefMainArgs main_args(argc, argv);
+#endif
   CefRefPtr<SimpleApp> app(new SimpleApp);
 
   if (g_splash_screen) {
@@ -438,7 +507,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     // Configure window info for off-screen rendering
     CefWindowInfo window_info;
+#ifdef _WIN32
     window_info.SetAsWindowless(static_cast<HWND>(g_sdl_window->GetNativeHandle()));
+#else
+    window_info.SetAsWindowless(reinterpret_cast<cef_window_handle_t>(g_sdl_window->GetNativeHandle()));
+#endif
 
     // Create the browser synchronously to prevent race conditions
     CefRefPtr<CefBrowser> browser = CefBrowserHost::CreateBrowserSync(
@@ -473,17 +546,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
       g_client->OpenEditor(editor_x, editor_y, editor_width, editor_height);
     }
-  } catch (const std::exception &ex) {
-    Logger::LogMessage("Exception during CEF browser creation: " +
-                       std::string(ex.what()));
-    if (g_splash_screen) {
-      g_splash_screen->Hide();
-    }
-    CefShutdown();
-    return 1;
   } catch (...) {
     Logger::LogMessage(
-        "Unknown exception during CEF browser creation (possibly 0xe06d7363)");
+        "Exception during CEF browser creation");
     if (g_splash_screen) {
       g_splash_screen->Hide();
     }
@@ -511,13 +576,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
       // Process CEF message loop with exception handling
       try {
         CefDoMessageLoopWork();
-      } catch (const std::exception &ex) {
-        Logger::LogMessage("CEF message loop exception: " +
-                           std::string(ex.what()));
-        // Continue running to maintain stability
       } catch (...) {
-        Logger::LogMessage(
-            "Unknown CEF message loop exception caught (possibly 0xe06d7363)");
+        Logger::LogMessage("CEF message loop exception caught");
         // Continue running to maintain stability
       }
 
@@ -528,13 +588,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
       if (g_client && !g_client->HasBrowsers() && g_is_closing) {
         break;
       }
-    } catch (const std::exception &ex) {
-      Logger::LogMessage("Main loop exception: " + std::string(ex.what()));
-      // Continue running unless it's a critical error
     } catch (...) {
-      Logger::LogMessage(
-          "Unknown main loop exception caught - continuing execution");
-      // Continue running to maintain stability
+      Logger::LogMessage("Main loop exception caught - continuing execution");
+      // Continue the loop to maintain application stability
     }
   }
 
@@ -549,7 +605,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
   }
 
   // Cleanup preloaded splash image
+#ifdef _WIN32
   WindowsSplashScreen::CleanupPreloadedImage();
+#endif
 
   // Shutdown CEF
   CefShutdown();
@@ -561,6 +619,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 }
 
 // Utility functions implementation
+#ifdef _WIN32
 void LoadApplicationIcon() {
   // Load application icon from resources
   HICON hIcon = LoadIcon(GetModuleHandle(nullptr), MAKEINTRESOURCE(101));
@@ -610,6 +669,7 @@ CefRefPtr<CefImage> ConvertIconToCefImage(HICON hIcon) {
 
   return image;
 }
+#endif
 
 std::string GetDataURI(const std::string &data, const std::string &mime_type) {
   // Create a data URI from the given data and MIME type
@@ -634,3 +694,19 @@ std::string GetDataURI(const std::string &data, const std::string &mime_type) {
 }
 
 // SDL3 main function wrapper
+#ifdef _WIN32
+// Windows entry point
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+  UNREFERENCED_PARAMETER(hInstance);
+  UNREFERENCED_PARAMETER(hPrevInstance);
+  UNREFERENCED_PARAMETER(lpCmdLine);
+  UNREFERENCED_PARAMETER(nCmdShow);
+  
+  return PlatformMain(__argc, __argv);
+}
+#endif
+
+// Standard cross-platform main entry point
+int main(int argc, char* argv[]) {
+  return PlatformMain(argc, argv);
+}

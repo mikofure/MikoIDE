@@ -13,6 +13,7 @@
 #include "include/cef_request_handler.h"
 #include "include/cef_task.h"
 #include "include/wrapper/cef_message_router.h"
+#include <list>
 
 // Forward declarations
 class SDL3Window;
