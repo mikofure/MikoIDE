@@ -10,12 +10,14 @@
     "build": "bun --cwd mikobench buildweb.ts",
     "preview": "bun --cwd mikobench run preview",
     "build:cmake": "bun run tools/build.ts",
-    "build:win" : "bun run build && bun run buildtobin && bun run build:cmake",
+    "build:app" : "bun run build && bun run buildtobin && bun run build:cmake",
     "build:win:portable": "bun run build && bun run buildtobin && bun run build:cmake && bun run tools/prod.ts --portable",
     "build:win:installer": "bun run build && bun run buildtobin && bun run build:cmake && bun run tools/prod.ts --installer",
     "clean:cmake": "bun run tools/clean.ts",
     "buildtobin": "bun run tools/utils/buildtobin.ts",
-    "iconconvert": "bun run tools/utils/iconconvert.ts"
+    "iconconvert": "bun run tools/utils/iconconvert.ts",
+    "lintcpp": "bun run tools/utils/cpplint.ts",
+    "lint": "bun --cwd mikobench tsc --noEmit"
   },
   "dependencies": {
     "@types/node": "latest",

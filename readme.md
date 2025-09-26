@@ -34,8 +34,15 @@ MikoIDE/
 ├── app/                                # C++ Native Application
 │   ├── main.cpp                        # Application entry point with CEF initialization
 │   ├── client/                         # CEF browser client implementation
+│   │   ├── platform/                   # Platform-specific code
+│   │   │   ├── windows/                # Windows-specific code
+│   │   │   │   └── windowsplatform.cpp # Windows platform-specific code
+│   │   │   ├── linux/                  # Linux-specific code
+│   │   │   │   └── linuxplatform.cpp   # Linux platform-specific code
+│   │   │   └── sysplatform.cpp         # System platform-specific code
 │   │   ├── client.cpp                  # Main client 
 │   │   ├── offscreenrender.cpp         # CEF Offscreen Rendering  
+│   │   ├── renderermethod.cpp          # Renderer methods
 │   │   ├── windowed.cpp                # SDL Window Management   
 │   │   ├── mikoclient.cpp              # CEF Client (HyperionClient class)
 │   │   └── app.cpp                     # CEF application class
@@ -47,13 +54,25 @@ MikoIDE/
 │   ├── renderer/                       # Graphics rendering
 │   │   ├── linux/                      # Linux-specific renderer
 │   │   │   └── vulkan_renderer.cpp     # Vulkan renderer for Linux
-│   │   └── dx11_renderer.cpp           # DirectX 11 renderer for CEF integration
+│   │   ├── windows/                    # Windows-specific renderer
+│   │   │   └── dx11_renderer.cpp       # DirectX 11 renderer for CEF integration
+│   │   ├── renderer_factory.cpp        # Renderer factory for platform selection
+│   │   └── renderer_interface.cpp      # Renderer interface for platform-specific implementations
 │   ├── utils/                          # Utilities and configuration
 │   │   ├── logger.cpp                  # Logging system
 │   │   └── config.hpp                  # Application configuration
 │   ├── internal/                       # Internal communication
 │   │   └── simpleipc.cpp               # Inter-process communication
 │   ├── bootstrap/                      # Application bootstrap
+│   │   ├── platform/                   # Platform-specific code
+│   │   │   ├── windows/                # Windows-specific code
+│   │   │   │   └── windows_dialog.cpp  # Windows dialog implementation
+│   │   │   │   └── windows_splash.cpp  # Windows splash screen implementation
+│   │   │   ├── linux/                  # Linux-specific code
+│   │   │   │   ├── linux_dialog.cpp    # Linux dialog implementation
+│   │   │   │   └── linux_splash.cpp    # Linux splash screen implementation
+│   │   ├── ui_factory.cpp              # UI factory for platform selection
+│   │   ├── ui_interface.cpp            # UI interface for platform-specific implementations
 │   │   └── bootstrap.cpp               # Initialization and setup
 │   ├── cli/                            # Command-line utilities
 │   │   ├── core/                       # Core utilities and configuration
@@ -69,7 +88,7 @@ MikoIDE/
 │   │   │   ├── components/             # UI components (TitleBar, Navbar, Statusbar)
 │   │   │   ├── contexts/               # React contexts (WorkbenchContext)
 │   │   │   └── mikoide/                # Core IDE components (Workbench, TabBar)
-│   │   ├── editor/                      # Code editor implementation
+│   │   ├── editor/                     # Code editor implementation
 │   │   │   ├── MonacoEditor.tsx        # Monaco editor integration
 │   │   │   ├── core/                   # Editor core functionality
 │   │   │   └── tabbar/                 # Editor tab management
@@ -100,10 +119,21 @@ MikoIDE/
 
 ## Prerequisites
 
-- **Windows 10/11** with MSVC (Visual Studio 2019 or later)
-- **CMake 3.19+** (required for FetchContent and modern CMake features)
-- **Bun.js** (latest version for JavaScript/TypeScript tooling)
-- **Git** with submodule support
+- **Windows 10/11** with MSVC (Visual Studio 2019 or later)  
+  *(MSVC Build Tools are sufficient, full Visual Studio not strictly required)*
+
+- **Linux** with GCC/Clang  
+  *(all required dev packages such as `build-essential`, `cmake`, `gtk3-dev`, `vulkan-sdk`, `libx11-dev` will be auto-installed by `build.ts`)*
+
+- **CMake 3.19+**  
+  *(tested up to 3.30 — required for FetchContent and modern CMake features)*
+
+- **Bun.js** (latest)  
+  *(used for build tooling, TypeScript transpile, and resource bundling)*
+
+- **Git** with submodule support  
+  *(clone with `--recurse-submodules` to avoid missing dependencies)*
+
 
 ## Quick Start
 
@@ -120,15 +150,15 @@ cd mikoide
 bun install
 ```
 
-### 3. Build the Project
+### 3. Build the Project (Windows/Linux is auto-detected)
 
 #### Option A: Full Build (Recommended)
 ```bash
-# Complete build process
-bun run build:win
+# Complete build process for application (auto platform detected)
+bun run build:app
 ```
 
-#### Step-by-Step Build
+#### Option B: Step-by-Step Build
 ```bash
 # 1. Build React frontend
 bun run build
@@ -136,14 +166,18 @@ bun run build
 # 2. Convert web assets to C++ binary resources
 bun run buildtobin
 
-# 3. Build main application
+# 3. Build main application (if linux is pre-install dependencies)
 bun run build:cmake
 ```
 
 ### 4. Run MikoIDE
 
 ```bash
+# Windows
 .\build\Release\Hyperion.exe
+
+# Linux
+./build/Release/Hyperion
 ```
 
 ## Development
