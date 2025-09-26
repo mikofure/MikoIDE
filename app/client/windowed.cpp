@@ -33,6 +33,56 @@ SDL_Point GetEventPosition(const SDL_Event &event) {
   return point;
 }
 
+std::vector<char32_t> DecodeUTF8(const std::string &utf8) {
+  std::vector<char32_t> codepoints;
+  size_t i = 0;
+  while (i < utf8.size()) {
+    unsigned char c = static_cast<unsigned char>(utf8[i]);
+    char32_t cp = 0;
+    int extra = 0;
+
+    if ((c & 0x80u) == 0u) {
+      cp = c;
+      extra = 0;
+    } else if ((c & 0xE0u) == 0xC0u) {
+      cp = c & 0x1Fu;
+      extra = 1;
+    } else if ((c & 0xF0u) == 0xE0u) {
+      cp = c & 0x0Fu;
+      extra = 2;
+    } else if ((c & 0xF8u) == 0xF0u) {
+      cp = c & 0x07u;
+      extra = 3;
+    } else {
+      ++i;
+      continue;
+    }
+
+    if (i + extra >= utf8.size()) {
+      break;
+    }
+
+    bool valid = true;
+    for (int j = 1; j <= extra; ++j) {
+      unsigned char cc = static_cast<unsigned char>(utf8[i + j]);
+      if ((cc & 0xC0u) != 0x80u) {
+        valid = false;
+        break;
+      }
+      cp = (cp << 6) | (cc & 0x3Fu);
+    }
+
+    if (valid) {
+      codepoints.push_back(cp);
+      i += static_cast<size_t>(extra) + 1;
+    } else {
+      ++i;
+    }
+  }
+
+  return codepoints;
+}
+
 } // namespace
 
 SDL3Window::SDL3Window()
@@ -754,10 +804,21 @@ void SDL3Window::SendTextInputEvent(const SDL_Event &event) {
   }
 
   std::string utf8_text(text);
-  CefString cef_text(utf8_text);
 
-  const int no_replace = std::numeric_limits<int>::max();
-  host->ImeCommitText(cef_text, CefRange(no_replace, no_replace), 0);
+  for (char32_t codepoint : DecodeUTF8(utf8_text)) {
+    CefKeyEvent key_event{};
+    key_event.type = KEYEVENT_CHAR;
+    key_event.character = codepoint;
+    key_event.unmodified_character = codepoint;
+    key_event.windows_key_code = static_cast<int>(codepoint);
+    key_event.native_key_code = 0;
+    key_event.modifiers = 0;
+
+    host->SendKeyEvent(key_event);
+  }
+
+  CefString cef_text(utf8_text);
+  host->ImeCommitText(cef_text, CefRange(0, 0), 0);
   host->ImeFinishComposingText(false);
 }
 
