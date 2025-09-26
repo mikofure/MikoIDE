@@ -129,6 +129,7 @@ public:
     NativeWindowHandle GetNativeHandle() const override { return m_hwnd; }
     
     // Native D2D methods
+    bool CreateNative(HINSTANCE hInstance, HWND hParent, const std::wstring& title);
     void UpdateProgress(int percentage, const std::wstring& status, 
                        const std::wstring& speed = L"", const std::wstring& size = L"");
 };

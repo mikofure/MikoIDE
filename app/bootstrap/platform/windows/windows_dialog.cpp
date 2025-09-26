@@ -38,7 +38,7 @@ WindowsModernDialog::~WindowsModernDialog() {
 
 // IModernDialog implementation
 bool WindowsModernDialog::Create(PlatformInstance instance, PlatformWindow parent, const std::wstring& title) {
-    return Create(static_cast<HINSTANCE>(instance), static_cast<HWND>(parent), title);
+    return CreateNative(static_cast<HINSTANCE>(instance), static_cast<HWND>(parent), title);
 }
 
 void WindowsModernDialog::SetProgress(int percentage) {
@@ -106,7 +106,7 @@ void WindowsModernDialog::UpdateProgress(int percentage, const std::wstring& sta
 }
 
 // Native D2D methods
-bool WindowsModernDialog::Create(HINSTANCE hInstance, HWND hParent,
+bool WindowsModernDialog::CreateNative(HINSTANCE hInstance, HWND hParent,
                           const std::wstring &title) {
   m_titleText = title;
 
