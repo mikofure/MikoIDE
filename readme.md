@@ -1,4 +1,4 @@
-# MikoIDE - Hyperion
+# Hyperion IDE (codename MikoIDE)
 
 ![In Development](https://img.shields.io/badge/status-in%20development-orange.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
@@ -30,7 +30,7 @@ A modern, high-performance IDE built with C++ and React/TypeScript, featuring Ch
 ## Architecture
 
 ```
-MikoIDE/
+Hyperion/
 ├── app/                                # C++ Native Application
 │   ├── main.cpp                        # Application entry point with CEF initialization
 │   ├── client/                         # CEF browser client implementation
@@ -111,6 +111,7 @@ MikoIDE/
 └── tools/                              # Build and Development Tools
     ├── build.ts                        # Multi-project CMake build automation
     ├── clean.ts                        # Project cleanup utility
+    ├── cpplint.ts                      # C++ Linting Utility
     ├── prod.ts                         # Production build and packaging
     └── utils/                          # Build utilities
         ├── buildtobin.ts               # HTML to C++ binary converter
@@ -198,9 +199,9 @@ bun run build:cmake
 - `bun run iconconvert` - Convert PNG icons to ICO format
 
 #### Production Builds
-- `bun run build:win` - Complete development build
+- `bun run build:app` - Complete development build
 - `bun run tools/prod.ts --portable` - Build portable executable
-- `makensis shared\windows\installer.nsi` - Build with installer
+- `makensis shared\windows\installer.nsi` - Build with installer for Windows
 
 ### Project Structure Details
 
@@ -262,7 +263,7 @@ Custom build automation providing:
 ### Development Guidelines
 
 - Use **Bun.js** for all JavaScript/TypeScript operations
-- Use **CMake** for all C++ builds (MSVC on Windows)
+- Use **CMake** for all C++ builds (MSVC on Windows and GCC/Clang on Linux)
 - Follow existing code style and conventions
 - Add tests for new features
 - Update documentation as needed
