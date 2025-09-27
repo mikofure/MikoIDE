@@ -1,20 +1,27 @@
 #include "renderer_factory.hpp"
-#include "windows/dx11_renderer.hpp"
 
 #include <iostream>
 
 #ifdef _WIN32
-    #include <windows.h>
-    #include <d3d11.h>
-    #pragma comment(lib, "d3d11.lib")
+#include "windows/dx11_renderer.hpp"
+#include <windows.h>
+#include <d3d11.h>
+#pragma comment(lib, "d3d11.lib")
 #endif
 
-#ifdef __linux__
-    #include <GL/gl.h>
-    #include <vulkan/vulkan.h>
-    #include <dlfcn.h>
-    #include "linux/opengl_renderer.hpp"
-    #include "linux/vulkan_renderer.hpp"
+#if defined(__linux__)
+#if __has_include(<GL/gl.h>)
+#include <GL/gl.h>
+#define HYPERION_HAS_GL_HEADER 1
+#endif
+#if __has_include(<vulkan/vulkan.h>)
+#include <vulkan/vulkan.h>
+#define HYPERION_HAS_VULKAN_HEADER 1
+#endif
+#if __has_include(<dlfcn.h>)
+#include <dlfcn.h>
+#define HYPERION_HAS_DLFCN 1
+#endif
 #endif
 
 std::unique_ptr<IRenderer> RendererFactory::CreateRenderer(
@@ -244,7 +251,7 @@ std::unique_ptr<IRenderer> RendererFactory::CreateDirectX11Renderer() {
 }
 
 std::unique_ptr<IRenderer> RendererFactory::CreateOpenGLRenderer() {
-#ifdef __linux__
+#if defined(__linux__) && defined(HYPERION_HAS_LINUX_OPENGL)
     try {
         return std::make_unique<OpenGLRenderer>();
     } catch (const std::exception& e) {
@@ -258,7 +265,7 @@ std::unique_ptr<IRenderer> RendererFactory::CreateOpenGLRenderer() {
 }
 
 std::unique_ptr<IRenderer> RendererFactory::CreateVulkanRenderer() {
-#ifdef __linux__
+#if defined(__linux__) && defined(HYPERION_HAS_LINUX_VULKAN)
     try {
         return std::make_unique<VulkanRenderer>();
     } catch (const std::exception& e) {
@@ -303,7 +310,7 @@ bool RendererFactory::CheckDirectX11Support() {
 }
 
 bool RendererFactory::CheckOpenGLSupport() {
-#ifdef __linux__
+#if defined(__linux__) && defined(HYPERION_HAS_DLFCN)
     // On Linux, we assume OpenGL is available if we can load the library
     void* handle = dlopen("libGL.so.1", RTLD_LAZY);
     if (handle) {
@@ -325,7 +332,7 @@ bool RendererFactory::CheckOpenGLSupport() {
 }
 
 bool RendererFactory::CheckVulkanSupport() {
-#ifdef __linux__
+#if defined(__linux__) && defined(HYPERION_HAS_VULKAN_HEADER) && defined(HYPERION_HAS_DLFCN)
     // Try to load Vulkan library and create an instance
     void* handle = dlopen("libvulkan.so.1", RTLD_LAZY);
     if (!handle) {

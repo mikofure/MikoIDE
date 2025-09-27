@@ -73,7 +73,7 @@ public:
   void MoveCursorRelative(int dx, int dy);
 
   std::vector<std::string> GetLines() const;
-  std::vector<std::vector<TerminalCell>> GetBuffer() const;
+  const std::vector<std::vector<TerminalCell>> &GetBuffer() const;
   std::pair<int, int> GetCursorPosition() const;
 
   void Clear();

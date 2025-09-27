@@ -1,6 +1,9 @@
 #include "linuxplatform.hpp"
 #include <SDL3/SDL.h>
+#if __has_include(<SDL3/SDL_syswm.h>)
 #include <SDL3/SDL_syswm.h>
+#define HYPERION_HAS_SDL_SYSWM 1
+#endif
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
 #include <iostream>
@@ -22,36 +25,40 @@ bool LinuxPlatformWindow::Initialize(SDL_Window* sdl_window) {
     if (!sdl_window) {
         return false;
     }
-    
+
+#ifndef HYPERION_HAS_SDL_SYSWM
+    (void)sdl_window;
+    std::cerr << "SDL syswm.h not available; cannot query native window info." << std::endl;
+    return false;
+#else
     sdl_window_ = sdl_window;
-    
-    // Get X11 window and display from SDL
+
     SDL_SysWMinfo wm_info;
     SDL_VERSION(&wm_info.version);
-    
+
     if (!SDL_GetWindowWMInfo(sdl_window_, &wm_info)) {
         std::cerr << "Failed to get X11 window info from SDL: " << SDL_GetError() << std::endl;
         return false;
     }
-    
+
     if (wm_info.subsystem != SDL_SYSWM_X11) {
         std::cerr << "Not running on X11" << std::endl;
         return false;
     }
-    
+
     x11_display_ = wm_info.info.x11.display;
     x11_window_ = wm_info.info.x11.window;
-    
+
     if (!x11_display_ || !x11_window_) {
         std::cerr << "Failed to get X11 display or window" << std::endl;
         return false;
     }
-    
-    // Initialize X11 properties
+
     InitializeX11Properties();
     UpdateDPIScale();
-    
+
     return true;
+#endif
 }
 
 void LinuxPlatformWindow::Shutdown() {

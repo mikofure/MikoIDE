@@ -145,7 +145,7 @@ endif()
 # -------------------------------------------------
 # Logical CEF targets
 # -------------------------------------------------
-if(OS_WINDOWS)
+if(WIN32)
     add_library(libcef_lib SHARED IMPORTED)
     set_target_properties(libcef_lib PROPERTIES
         IMPORTED_LOCATION          "${CEF_ROOT}/Release/libcef.dll"
@@ -154,6 +154,12 @@ if(OS_WINDOWS)
         IMPORTED_IMPLIB            "${CEF_ROOT}/Release/libcef.lib"
         IMPORTED_IMPLIB_DEBUG      "${CEF_ROOT}/Debug/libcef.lib"
         IMPORTED_IMPLIB_RELEASE    "${CEF_ROOT}/Release/libcef.lib"
+    )
+    add_subdirectory("${CEF_ROOT}/libcef_dll" libcef_dll_wrapper)
+elseif(UNIX AND NOT APPLE)
+    add_library(libcef_lib SHARED IMPORTED)
+    set_target_properties(libcef_lib PROPERTIES
+        IMPORTED_LOCATION "${CEF_ROOT}/Release/libcef.so"
     )
     add_subdirectory("${CEF_ROOT}/libcef_dll" libcef_dll_wrapper)
 endif()
@@ -318,28 +324,27 @@ set_target_properties(mikowebhelper PROPERTIES
 target_link_libraries(${PROJECT_NAME}
     SDL3::SDL3
     SDL3::SDL3-shared
-    libcef_lib
-    libcef_dll_wrapper
     ${CEF_STANDARD_LIBS}
 )
 
 if(WIN32)
     target_link_libraries(${PROJECT_NAME}
+        libcef_lib
+        libcef_dll_wrapper
         d2d1 dwrite d3d11 dxgi windowscodecs
         dwmapi shell32 ole32
         msvcrt
     )
-endif()
-
-if(UNIX AND NOT APPLE)
+elseif(UNIX AND NOT APPLE)
     target_link_libraries(${PROJECT_NAME}
-        vulkan
+        ${CEF_ROOT}/Release/libcef.so
+        libcef_dll_wrapper
         X11
     )
-    
+
     # Enable exceptions for Linux builds
     target_compile_options(${PROJECT_NAME} PRIVATE -fexceptions)
-    
+
     if(GTK3_FOUND)
         target_link_libraries(${PROJECT_NAME} ${GTK3_LIBRARIES})
         target_include_directories(${PROJECT_NAME} PRIVATE ${GTK3_INCLUDE_DIRS})
@@ -348,10 +353,20 @@ if(UNIX AND NOT APPLE)
 endif()
 
 target_link_libraries(mikowebhelper
-    libcef_lib
-    libcef_dll_wrapper
     ${CEF_STANDARD_LIBS}
 )
+
+if(WIN32)
+    target_link_libraries(mikowebhelper
+        libcef_lib
+        libcef_dll_wrapper
+    )
+elseif(UNIX AND NOT APPLE)
+    target_link_libraries(mikowebhelper
+        libcef_lib
+        libcef_dll_wrapper
+    )
+endif()
 
 target_link_libraries(mikoterminal
     SDL3::SDL3

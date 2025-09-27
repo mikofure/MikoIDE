@@ -94,7 +94,7 @@ SDL3Window::SDL3Window()
       drag_start_y_(0), window_start_x_(0), window_start_y_(0),
       cross_platform_renderer_(nullptr), dpi_scale_(1.0f),
       menu_overlay_visible_(false), menu_overlay_x_(0), menu_overlay_y_(0),
-      editor_enabled_(false), editor_rect_({0, 0, 0, 0}),
+      editor_enabled_(false), editor_rect_(0, 0, 0, 0),
       editor_browser_(nullptr), editor_texture_(nullptr),
       editor_has_focus_(false), main_browser_has_focus_(true) {}
 

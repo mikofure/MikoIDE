@@ -1,5 +1,9 @@
 #include "dx11_renderer.hpp"
 
+#ifndef _WIN32
+// DirectX 11 renderer implementation is only available on Windows builds.
+#else
+
 
 
 #include "../../utils/logger.hpp"
@@ -1150,48 +1154,90 @@ bool DX11Renderer::CreateDeviceInternal(bool preferHighPerformance) {
 
 
 
-bool DX11Renderer::CreateSwapChain() {
-  DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
-  swapChainDesc.Width = width_;
-  swapChainDesc.Height = height_;
-  swapChainDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-  swapChainDesc.Stereo = FALSE;
-  swapChainDesc.SampleDesc.Count = multiSampleCount_;
-  swapChainDesc.SampleDesc.Quality = 0;
-  swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-  swapChainDesc.BufferCount = 2;
-  swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
-  swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-  swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
-  swapChainDesc.Flags = 0;
-
-  HRESULT hr = factory_->CreateSwapChainForHwnd(
-      device_.Get(), hwnd_, &swapChainDesc, nullptr, nullptr, &swapChain_);
-
-  if (FAILED(hr)) {
-    LogError("CreateSwapChainForHwnd failed", hr);
-    if (using_high_performance_adapter_) {
-      Logger::LogMessage("DX11Renderer: Swap chain creation failed on high-performance adapter, retrying with default adapter");
-      if (context_) {
-        context_->ClearState();
-      }
-      swapChain_.Reset();
-      factory_.Reset();
-      context_.Reset();
-      device_.Reset();
-      if (!CreateDeviceInternal(false)) {
-        return false;
-      }
-      return CreateSwapChain();
-    }
-    return false;
-  }
-
-  factory_->MakeWindowAssociation(hwnd_, DXGI_MWA_NO_ALT_ENTER);
-
-  return true;
-}
-
+bool DX11Renderer::CreateSwapChain() {
+
+  DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
+
+  swapChainDesc.Width = width_;
+
+  swapChainDesc.Height = height_;
+
+  swapChainDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+
+  swapChainDesc.Stereo = FALSE;
+
+  swapChainDesc.SampleDesc.Count = multiSampleCount_;
+
+  swapChainDesc.SampleDesc.Quality = 0;
+
+  swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+
+  swapChainDesc.BufferCount = 2;
+
+  swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
+
+  swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+
+  swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
+
+  swapChainDesc.Flags = 0;
+
+
+
+  HRESULT hr = factory_->CreateSwapChainForHwnd(
+
+      device_.Get(), hwnd_, &swapChainDesc, nullptr, nullptr, &swapChain_);
+
+
+
+  if (FAILED(hr)) {
+
+    LogError("CreateSwapChainForHwnd failed", hr);
+
+    if (using_high_performance_adapter_) {
+
+      Logger::LogMessage("DX11Renderer: Swap chain creation failed on high-performance adapter, retrying with default adapter");
+
+      if (context_) {
+
+        context_->ClearState();
+
+      }
+
+      swapChain_.Reset();
+
+      factory_.Reset();
+
+      context_.Reset();
+
+      device_.Reset();
+
+      if (!CreateDeviceInternal(false)) {
+
+        return false;
+
+      }
+
+      return CreateSwapChain();
+
+    }
+
+    return false;
+
+  }
+
+
+
+  factory_->MakeWindowAssociation(hwnd_, DXGI_MWA_NO_ALT_ENTER);
+
+
+
+  return true;
+
+}
+
+
+
 bool DX11Renderer::CreateRenderTargets() {
 
 
@@ -4096,3 +4142,5 @@ void DX11Renderer::SetDirtyRegion(int x, int y, int width, int height) {
 
 
 
+
+#endif // _WIN32

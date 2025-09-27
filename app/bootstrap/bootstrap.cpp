@@ -164,23 +164,28 @@ bool Bootstrap::ValidateZipFile(const std::filesystem::path &zipPath) {
 }
 
 std::filesystem::path Bootstrap::GetAppDirectory() {
+#ifdef _WIN32
   wchar_t exePath[MAX_PATH];
   DWORD result = GetModuleFileNameW(nullptr, exePath, MAX_PATH);
   if (result == 0 || result == MAX_PATH) {
-    // Fallback to current directory only as last resort
-    Logger::LogMessage(
-        "Warning: Failed to get executable path, using current directory");
+    Logger::LogMessage("Warning: Failed to get executable path, using current directory");
     return std::filesystem::current_path();
   }
 
   std::filesystem::path path(exePath);
   return path.parent_path();
+#else
+  return std::filesystem::current_path();
+#endif
 }
 
 // Initialize D2D1 and DWrite
 void Bootstrap::InitializeGraphics() {
-  // Initialize COM for D2D1 and DWrite
+#ifdef _WIN32
   CoInitialize(nullptr);
+#else
+  // No graphics initialization required on this platform.
+#endif
 }
 
 // Get CEF helper download URL from config
@@ -221,6 +226,8 @@ void Bootstrap::UpdateProgress(int percentage, const std::string &status,
 
 // Get file size from URL
 size_t Bootstrap::GetRemoteFileSize(const std::string &url) {
+#ifdef _WIN32
+
   HINTERNET hInternet = InternetOpenA(
       "MikoIDE Bootstrap", INTERNET_OPEN_TYPE_PRECONFIG, nullptr, nullptr, 0);
   if (!hInternet) {
@@ -243,10 +250,18 @@ size_t Bootstrap::GetRemoteFileSize(const std::string &url) {
   InternetCloseHandle(hInternet);
 
   return static_cast<size_t>(contentLength);
+
+#else
+  (void)url;
+  return 0;
+#endif
 }
+
 
 // Download file chunk for multi-connection downloads
 bool Bootstrap::DownloadChunk(const std::string &url, ::DownloadChunk &chunk) {
+#ifdef _WIN32
+
   HINTERNET hInternet = InternetOpenA(
       "MikoIDE Bootstrap", INTERNET_OPEN_TYPE_PRECONFIG, nullptr, nullptr, 0);
   if (!hInternet) {
@@ -343,8 +358,17 @@ bool Bootstrap::DownloadChunk(const std::string &url, ::DownloadChunk &chunk) {
   chunk.failed = !chunk.completed;
 
   return chunk.completed;
+
+#else
+  (void)url;
+  chunk.failed = true;
+  return false;
+#endif
 }
+
 bool Bootstrap::ShowModernDownloadDialog(PlatformInstance hInstance, PlatformWindow hParent) {
+#ifdef _WIN32
+
   // Initialize platform UI if not already done
   UIFactory::InitializePlatform();
   
@@ -357,12 +381,21 @@ bool Bootstrap::ShowModernDownloadDialog(PlatformInstance hInstance, PlatformWin
 
   s_modern_dialog->Show();
   return true;
+
+#else
+  (void)hInstance;
+  (void)hParent;
+  return false;
+#endif
 }
+
 
 // Download file with progress callback (multi-connection support)
 bool Bootstrap::DownloadFile(const std::string &url,
-                             const std::filesystem::path &destination,
-                             ProgressCallback callback) {
+                           const std::filesystem::path &destination,
+                           ProgressCallback callback) {
+#ifdef _WIN32
+
   Logger::LogMessage("Starting multi-connection download from: " + url);
 
   // Get file size first
@@ -483,12 +516,22 @@ bool Bootstrap::DownloadFile(const std::string &url,
   callback(100, "Download completed", fileSize, fileSize);
   Logger::LogMessage("Multi-connection download completed successfully");
   return true;
+
+#else
+  (void)url;
+  (void)destination;
+  if (callback) {
+    callback(0, "Downloads not supported on this platform", 0, 0);
+  }
+  return false;
+#endif
 }
 
+
 // Fallback single connection download
-bool Bootstrap::DownloadFileSingle(const std::string &url,
-                                   const std::filesystem::path &destination,
-                                   ProgressCallback callback) {
+bool Bootstrap::DownloadFileSingle(const std::string &url, const std::filesystem::path &destination, ProgressCallback callback) {
+#ifdef _WIN32
+
   HINTERNET hInternet = InternetOpenA(
       "MikoIDE Bootstrap", INTERNET_OPEN_TYPE_PRECONFIG, nullptr, nullptr, 0);
   if (!hInternet) {
@@ -561,12 +604,24 @@ bool Bootstrap::DownloadFileSingle(const std::string &url,
 
   callback(100, "Download completed", totalBytesRead, contentLength);
   return true;
+
+#else
+  (void)url;
+  (void)destination;
+  if (callback) {
+    callback(0, "Downloads not supported on this platform", 0, 0);
+  }
+  return false;
+#endif
 }
+
 
 // Extract ZIP file with progress callback (using minizip-ng)
 bool Bootstrap::ExtractZipWithUnzip(const std::filesystem::path &zipPath,
-                                    const std::filesystem::path &extractPath,
-                                    ProgressCallback callback) {
+                                  const std::filesystem::path &extractPath,
+                                  ProgressCallback callback) {
+#ifdef _WIN32
+
   Logger::LogMessage("Starting ZIP extraction using unzip.exe");
 
   try {
@@ -718,7 +773,17 @@ bool Bootstrap::ExtractZipWithUnzip(const std::filesystem::path &zipPath,
                        std::string(e.what()));
     return false;
   }
+
+#else
+  (void)zipPath;
+  (void)extractPath;
+  if (callback) {
+    callback(0, "Extraction not supported on this platform", 0, 0);
+  }
+  return false;
+#endif
 }
+
 
 bool Bootstrap::ExtractZip(const std::filesystem::path &zipPath,
                            const std::filesystem::path &extractPath,
@@ -729,6 +794,8 @@ bool Bootstrap::ExtractZip(const std::filesystem::path &zipPath,
 
 // Check if CEF helper exists and download if necessary
 bool Bootstrap::DownloadUnzipBinary() {
+#ifdef _WIN32
+
   Logger::LogMessage("Bootstrap: Downloading unzip.exe...");
 
   // Get paths
@@ -773,10 +840,16 @@ bool Bootstrap::DownloadUnzipBinary() {
 
   Logger::LogMessage("Bootstrap: unzip.exe downloaded successfully");
   return true;
+
+#else
+  return false;
+#endif
 }
 
-BootstrapResult Bootstrap::CheckAndDownloadCEFHelper(PlatformInstance hInstance,
-                                                     PlatformWindow hParent) {
+
+BootstrapResult Bootstrap::CheckAndDownloadCEFHelper(PlatformInstance hInstance, PlatformWindow hParent) {
+#ifdef _WIN32
+
   Logger::LogMessage("Bootstrap: Checking CEF helper...");
 
   // Reset completion flags
@@ -971,10 +1044,19 @@ BootstrapResult Bootstrap::CheckAndDownloadCEFHelper(PlatformInstance hInstance,
   Logger::LogMessage(
       "Bootstrap: CEF helper downloaded and extracted successfully");
   return BootstrapResult::SUCCESS;
+
+#else
+  (void)hInstance;
+  (void)hParent;
+  return BootstrapResult::SUCCESS;
+#endif
 }
+
 
 // Relaunch application
 bool Bootstrap::RelaunchApplication() {
+#ifdef _WIN32
+
   wchar_t exePath[MAX_PATH];
   DWORD result = GetModuleFileNameW(nullptr, exePath, MAX_PATH);
   if (result == 0 || result == MAX_PATH) {
@@ -993,7 +1075,12 @@ bool Bootstrap::RelaunchApplication() {
   }
 
   return false;
+
+#else
+  return false;
+#endif
 }
+
 
 // Helper functions implementation
 namespace BootstrapUtils {

@@ -4,6 +4,8 @@
 #include <functional>
 #include <string>
 #include <thread>
+
+#ifdef _WIN32
 #include <windows.h>
 
 class ProcessManager {
@@ -42,3 +44,28 @@ private:
 
   std::string m_outputBuffer;
 };
+#else
+
+class ProcessManager {
+public:
+  using OutputCallback = std::function<void(const std::string &)>;
+
+  ProcessManager();
+  ~ProcessManager();
+
+  bool Initialize(const std::string &command);
+  void Shutdown();
+
+  void SendInput(const std::string &input);
+  void Update();
+
+  void SetOutputCallback(OutputCallback callback);
+
+  bool IsRunning() const;
+
+private:
+  std::atomic<bool> m_running;
+  OutputCallback m_outputCallback;
+};
+#endif
+

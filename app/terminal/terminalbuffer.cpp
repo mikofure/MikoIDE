@@ -37,16 +37,11 @@ RGBColor::RGBColor(int ansiColor) {
 
 TerminalBuffer::TerminalBuffer()
     : m_cols(80), m_rows(25), m_cursorX(0), m_cursorY(0),
-      m_inEscapeSequence(false), m_scrollTop(0), m_scrollBottom(24),
-      m_currentForeground(192, 192, 192) // Light gray
-      ,
-      m_currentBackground(0, 0, 0) // Black
-      ,
+      m_currentForeground(192, 192, 192), m_currentBackground(0, 0, 0),
       m_currentFontWeight(FontWeight::Normal), m_currentUnderline(false),
       m_currentItalic(false), m_currentStrikethrough(false),
-      m_promptEndX(-1) // -1 means no prompt protection
-      ,
-      m_promptEndY(-1) {}
+      m_inEscapeSequence(false), m_scrollTop(0), m_scrollBottom(24),
+      m_promptEndX(-1), m_promptEndY(-1) {}
 
 TerminalBuffer::~TerminalBuffer() {}
 
@@ -111,7 +106,7 @@ void TerminalBuffer::ProcessCharacter(char c) {
     m_escapeBuffer += c;
 
     // Check if sequence is complete
-    if (c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z') {
+    if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) {
       ProcessEscapeSequence(m_escapeBuffer);
       m_escapeBuffer.clear();
       m_inEscapeSequence = false;
@@ -516,7 +511,8 @@ std::vector<std::string> TerminalBuffer::GetLines() const {
   return lines;
 }
 
-std::vector<std::vector<TerminalCell>> TerminalBuffer::GetBuffer() const {
+const std::vector<std::vector<TerminalCell>> &
+TerminalBuffer::GetBuffer() const {
   return m_buffer;
 }
 

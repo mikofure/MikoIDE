@@ -3,13 +3,37 @@
 #include "client.hpp"
 #include "offscreenrender.hpp"
 #include "windowed.hpp"
-
+#include <algorithm>
+#include <cstdlib>
+#ifndef _WIN32
+#include <unistd.h>
+#endif
 
 #ifdef _WIN32
 // Windows API includes
 #include <shellapi.h>
 #include <windows.h>
 #endif
+
+namespace {
+
+void OpenURLInDefaultBrowser(const std::string &url) {
+#ifdef _WIN32
+  ShellExecuteA(nullptr, "open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+#elif defined(__APPLE__)
+  std::string command = "open \"" + url + "\"";
+  [[maybe_unused]] const int result = std::system(command.c_str());
+#else
+  std::string command = "xdg-open \"" + url + "\"";
+  [[maybe_unused]] const int result = std::system(command.c_str());
+#endif
+}
+
+constexpr int kVirtualKeyF5 = 0x74;
+constexpr int kVirtualKeyF11 = 0x7A;
+constexpr int kVirtualKeyF12 = 0x7B;
+
+} // namespace
 
 bool HyperionClient::OnCursorChange(CefRefPtr<CefBrowser> browser,
                                     CefCursorHandle cursor,
@@ -609,8 +633,7 @@ bool HyperionClient::OnOpenURLFromTab(
       target_disposition == 6) { // WOD_NEW_WINDOW
 
     // Open in system default browser
-    ShellExecuteA(nullptr, "open", target_url.ToString().c_str(), nullptr,
-                  nullptr, SW_SHOWNORMAL);
+    OpenURLInDefaultBrowser(target_url.ToString());
     return true;
   }
 
@@ -637,8 +660,7 @@ bool HyperionClient::OnBeforePopup(
   CEF_REQUIRE_UI_THREAD();
 
   // Block popups and open in system browser instead
-  ShellExecuteA(nullptr, "open", target_url.ToString().c_str(), nullptr,
-                nullptr, SW_SHOWNORMAL);
+  OpenURLInDefaultBrowser(target_url.ToString());
   return true;
 }
 
@@ -666,6 +688,7 @@ void HyperionClient::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
     if (url.find("miko://menuoverlay/") == 0) {
       menu_overlay_browser_ = browser;
 
+#ifdef _WIN32
       HWND overlay_hwnd = browser->GetHost()->GetWindowHandle();
       if (overlay_hwnd) {
         // Apply transparency so only the menu content is visible
@@ -694,6 +717,10 @@ void HyperionClient::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
         Logger::LogMessage(
             "Failed to get overlay window handle for transparency");
       }
+#else
+      Logger::LogMessage(
+          "Menu overlay transparency handling is only implemented on Windows.");
+#endif
     }
   }
 }
@@ -841,7 +868,7 @@ bool HyperionClient::OnPreKeyEvent(CefRefPtr<CefBrowser> browser,
   // Handle keyboard shortcuts
   if (event.type == KEYEVENT_KEYDOWN) {
     // F11 for fullscreen toggle
-    if (event.windows_key_code == VK_F11) {
+    if (event.windows_key_code == kVirtualKeyF11) {
       if (window_) {
         if (window_->IsMaximized()) {
           window_->Restore();
@@ -853,12 +880,16 @@ bool HyperionClient::OnPreKeyEvent(CefRefPtr<CefBrowser> browser,
     }
 
     // F12 for developer tools
-    if (event.windows_key_code == VK_F12) {
+    if (event.windows_key_code == kVirtualKeyF12) {
       CefWindowInfo windowInfo;
       CefBrowserSettings settings;
 
       // Configure the window for DevTools
+#ifdef _WIN32
       windowInfo.SetAsPopup(nullptr, "DevTools");
+#else
+      CefString(&windowInfo.window_name) = "DevTools";
+#endif
       windowInfo.bounds.x = 100;
       windowInfo.bounds.y = 100;
       windowInfo.bounds.width = MIN_WINDOW_WIDTH;
@@ -871,7 +902,7 @@ bool HyperionClient::OnPreKeyEvent(CefRefPtr<CefBrowser> browser,
     // Ctrl+R or F5 for refresh
     if ((event.modifiers & EVENTFLAG_CONTROL_DOWN &&
          event.windows_key_code == 'R') ||
-        event.windows_key_code == VK_F5) {
+        event.windows_key_code == kVirtualKeyF5) {
       browser->Reload();
       return true;
     }
@@ -978,7 +1009,7 @@ void HyperionClient::OpenEditor(int x, int y, int width, int height) {
 
       // Create OSR browser for the editor
       CefWindowInfo window_info;
-      window_info.SetAsWindowless(nullptr); // Use OSR mode
+      window_info.SetAsWindowless(0); // Use OSR mode
 
       Logger::LogMessage("Editor OSR bounds - x: " + std::to_string(x) +
                          ", y: " + std::to_string(y) +
@@ -1047,6 +1078,7 @@ void HyperionClient::CloseEditor() {
 void HyperionClient::OpenMenuOverlay(const std::string &section, int x, int y,
                                      int width, int height) {
   CEF_REQUIRE_UI_THREAD();
+#ifdef _WIN32
 
   try {
     // Check if menu overlay is already active
@@ -1203,6 +1235,14 @@ void HyperionClient::OpenMenuOverlay(const std::string &section, int x, int y,
     Logger::LogMessage(
         "Unknown exception in OpenMenuOverlay (possibly 0xe06d7363)");
   }
+#else
+  (void)section;
+  (void)x;
+  (void)y;
+  (void)width;
+  (void)height;
+  Logger::LogMessage("Menu overlay is currently supported on Windows only.");
+#endif
 }
 
 void HyperionClient::CloseMenuOverlay() {
@@ -1303,19 +1343,27 @@ std::string HyperionClient::BuildOverlayURL(const std::string &section, int x,
   Logger::LogMessage("BuildOverlayURL called - section: " + section);
 
   // Get current process ID and other parameters for URL parameters
-  DWORD pid = GetCurrentProcessId();
+#ifdef _WIN32
+  const auto pid_value = static_cast<long long>(GetCurrentProcessId());
+#else
+  const auto pid_value = static_cast<long long>(::getpid());
+#endif
   int browser_id = -1;
   if (!browser_list_.empty()) {
     browser_id = browser_list_.front()->GetIdentifier();
   }
 
-  // Get screen dimensions
+#ifdef _WIN32
   int screen_width = GetSystemMetrics(SM_CXSCREEN);
   int screen_height = GetSystemMetrics(SM_CYSCREEN);
+#else
+  int screen_width = width > 0 ? width : 0;
+  int screen_height = height > 0 ? height : 0;
+#endif
   int create_flags = 4538634;
 
   Logger::LogMessage(
-      "Building miko:// URL with parameters - pid: " + std::to_string(pid) +
+      "Building miko:// URL with parameters - pid: " + std::to_string(pid_value) +
       ", browser_id: " + std::to_string(browser_id));
 
   // Use miko:// protocol to serve HTML directly from binary resources with
@@ -1323,7 +1371,7 @@ std::string HyperionClient::BuildOverlayURL(const std::string &section, int x,
   std::string overlay_url =
       "miko://menuoverlay/index.html"
       "?createflags=" +
-      std::to_string(create_flags) + "&pid=" + std::to_string(pid) +
+      std::to_string(create_flags) + "&pid=" + std::to_string(pid_value) +
       "&browser=" + std::to_string(browser_id) +
       "&screenavailwidth=" + std::to_string(screen_width) +
       "&screenavailheight=" + std::to_string(screen_height) +

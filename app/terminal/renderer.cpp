@@ -1,6 +1,8 @@
 #include "renderer.hpp"
 #include "terminalbuffer.hpp"
 #include <SDL3/SDL.h>
+
+#ifdef _WIN32
 #include <iostream>
 
 DirectWriteRenderer::DirectWriteRenderer()
@@ -123,13 +125,14 @@ bool DirectWriteRenderer::CreateDeviceResources() {
     return false;
   }
 
-  // Create ANSI color brushes (16 standard colors) - removed, now using dynamic
-  // brush cache
-
   return true;
 }
 
 void DirectWriteRenderer::ReleaseDeviceResources() {
+  if (m_renderTarget) {
+    m_renderTarget->Release();
+    m_renderTarget = nullptr;
+  }
   if (m_textBrush) {
     m_textBrush->Release();
     m_textBrush = nullptr;
@@ -142,168 +145,87 @@ void DirectWriteRenderer::ReleaseDeviceResources() {
     m_cursorBrush->Release();
     m_cursorBrush = nullptr;
   }
-
-  if (m_renderTarget) {
-    m_renderTarget->Release();
-    m_renderTarget = nullptr;
-  }
+  ClearBrushCache();
 }
 
 bool DirectWriteRenderer::CreateTextFormat() {
-  HRESULT hr;
-
-  // Create normal text format
-  hr = m_writeFactory->CreateTextFormat(
-      m_fontName.c_str(), nullptr, DWRITE_FONT_WEIGHT_NORMAL,
+  HRESULT hr = m_writeFactory->CreateTextFormat(
+      m_fontName.c_str(), nullptr, DWRITE_FONT_WEIGHT_REGULAR,
       DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, m_fontSize,
       L"en-us", &m_textFormat);
 
   if (FAILED(hr)) {
-    std::wcerr << L"Failed to create text format with font: " << m_fontName
-               << std::endl;
-
-    // Fallback to Consolas if JetBrains Mono fails
-    hr = m_writeFactory->CreateTextFormat(
-        L"Consolas", nullptr, DWRITE_FONT_WEIGHT_NORMAL,
-        DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, m_fontSize,
-        L"en-us", &m_textFormat);
-
-    if (FAILED(hr)) {
-      std::wcerr << L"Failed to create fallback text format" << std::endl;
-      return false;
-    }
-
-    m_fontName = L"Consolas";
-    std::wcerr << L"Using fallback font: Consolas" << std::endl;
+    std::cerr << "Failed to create text format" << std::endl;
+    return false;
   }
 
-  // Create bold text format
+  // Create additional formats for attributes
   hr = m_writeFactory->CreateTextFormat(
       m_fontName.c_str(), nullptr, DWRITE_FONT_WEIGHT_BOLD,
       DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, m_fontSize,
       L"en-us", &m_boldTextFormat);
+
   if (FAILED(hr)) {
-    std::wcerr << L"Failed to create bold text format" << std::endl;
+    std::cerr << "Failed to create bold text format" << std::endl;
     return false;
   }
 
-  // Create italic text format
   hr = m_writeFactory->CreateTextFormat(
-      m_fontName.c_str(), nullptr, DWRITE_FONT_WEIGHT_NORMAL,
+      m_fontName.c_str(), nullptr, DWRITE_FONT_WEIGHT_REGULAR,
       DWRITE_FONT_STYLE_ITALIC, DWRITE_FONT_STRETCH_NORMAL, m_fontSize,
       L"en-us", &m_italicTextFormat);
+
   if (FAILED(hr)) {
-    std::wcerr << L"Failed to create italic text format" << std::endl;
+    std::cerr << "Failed to create italic text format" << std::endl;
     return false;
   }
 
-  // Create bold italic text format
   hr = m_writeFactory->CreateTextFormat(
       m_fontName.c_str(), nullptr, DWRITE_FONT_WEIGHT_BOLD,
       DWRITE_FONT_STYLE_ITALIC, DWRITE_FONT_STRETCH_NORMAL, m_fontSize,
       L"en-us", &m_boldItalicTextFormat);
+
   if (FAILED(hr)) {
-    std::wcerr << L"Failed to create bold italic text format" << std::endl;
+    std::cerr << "Failed to create bold italic text format" << std::endl;
     return false;
-  }
-
-  // Set text alignment for all formats
-  m_textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
-  m_textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
-  m_boldTextFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
-  m_boldTextFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
-  m_italicTextFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
-  m_italicTextFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
-  m_boldItalicTextFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
-  m_boldItalicTextFormat->SetParagraphAlignment(
-      DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
-
-  // Calculate character dimensions using a representative character
-  IDWriteTextLayout *textLayout = nullptr;
-  hr = m_writeFactory->CreateTextLayout(L"M", 1, m_textFormat, 1000.0f, 1000.0f,
-                                        &textLayout);
-
-  if (SUCCEEDED(hr)) {
-    DWRITE_TEXT_METRICS metrics;
-    textLayout->GetMetrics(&metrics);
-
-    // Use more precise character width calculation for monospace fonts
-    // For monospace fonts, we want the actual advance width, not including
-    // trailing whitespace
-    m_charWidth = metrics.width;
-    m_charHeight = metrics.height;
-
-    // Ensure minimum character dimensions for proper rendering
-    if (m_charWidth < 1.0f)
-      m_charWidth = 8.0f;
-    if (m_charHeight < 1.0f)
-      m_charHeight = 16.0f;
-
-    textLayout->Release();
-
-    std::wcout << L"Character dimensions: " << m_charWidth << L"x"
-               << m_charHeight << std::endl;
-  } else {
-    std::wcerr << L"Failed to calculate character dimensions" << std::endl;
-    // Use default dimensions if calculation fails
-    m_charWidth = m_fontSize * 0.6f;
-    m_charHeight = m_fontSize * 1.2f;
   }
 
   return true;
 }
 
 void DirectWriteRenderer::RenderTerminal(const TerminalBuffer &buffer) {
-  if (!m_renderTarget) {
-    if (!CreateDeviceResources()) {
-      return;
-    }
+  if (!m_renderTarget || !m_textFormat) {
+    return;
   }
 
   m_renderTarget->BeginDraw();
 
-  // Clear background with Hyperion theme background color (#1E1E1E)
-  m_renderTarget->Clear(D2D1::ColorF(0.118f, 0.118f, 0.118f, 1.0f));
+  // Clear with background color (dark theme)
+  m_renderTarget->Clear(D2D1::ColorF(0.07f, 0.07f, 0.07f, 1.0f));
 
-  // Get terminal buffer with color information
-  auto terminalBuffer = buffer.GetBuffer();
-  auto [cursorX, cursorY] = buffer.GetCursorPosition();
+  const auto &rows = buffer.GetBuffer();
 
-  // Render each cell with proper colors and attributes
-  for (size_t row = 0; row < terminalBuffer.size(); ++row) {
-    const auto &line = terminalBuffer[row];
-    for (size_t col = 0; col < line.size(); ++col) {
-      const auto &cell = line[col];
+  for (size_t row = 0; row < rows.size(); ++row) {
+    const auto &cells = rows[row];
+    float y = static_cast<float>(row) * m_charHeight;
 
-      if (cell.character != ' ' && cell.character != '\0') {
-        float x = static_cast<float>(col) * m_charWidth;
-        float y = static_cast<float>(row) * m_charHeight;
+    for (size_t col = 0; col < cells.size(); ++col) {
+      const auto &cell = cells[col];
+      float x = static_cast<float>(col) * m_charWidth;
 
-        // Convert character to wide string
-        std::wstring charStr(1, static_cast<wchar_t>(cell.character));
+      wchar_t wideChar = static_cast<wchar_t>(
+          static_cast<unsigned char>(cell.character)); // basic ASCII support
+      std::wstring text(1, wideChar);
 
-        // Determine text attributes
-        bool bold = (cell.fontWeight == FontWeight::Bold ||
-                     cell.fontWeight == FontWeight::SemiBold ||
-                     cell.fontWeight == FontWeight::ExtraBold ||
-                     cell.fontWeight == FontWeight::Black);
+      const bool isBold = cell.fontWeight == FontWeight::Bold ||
+                          cell.fontWeight == FontWeight::SemiBold ||
+                          cell.fontWeight == FontWeight::ExtraBold ||
+                          cell.fontWeight == FontWeight::Black;
 
-        // Render character with all attributes
-        RenderText(charStr, x, y, cell.foregroundColor, cell.backgroundColor,
-                   bold, cell.italic, cell.underline, cell.strikethrough);
-      }
+      RenderText(text, x, y, cell.foregroundColor, cell.backgroundColor,
+                 isBold, cell.italic, cell.underline, cell.strikethrough);
     }
   }
-
-  // Render cursor
-  float cursorPosX = static_cast<float>(cursorX) * m_charWidth;
-  float cursorPosY = static_cast<float>(cursorY) * m_charHeight;
-
-  D2D1_RECT_F cursorRect =
-      D2D1::RectF(cursorPosX, cursorPosY, cursorPosX + m_charWidth,
-                  cursorPosY + m_charHeight);
-
-  m_renderTarget->FillRectangle(cursorRect, m_cursorBrush);
 
   HRESULT hr = m_renderTarget->EndDraw();
 
@@ -311,7 +233,6 @@ void DirectWriteRenderer::RenderTerminal(const TerminalBuffer &buffer) {
     ReleaseDeviceResources();
   }
 
-  // Force window to redraw
   if (m_hwnd) {
     InvalidateRect(m_hwnd, nullptr, FALSE);
   }
@@ -326,15 +247,13 @@ void DirectWriteRenderer::RenderText(const std::wstring &text, float x, float y,
     return;
   }
 
-  // Get or create brushes for the colors
   ID2D1Brush *fgBrush = GetOrCreateBrush(fgColor);
   ID2D1Brush *bgBrush = GetOrCreateBrush(bgColor);
 
   if (!fgBrush || !bgBrush) {
-    return; // Failed to create brushes
+    return;
   }
 
-  // Select appropriate text format based on attributes
   IDWriteTextFormat *textFormat = m_textFormat;
   if (bold && italic) {
     textFormat = m_boldItalicTextFormat;
@@ -344,7 +263,6 @@ void DirectWriteRenderer::RenderText(const std::wstring &text, float x, float y,
     textFormat = m_italicTextFormat;
   }
 
-  // Draw background if different from default
   if (bgColor.r != 0 || bgColor.g != 0 || bgColor.b != 0) {
     D2D1_RECT_F bgRect =
         D2D1::RectF(x, y, x + static_cast<float>(text.length()) * m_charWidth,
@@ -352,14 +270,12 @@ void DirectWriteRenderer::RenderText(const std::wstring &text, float x, float y,
     m_renderTarget->FillRectangle(bgRect, bgBrush);
   }
 
-  // Create text layout for better text rendering control
   IDWriteTextLayout *textLayout = nullptr;
   HRESULT hr = m_writeFactory->CreateTextLayout(
       text.c_str(), static_cast<UINT32>(text.length()), textFormat,
       m_charWidth * text.length() + 1.0f, m_charHeight + 1.0f, &textLayout);
 
   if (SUCCEEDED(hr)) {
-    // Apply text decorations
     if (underline) {
       textLayout->SetUnderline(
           TRUE, DWRITE_TEXT_RANGE{0, static_cast<UINT32>(text.length())});
@@ -374,7 +290,6 @@ void DirectWriteRenderer::RenderText(const std::wstring &text, float x, float y,
 
     textLayout->Release();
   } else {
-    // Fallback to simple DrawText if layout creation fails
     D2D1_RECT_F layoutRect = D2D1::RectF(
         x, y, x + static_cast<float>(text.length()) * m_charWidth + 1.0f,
         y + m_charHeight + 1.0f);
@@ -400,18 +315,15 @@ ID2D1Brush *DirectWriteRenderer::GetOrCreateBrush(const RGBColor &color) {
     return nullptr;
   }
 
-  // Create a key for the color
   uint32_t colorKey = (static_cast<uint32_t>(color.r) << 16) |
                       (static_cast<uint32_t>(color.g) << 8) |
                       static_cast<uint32_t>(color.b);
 
-  // Check if brush already exists in cache
   auto it = m_brushCache.find(colorKey);
   if (it != m_brushCache.end()) {
     return it->second;
   }
 
-  // Create new brush
   ID2D1SolidColorBrush *brush = nullptr;
   D2D1_COLOR_F d2dColor =
       D2D1::ColorF(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, 1.0f);
@@ -433,3 +345,20 @@ void DirectWriteRenderer::ClearBrushCache() {
   }
   m_brushCache.clear();
 }
+
+#else
+
+DirectWriteRenderer::DirectWriteRenderer() : char_size_{8, 16} {}
+DirectWriteRenderer::~DirectWriteRenderer() = default;
+
+bool DirectWriteRenderer::Initialize(SDL_Window *) { return false; }
+void DirectWriteRenderer::Shutdown() {}
+
+void DirectWriteRenderer::RenderTerminal(const TerminalBuffer &) {}
+void DirectWriteRenderer::OnResize(int, int) {}
+
+std::pair<int, int> DirectWriteRenderer::GetCharacterSize() const {
+  return char_size_;
+}
+
+#endif
